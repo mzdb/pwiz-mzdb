@@ -1,0 +1,9 @@
+lib getopt_pp
+	: #sources 
+		getopt_pp.cpp
+	: #requirments
+		<include>include
+	: #default-build
+	: #usage-requirments
+		<include>include
+;

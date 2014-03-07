@@ -1,0 +1,93 @@
+/*
+ *   Continuous Wavelet Transform Library
+ *   Copyright (C) 2004-2009 Stepan V. Karpenko <carp@mail.ru>
+ *
+ *   This library is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public
+ *   License as published by the Free Software Foundation; either
+ *   version 2.1 of the License, or (at your option) any later version.
+ *
+ *   This library is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *   Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public
+ *   License along with this library; if not, write to the
+ *   Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ *   Boston, MA  02111-1307  USA
+ */
+
+#ifndef __CWTLIB_RANGE_FUNCTOR__
+#define __CWTLIB_RANGE_FUNCTOR__
+
+#include <string>
+#include "cwtlib_types"
+#include "cwtlib_config.h"
+
+
+__CWTLIB_BEGIN_NAMESPACE
+
+
+// Abstract range functor class
+class RangeFunctor {
+  private:
+    string _name;
+
+  protected:
+    RangeFunctor(const string& Name);
+    RangeFunctor(const RangeFunctor& Src);
+
+  public:
+    virtual ~RangeFunctor();
+
+    // starting value in range
+    virtual cwt_float_t start() const = 0;
+    // ending value in range
+    virtual cwt_float_t end() const = 0;
+    // total steps
+    virtual cwt_uint_t steps() const = 0;
+
+    // functor name
+    const string& name() const;
+
+    // used to obtain object clone
+    virtual RangeFunctor* clone() const = 0;
+
+    virtual cwt_float_t operator()(cwt_uint_t i) const = 0;
+};
+
+// Linear range functor class
+// (provides linear range of values)
+class LinearRangeFunctor: public RangeFunctor {
+  private:
+    cwt_float_t _start; // starting value
+    cwt_float_t _step;  // step
+    cwt_float_t _end;   // ending value
+    cwt_uint_t _steps;  // total steps count
+
+  public:
+    // LinearRangeFunctor constructor.
+    //
+    // Parameters:
+    //   Start  -  starting value;
+    //   Step   -  step size;
+    //   End    -  ending value (this will be recomputed inside to provide
+    //             ectual ending value according to given step size).
+    LinearRangeFunctor(cwt_float_t Start, cwt_float_t Step, cwt_float_t End);
+    LinearRangeFunctor(const LinearRangeFunctor& Src);
+
+    virtual cwt_float_t start() const;
+    cwt_float_t step() const;
+    virtual cwt_float_t end() const;
+    virtual cwt_uint_t steps() const;
+    
+    virtual RangeFunctor* clone() const;
+
+    virtual cwt_float_t operator()(cwt_uint_t i) const;
+};
+
+
+__CWTLIB_END_NAMESPACE
+
+#endif

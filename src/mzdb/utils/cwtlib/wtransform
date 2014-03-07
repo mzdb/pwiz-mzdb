@@ -1,0 +1,107 @@
+/*
+ *   Continuous Wavelet Transform Library
+ *   Copyright (C) 2004-2009 Stepan V. Karpenko <carp@mail.ru>
+ *
+ *   This library is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public
+ *   License as published by the Free Software Foundation; either
+ *   version 2.1 of the License, or (at your option) any later version.
+ *
+ *   This library is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *   Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public
+ *   License along with this library; if not, write to the
+ *   Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ *   Boston, MA  02111-1307  USA
+ */
+
+#ifndef __CWTLIB_WTRANSFORM__
+#define __CWTLIB_WTRANSFORM__
+
+#include <string>
+#include <stdexcept>
+#include "wavelet"
+#include "range_functor"
+#include "cwtlib_types"
+#include "cwtlib_config.h"
+
+
+__CWTLIB_BEGIN_NAMESPACE
+
+
+// CWT result class
+class WTransform {
+  private:
+    cwt_float_t *_re;             // real part of transform
+    cwt_float_t *_im;             // imaginary part of transform
+    cwt_uint_t _cols;             // columns number
+    cwt_uint_t _rows;             // rows number
+    string _name;                 // result name
+    Wavelet *_wavelet;            // mother wavelet used for transform
+    RangeFunctor *_scales;        // scales functor used
+    RangeFunctor *_translations;  // translations functor used
+
+  public:
+    // Constructor of WTransform object (in most cases used in CWT algorithms,
+    // but can be constructed manually).
+    //
+    // Parameters:
+    //   Scales         -  functor which provides scales sequence;
+    //   Translations   -  functor which provides translations sequence;
+    //   MotherWavelet  -  mother wavelet;
+    //   Name           -  object name.
+    WTransform(const RangeFunctor& Scales, const RangeFunctor& Translations,
+               const Wavelet& MotherWavelet, const string& Name = "");
+
+    WTransform(const WTransform& Src);
+
+    virtual ~WTransform();
+
+    // get real value for given row and column.
+    cwt_float_t re(cwt_uint_t row, cwt_uint_t col) const throw(out_of_range);
+    // set real value for given row and column.
+    void re(cwt_uint_t row, cwt_uint_t col, cwt_float_t v) throw(out_of_range);
+
+    // get imaginary value for given row and column.
+    cwt_float_t im(cwt_uint_t row, cwt_uint_t col) const throw(out_of_range);
+    // set imaginary value for given row and column.
+    void im(cwt_uint_t row, cwt_uint_t col, cwt_float_t v) throw(out_of_range);
+
+    // get magnitude for given row and column.
+    cwt_float_t mag(cwt_uint_t row, cwt_uint_t col) const throw(out_of_range);
+    // get angle for given row and column.
+    cwt_float_t ang(cwt_uint_t row, cwt_uint_t col) const throw(out_of_range);
+
+    // get result dimensions
+    cwt_uint_t rows() const;
+    cwt_uint_t cols() const;
+
+    // get result parameters
+    const Wavelet& motherWavelet() const;
+    const RangeFunctor& scales() const;
+    const RangeFunctor& translations() const;
+
+    // get/set result name
+    const string& getName() const;
+    void setName(const string& Name);
+
+    // assign another result object to this one
+    void assign(const WTransform& Src);
+
+    // used to obtain object clone
+    WTransform* clone() const;
+
+    // get data proxy for direct acces to internal data
+    ReDataProxy reData() const;
+    ImDataProxy imData() const;
+
+    WTransform& operator=(const WTransform& Src);
+};
+
+
+__CWTLIB_END_NAMESPACE
+
+#endif

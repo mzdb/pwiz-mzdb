@@ -1,0 +1,78 @@
+lib libgsl
+        :
+        : <file>../lib/gsl.lib
+        ;
+
+lib libgslcblas
+        :
+        : <file>../lib/gslcblas.lib
+        ;
+
+lib libgflags
+        :
+        : <file>../lib/libgflags.lib
+        ;
+
+lib libglog
+        :
+        : <file>../lib/libglog.lib
+        ;
+
+lib libcxsparse
+        :
+        : <file>../lib/CXSparse.lib
+        ;
+
+lib liblapack
+        :
+        : <file>../lib/liblapack.lib
+        ;
+
+lib libblas
+        :
+        : <file>../lib/libblas.lib
+        ;
+
+
+#lib libCHOLMOD
+#	:
+#	: <file>lib/CHOLMOD.lib
+#	;
+
+lib libceres
+        :
+        : <file>../lib/ceres.lib
+        ;
+
+
+lib mzdb_writer
+        : #sources
+            mzDBWriter.cpp
+            mzPeakFinderProxy.cpp
+            libceres
+
+        : #requirments
+            <include>.
+            <include>optimization
+            <include>msdata
+            <include>peak_picking
+            <include>../../../ceres
+            <include>../lib/glog
+            #<include>../lib/gflags
+            <library>../../../pwiz_tools/common
+            <library>../lib/snappy
+            <library>../utils
+
+        : <variant>release <link>static <cxxflags>"/Ox /Gy /GA" # /GF #default-build
+        : #usage-requirments
+            <include>.
+            <include>optimization
+            <include>msdata
+            <include>peak_picking
+            <include>../../../ceres
+            <include>../lib/glog
+            #<include>../lib/gflags
+            <library>../../../pwiz_tools/common
+            <library>../lib/snappy
+            <library>../utils
+;

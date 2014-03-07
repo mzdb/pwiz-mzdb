@@ -1,0 +1,213 @@
+/*
+ *   Continuous Wavelet Transform Library
+ *   Copyright (C) 2004-2009 Stepan V. Karpenko <carp@mail.ru>
+ *
+ *   This library is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public
+ *   License as published by the Free Software Foundation; either
+ *   version 2.1 of the License, or (at your option) any later version.
+ *
+ *   This library is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *   Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public
+ *   License along with this library; if not, write to the
+ *   Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ *   Boston, MA  02111-1307  USA
+ */
+
+#ifndef __CWTLIB_TYPES__
+#define __CWTLIB_TYPES__
+
+#include <cstring> // for memcpy() and memset()
+#include <stdexcept>
+#include "cwtlib_config.h"
+
+
+__CWTLIB_BEGIN_NAMESPACE
+
+
+// basic cwtlib types
+typedef int           cwt_int_t;
+typedef unsigned int  cwt_uint_t;
+typedef double        cwt_float_t;
+
+
+// data proxy template
+// used for access to internal object data
+template<class DATA>
+class BaseDataProxy {
+  private:
+    DATA *_data;
+    cwt_uint_t _size;
+
+  public:
+    BaseDataProxy()
+    {
+        _data = NULL;
+        _size = 0;
+    }
+
+    BaseDataProxy(DATA *Data, cwt_uint_t Size)
+    {
+        _data = Data;
+        _size = Size;
+    }
+
+    cwt_uint_t size()
+    {
+        return _size;
+    }
+
+    DATA& operator[](cwt_uint_t index)
+    {
+        if (index >= _size)
+            throw CWTLIB_EXCEPTION_OUT_OF_RANGE();
+        return _data[index];
+    }
+};
+
+
+// port of a vector with subscript range v[nl..nh] from
+// Numerical Recipes (www.nr.com)
+template<class NR_TYPE>
+class nr_vector {
+  private:
+    static const int NR_END = 1;
+    cwt_int_t _nl;
+    cwt_int_t _nh;
+    NR_TYPE *_data;
+
+  public:
+    // create empty vector
+    nr_vector()
+    {
+        _nl = 1; _nh = 0;
+        _data = NULL;
+    }
+
+    // create vector with subscript range [nl..nh]
+    nr_vector(cwt_int_t nl, cwt_int_t nh)
+    {
+        if (nl > nh)
+            throw CWTLIB_EXCEPTION_INVALID_ARG();
+        _nl = 1; _nh = 0;
+        _data = NULL;
+        reinit(nl, nh);
+    }
+
+    // copy constructor
+    nr_vector(const nr_vector& src)
+    {
+        _nl = 1; _nh = 0;
+        _data = NULL;
+        assign(src);
+    }
+
+    ~nr_vector()
+    {
+        clear();
+    }
+
+    // assign vector with another one
+    void assign(const nr_vector& src)
+    {
+        NR_TYPE *tmp;
+
+        if (&src == this) return;
+        // allocate new storage
+        tmp = new NR_TYPE[src._nh - src._nl + 1 + NR_END];
+        // clear current vector
+        clear();
+        // set new vector params
+        _nl = src._nl;
+        _nh = src._nh;
+        _data = tmp;
+        tmp = src._data + src._nl - NR_END;
+        // copy data
+        std::memcpy((void *)_data, (void *)tmp, (_nh - _nl + 1 + NR_END) * sizeof(NR_TYPE));
+        // update pointer
+        _data = _data - _nl + NR_END;
+    }
+
+    // reinit vector with new subscript range
+    void reinit(cwt_int_t nl, cwt_int_t nh)
+    {
+        if (nl <= nh) {
+            // allocate new storage
+            NR_TYPE *_tmp = new NR_TYPE[nh - nl + 1 + NR_END];
+            // clear current data if alloc was successful
+            clear();
+            // init storage with zeros
+            std::memset((void*)_tmp, 0, (nh - nl + 1 + NR_END) * sizeof(NR_TYPE));
+            // set params
+            _nh = nh;
+            _nl = nl;
+            _data = _tmp - _nl + NR_END;
+        } else {
+            // clear if reinit result is empty vector
+            clear();
+        }
+    }
+
+    // clear vector and set it empty
+    void clear()
+    {
+        if (_data != NULL) {
+            // set pointer with correct value
+            _data = _data + _nl - NR_END;
+            delete[] _data;
+            _data = NULL;
+            _nl = 1;
+            _nh = 0;
+        }
+    }
+
+    // first index
+    cwt_int_t low() const
+    {
+        return _nl;
+    }
+
+    // last index
+    cwt_int_t high() const
+    {
+        return _nh;
+    }
+
+    bool empty() const
+    {
+        if (_nl > _nh)
+            return true;
+        else
+            return false;
+    }
+
+    nr_vector& operator=(const nr_vector& src)
+    {
+        if (&src != this)
+            assign(src);
+        return *this;
+    }
+
+    NR_TYPE& operator[](cwt_int_t index)
+    {
+#if CWTLIB_DEBUG
+        if (index < _nl || index > _nh)
+            throw CWTLIB_EXCEPTION_OUT_OF_RANGE();
+#endif
+        return _data[index];
+    }
+};
+
+
+typedef BaseDataProxy<cwt_float_t> ReDataProxy; // Real data proxy
+typedef BaseDataProxy<cwt_float_t> ImDataProxy; // Imaginary data proxy
+typedef nr_vector<cwt_float_t> nr_vectorf;      // vector of floating point values
+
+
+__CWTLIB_END_NAMESPACE
+
+#endif

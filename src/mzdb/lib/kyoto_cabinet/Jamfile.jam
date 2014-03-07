@@ -1,0 +1,21 @@
+lib kyoto_cabinet
+	: #sources 
+		kccachedb.cc
+		kccompare.cc
+		kccompress.cc
+		kcdb.cc
+		kcfile.cc
+		kchashdb.cc
+		kcmap.cc
+		kcplantdb.cc
+		kcprotodb.cc
+		kcregex.cc
+		kcstashdb.cc
+		kcthread.cc
+		kcutil.cc
+		
+	: #requirments		
+	: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default-build
+	: #usage-requirments
+		<include>.
+;

@@ -1,0 +1,130 @@
+/*
+ *   Continuous Wavelet Transform Library
+ *   Copyright (C) 2004-2009 Stepan V. Karpenko <carp@mail.ru>
+ *
+ *   This library is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public
+ *   License as published by the Free Software Foundation; either
+ *   version 2.1 of the License, or (at your option) any later version.
+ *
+ *   This library is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *   Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public
+ *   License along with this library; if not, write to the
+ *   Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ *   Boston, MA  02111-1307  USA
+ */
+
+#ifndef __CWTLIB_SIGNAL__
+#define __CWTLIB_SIGNAL__
+
+#include <string>
+#include <stdexcept>
+#include "cwtlib_types"
+#include "cwtlib_config.h"
+
+
+__CWTLIB_BEGIN_NAMESPACE
+
+
+// Signal class
+class Signal {
+  private:
+    cwt_float_t *_re;    // real part
+    cwt_float_t *_im;    // imaginary part
+    cwt_uint_t _length;  // signal length (total samples count)
+    cwt_float_t _fs;     // sample frequency
+    string _name;        // signal name
+
+  public:
+    // Construct empty Signal object
+    Signal();
+
+    // Constructor of Signal object.
+    //
+    // Parameters:
+    //   Length  -  signal length;
+    //   Real    -  real part;
+    //   Imag    -  imaginary part;
+    //   Fs      -  sampling frequency;
+    //   Name    -  signal name.
+    Signal(cwt_uint_t Length, const cwt_float_t *Real = NULL,
+           const cwt_float_t *Imag = NULL, cwt_float_t Fs = 1.0,
+           const string& Name = "");
+
+    Signal(const Signal& Src);
+
+    virtual ~Signal();
+
+    // get real value for given index of a sample
+    cwt_float_t re(cwt_uint_t i) const throw(out_of_range);
+    // get real value for given time position of a sample
+    cwt_float_t re(cwt_float_t t) const throw(out_of_range);
+    // set real value for given index of a sample
+    void re(cwt_uint_t i, cwt_float_t v) throw(out_of_range);
+    // set real value for given time position of a sample
+    void re(cwt_float_t t, cwt_float_t v) throw(out_of_range);
+
+    // get imaginary value for given index of a sample
+    cwt_float_t im(cwt_uint_t i) const throw(out_of_range);
+    // get imaginary value for given time position of a sample
+    cwt_float_t im(cwt_float_t t) const throw(out_of_range);
+    // set imaginary value for given index of a sample
+    void im(cwt_uint_t i, cwt_float_t v) throw(out_of_range);
+    // set imaginary value for given time position of a sample
+    void im(cwt_float_t t, cwt_float_t v) throw(out_of_range);
+
+    // get magnitude for given index of a sample
+    cwt_float_t mag(cwt_uint_t i) const throw(out_of_range);
+    // get magnitude for given time position of a sample
+    cwt_float_t mag(cwt_float_t t) const throw(out_of_range);
+    // get angle for given index of a sample
+    cwt_float_t ang(cwt_uint_t i) const throw(out_of_range);
+    // get angle for given time position of a sample
+    cwt_float_t ang(cwt_float_t t) const throw(out_of_range);
+
+    // signal length in samples
+    cwt_uint_t length() const;
+    // signal length in time
+    cwt_float_t time() const;
+
+    // get/set signal name
+    const string& getName() const;
+    void setName(const string& Name);
+
+    // get/set signal sampling frequency
+    cwt_float_t getFs() const;
+    void setFs(cwt_float_t Fs);
+
+    // get/set sampling time step value
+    // (the same as sampling frequency)
+    cwt_float_t getDt() const;
+    void setDt(cwt_float_t Dt);
+
+    // assign another signal to this one
+    void assign(const Signal& Src);
+
+    // set new signal size.
+    // * if new size is less than current size,
+    //   signal will be truncated to new size.
+    // * if new size is greater than current size,
+    //   signal will be padded with zeros.
+    void resize(cwt_uint_t NewSize);
+
+    // used to obtain object clone
+    Signal* clone() const;
+
+    // get data proxy for direct acces to internal data
+    ReDataProxy reData() const;
+    ImDataProxy imData() const;
+
+    Signal& operator=(const Signal& Src);
+};
+
+
+__CWTLIB_END_NAMESPACE
+
+#endif

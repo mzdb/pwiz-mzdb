@@ -1,0 +1,16 @@
+lib snappy
+	: #sources 
+		snappy-c.cc
+		snappy-sinksource.cc
+		snappy-stubs-internal.cc
+		snappy.cc
+		
+	: #requirments
+		#<optimization>speed
+	
+		
+	: #<toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /Gr /GF" #<optimization>speed #default-build
+	: #usage-requirments
+		<include>.
+	
+;

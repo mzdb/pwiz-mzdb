@@ -1,0 +1,125 @@
+/*
+ *   Continuous Wavelet Transform Library
+ *   Copyright (C) 2004-2009 Stepan V. Karpenko <carp@mail.ru>
+ *
+ *   This library is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public
+ *   License as published by the Free Software Foundation; either
+ *   version 2.1 of the License, or (at your option) any later version.
+ *
+ *   This library is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *   Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public
+ *   License along with this library; if not, write to the
+ *   Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ *   Boston, MA  02111-1307  USA
+ */
+
+#ifndef __CWTLIB_WAVELET__
+#define __CWTLIB_WAVELET__
+
+#include <string>
+#include "cwtlib_types"
+#include "cwtlib_config.h"
+
+
+__CWTLIB_BEGIN_NAMESPACE
+
+
+// Abstract wavelet class
+class Wavelet {
+  private:
+    string _name;
+
+  protected:
+    Wavelet(const string& Name);
+    Wavelet(const Wavelet& Src);
+
+  public:
+    virtual ~Wavelet();
+
+    // real and imaginary part of a wavelet in Time Domain
+    virtual cwt_float_t reT(cwt_float_t t) const = 0;
+    virtual cwt_float_t imT(cwt_float_t t) const = 0;
+    // real and imaginary part of a wavelet in Frequency Domain
+    virtual cwt_float_t reF(cwt_float_t w) const = 0;
+    virtual cwt_float_t imF(cwt_float_t w) const = 0;
+
+    // central frequency
+    virtual cwt_float_t cFreq() const = 0;
+    // boundaries of effective support
+    virtual cwt_float_t effL() const = 0;
+    virtual cwt_float_t effR() const = 0;
+
+    // wavelet name
+    const string& name() const;
+
+    // used to obtain object clone
+    virtual Wavelet* clone() const = 0;
+};
+
+
+// Mexican Hat wavelet
+class MexicanHat: public Wavelet {
+  public:
+    // Construct Mexican Hat wavelet
+    MexicanHat();
+
+    MexicanHat(const MexicanHat& Src);
+
+    virtual cwt_float_t reT(cwt_float_t t) const;
+    virtual cwt_float_t imT(cwt_float_t t) const;
+    virtual cwt_float_t reF(cwt_float_t w) const;
+    virtual cwt_float_t imF(cwt_float_t w) const;
+
+    virtual cwt_float_t cFreq() const;
+    virtual cwt_float_t effL() const;
+    virtual cwt_float_t effR() const;
+
+    virtual Wavelet* clone() const;
+};
+
+
+// Complex Morlet wavelet
+class ComplexMorlet: public Wavelet {
+  private:
+    cwt_float_t _fc;    // central frequency
+    cwt_float_t _fb;    // bandwidth parameter
+    cwt_float_t _c;     // L2 norm
+    // effective support params
+    cwt_float_t _effl;
+    cwt_float_t _effr;
+
+  public:
+    // Construct Complex Morlet wavelet with default
+    // parameters.
+    ComplexMorlet();
+
+    // Construct Complex Morlet wavelet with user-provided
+    // parameters.
+    ComplexMorlet(cwt_float_t Fc, cwt_float_t Fb);
+
+    ComplexMorlet(const ComplexMorlet& Src);
+
+    virtual cwt_float_t reT(cwt_float_t t) const;
+    virtual cwt_float_t imT(cwt_float_t t) const;
+    virtual cwt_float_t reF(cwt_float_t w) const;
+    virtual cwt_float_t imF(cwt_float_t w) const;
+
+    // returns bandwidth parameter
+    cwt_float_t fBand() const;
+
+    virtual cwt_float_t cFreq() const;
+    virtual cwt_float_t effL() const;
+    virtual cwt_float_t effR() const;
+
+    virtual Wavelet* clone() const;
+};
+
+
+__CWTLIB_END_NAMESPACE
+
+#endif

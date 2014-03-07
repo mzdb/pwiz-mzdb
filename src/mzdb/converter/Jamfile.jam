@@ -1,0 +1,14 @@
+lib mzdb_converter
+: #sources
+    [ glob *.cpp ]
+
+: #requirments
+    <include>.
+    <library>../reader
+
+: <variant>release <link>static <cxxflags>"/Ox /Gy /GA" # /GF #default-build
+
+: #usage-requirments
+    <include>.
+    <library>../reader
+;

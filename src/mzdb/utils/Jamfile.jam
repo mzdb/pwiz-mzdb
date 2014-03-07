@@ -1,0 +1,27 @@
+lib mzdb_utils
+: #sources
+    [ glob *.cpp ]
+    lz4.c
+    lz4hc.c
+    [ glob cwtlib/*.cpp ]
+    [ glob glog/*.cpp ]
+
+: #requirments
+    <include>.
+    <include>./cwtlib
+    <library>../../../pwiz/data/msdata
+    <library>../../../pwiz/analysis/spectrum_processing
+    <library>../../../pwiz/analysis/peakdetect
+    <library>../lib/pugixml
+    <library>../lib/sqlite3
+
+: <variant>release <link>static <cxxflags>"/Ox /Gy /GA" #/Gr" #/GF #default-build
+
+: #usage-requirments
+    <include>.
+    <library>../../../pwiz/data/msdata
+    <library>../../../pwiz/analysis/spectrum_processing
+    <library>../../../pwiz/analysis/peakdetect
+    <library>../lib/pugixml
+    <library>../lib/sqlite3
+;

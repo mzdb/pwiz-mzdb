@@ -1,0 +1,135 @@
+/*
+ *   Continuous Wavelet Transform Library
+ *   Copyright (C) 2004-2009 Stepan V. Karpenko <carp@mail.ru>
+ *
+ *   This library is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public
+ *   License as published by the Free Software Foundation; either
+ *   version 2.1 of the License, or (at your option) any later version.
+ *
+ *   This library is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *   Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public
+ *   License along with this library; if not, write to the
+ *   Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ *   Boston, MA  02111-1307  USA
+ */
+
+#ifndef __CWTLIB_CWT_ALGORITHM__
+#define __CWTLIB_CWT_ALGORITHM__
+
+#include <string>
+#include "signal"
+#include "wavelet"
+#include "range_functor"
+#include "wtransform"
+#include "cwtlib_types"
+#include "cwtlib_config.h"
+
+
+__CWTLIB_BEGIN_NAMESPACE
+
+
+// Collection of CWT algorithms
+class CWTalgorithm {
+  public:
+
+    // CWT computation AS IS.
+    //
+    // Parameters:
+    //   s              -  source signal need to be transformed;
+    //   Scales         -  functor which provides scales sequence for
+    //                     transform;
+    //   Translations   -  functor which provides translations sequence for
+    //                     transform;
+    //   MotherWavelet  -  mother wavelet used in computations;
+    //   ivalp          -  used to add additional time steps when computing
+    //                     wavelet (affects precision);
+    //   Name           -  name which will be assigned to result object.
+    //
+    // Returns WTransform obect as a result.
+    static WTransform* cwt(const Signal& s, const RangeFunctor& Scales,
+            const RangeFunctor& Translations, const Wavelet& MotherWavelet,
+            cwt_uint_t ivalp = 8, const string& Name = "");
+
+    // CWT computation AS IS considering short-term nature of a wavelet
+    //
+    // Parameters:
+    //   s              -  source signal need to be transformed;
+    //   Scales         -  functor which provides scales sequence for
+    //                     transform;
+    //   Translations   -  functor which provides translations sequence for
+    //                     transform;
+    //   MotherWavelet  -  mother wavelet used in computations;
+    //   ivalp          -  used to add additional time steps when computing
+    //                     wavelet (affects precision);
+    //   Name           -  name which will be assigned to result object.
+    //
+    // Returns WTransform obect as a result.
+    static WTransform* cwto1(const Signal& s, const RangeFunctor& Scales,
+            const RangeFunctor& Translations, const Wavelet& MotherWavelet,
+            cwt_uint_t ivalp = 8, const string& Name = "");
+
+    // CWT computation AS IS considering short-term nature of a wavelet
+    // with its precompution.
+    //
+    // Parameters:
+    //   s              -  source signal need to be transformed;
+    //   Scales         -  functor which provides scales sequence for
+    //                     transform;
+    //   Translations   -  functor which provides translations sequence for
+    //                     transform;
+    //   MotherWavelet  -  mother wavelet used in computations;
+    //   ivalp          -  used to add additional time steps when computing
+    //                     wavelet (affects precision);
+    //   npoints        -  number of wavelet values for precompution
+    //                     (greater value - higher precision);
+    //   Name           -  name which will be assigned to result object.
+    //
+    // Returns WTransform obect as a result.
+    static WTransform* cwto2(const Signal& s, const RangeFunctor& Scales,
+            const RangeFunctor& Translations, const Wavelet& MotherWavelet,
+            cwt_uint_t ivalp = 8, cwt_uint_t npoints = 60000, const string& Name = "");
+
+    // CWT computation AS IS considering short-term nature of a wavelet
+    // with its precompution and dynamic adjusting ivalp parameter.
+    //
+    // Parameters:
+    //   s              -  source signal need to be transformed;
+    //   Scales         -  functor which provides scales sequence for
+    //                     transform;
+    //   Translations   -  functor which provides translations sequence for
+    //                     transform;
+    //   MotherWavelet  -  mother wavelet used in computations;
+    //   ivalp          -  used to add additional time steps when computing
+    //                     wavelet (affects precision);
+    //   npoints        -  number of wavelet values for precompution
+    //                     (greater value - higher precision);
+    //   Name           -  name which will be assigned to result object.
+    //
+    // Returns WTransform obect as a result.
+    static WTransform* cwto3(const Signal& s, const RangeFunctor& Scales,
+            const RangeFunctor& Translations, const Wavelet& MotherWavelet,
+            cwt_uint_t ivalp = 8, cwt_uint_t npoints = 60000, const string& Name = "");
+
+    // CWT computation using FFT (fast Fourier transform).
+    //
+    // Parameters:
+    //   s              -  source signal need to be transformed;
+    //   Scales         -  functor which provides scales sequence for
+    //                     transform;
+    //   MotherWavelet  -  mother wavelet used in computations;
+    //   Name           -  name which will be assigned to result object.
+    //
+    // Returns WTransform obect as a result.
+    static WTransform* cwtft(const Signal& s, const RangeFunctor& Scales,
+            const Wavelet& MotherWavelet, const string& Name = "");
+};
+
+
+__CWTLIB_END_NAMESPACE
+
+#endif
