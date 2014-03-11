@@ -1,7 +1,20 @@
 /*
-author: marco
-project: mzdb project
-*/
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//author marc.dubois@ipbs.fr
 
 #ifndef __PEAKFINDER__
 #define __PEAKFINDER__
@@ -64,7 +77,6 @@ private:
     }
 
 public:
-    static int counter;
 
     inline mzPeakFinderProxy() {}
 
@@ -93,9 +105,7 @@ public:
         } else { // current is CENTROID nothing to do
             effectiveMode = CENTROID;
             computeCentroids<mz_t, int_t>(s, results);
-
         }
-        //printf("currentMode:%d, wantedMode:%d, effectiveMode:%d\n", (int)currentMode, (int)wantedMode, (int)effectiveMode);
         return effectiveMode;
     }
 
@@ -110,15 +120,15 @@ public:
 
 
         switch (fileType) {
-            case pwiz::msdata::MS_ABI_WIFF_file :{
+            case pwiz::msdata::MS_ABI_WIFF_format :{
                 peakPickerParams.adaptiveBaselineAndNoise = true;
                 peakPickerParams.optimizationOpt = 0x01;
-                peakPickerParams.minSNR = 1.5;
+                peakPickerParams.minSNR = 0.5;
                 peakPickerParams.fwhm = TOF_FWHM;
                 mzPeakFinderWavelet::findPeaks(s, v, peakPickerParams);
                 break;
             }
-            case pwiz::msdata::MS_Thermo_RAW_file : {
+            case pwiz::msdata::MS_Thermo_RAW_format : {
                 //all default, ideal case
             //LOG(INFO) << "Thermo function";
                 peakPickerParams.adaptiveBaselineAndNoise = false;

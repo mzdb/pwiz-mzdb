@@ -96,11 +96,11 @@ public:
 /**
  * @brief The mzThermoMetadataExtractor class
  */
-class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMetadataExtractor, (int) pwiz::cv::MS_Thermo_RAW_file> {
+class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMetadataExtractor, (int) pwiz::cv::MS_Thermo_RAW_format> {
     pwiz::vendor_api::Thermo::RawFilePtr _rawfilePtr;
 
     public:
-    inline mzThermoMetadataExtractor(std::string& f) : mzAbstractMetadataExtractor< mzThermoMetadataExtractor, (int) pwiz::cv::MS_Thermo_RAW_file>(f),
+    inline mzThermoMetadataExtractor(std::string& f) : mzAbstractMetadataExtractor< mzThermoMetadataExtractor, (int) pwiz::cv::MS_Thermo_RAW_format>(f),
                                                   _rawfilePtr(pwiz::vendor_api::Thermo::RawFile::create(f)){
 
     }

@@ -1,8 +1,26 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//author marc.dubois@ipbs.fr
 
 /*
 BoundingBox class
 use to store minmz, maxmz, minrt, maxrt
  */
+
 #ifndef __BB__
 #define __BB__
 
@@ -10,82 +28,72 @@ use to store minmz, maxmz, minrt, maxrt
 #include <unordered_map>
 #include "pwiz/data/msdata/MSData.hpp"
 
-#include "types.h"
-//#include "mzBlobHandler.hpp"
 #include "../../utils/mzUtils.hpp"
+#include "mzPeak.hpp"
 
 namespace mzdb {
 using namespace std;
 
-template<class mz_t, class int_t>
+template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
 class PWIZ_API_DECL mzBoundingBox {
+
+    typedef std::shared_ptr<Centroid<h_mz_t, h_int_t> > HighResCentroidSPtr;
+    typedef std::shared_ptr<Centroid<l_mz_t, l_int_t> > LowResCentroidSPtr;
 
 protected:
 
     //both map can be null
-    map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& _peaksByScanIDs;
+    unique_ptr<map<int, vector<HighResCentroidSPtr> > > _highResPeaksByScanIDs;
+    unique_ptr<map<int, vector<LowResCentroidSPtr> > > _lowResPeaksByScanIDs;
 
-    Ownership _ownership;
-
-    float _mzmin, _mzmax, _rtmin, _rtmax; //use for descriptive filed no precision needed
+    float _mzmin, _mzmax, _rtmin, _rtmax; //use for descriptive field no precision needed
     int _runSliceIdx;
 
 
 public:
 
-    inline float mzmin() const throw() {
-        return _mzmin;
-    }
+    inline float mzmin() const throw() {return _mzmin;}
 
-    inline float mzmax() const throw() {
-        return _mzmax;
-    }
+    inline float mzmax() const throw() {return _mzmax;}
 
-    inline float rtmax() const throw() {
-        return _rtmax;
-    }
+    inline float rtmax() const throw() {return _rtmax;}
 
-    inline float rtmin() const throw() {
-        return _rtmin;
-    }
+    inline float rtmin() const throw() {return _rtmin;}
 
-    inline int runSliceIdx() const throw() {
-        return _runSliceIdx;
-    }
+    inline int runSliceIdx() const throw() {return _runSliceIdx;}
 
-    inline void setRunSliceIdx(int idx) throw() {
-        _runSliceIdx = idx;
-    }
+    inline void setRunSliceIdx(int idx) throw() {_runSliceIdx = idx;}
 
     inline bool isEmpty() const throw () {
-        return _peaksByScanIDs.empty();
+        return _highResPeaksByScanIDs->empty() && _lowResPeaksByScanIDs->empty();
     }
 
     /** */
-    inline mzBoundingBox( map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& h,
-                          Ownership ownership_):
-        _peaksByScanIDs(h), _runSliceIdx(0),
-        _rtmin(0), _rtmax(0), _mzmin(0), _mzmax(0), _ownership(ownership_) {
+    inline mzBoundingBox( unique_ptr<map<int, vector<HighResCentroidSPtr> > >&& h,
+                          unique_ptr<map<int, vector<LowResCentroidSPtr> > >&& l):
+        _highResPeaksByScanIDs(move(h)), _lowResPeaksByScanIDs(move(l)), _runSliceIdx(0),
+        _rtmin(0), _rtmax(0), _mzmin(0), _mzmax(0) {
 
     }
 
     /** */
     mzBoundingBox(int idx,
                   float height,
-                  map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& h,
-                  Ownership ownership_): _peaksByScanIDs(h), _ownership(ownership_) {
+                  unique_ptr<map<int, vector<HighResCentroidSPtr> > >& h,
+                  unique_ptr<map<int, vector<LowResCentroidSPtr> > >& l):
+        _highResPeaksByScanIDs(move(h)), _lowResPeaksByScanIDs(move(l)) {
 
         _mzmin = idx * height;
         _mzmax = _mzmin + height;
         _runSliceIdx = idx;
 
-        if ( ! _peaksByScanIDs.empty() ) {
+        if ( ! _highResPeaksByScanIDs->empty() || ! _lowResPeaksByScanIDs->empty()) {
             this->setRtBoundaries();
         }
     }
 
     /** */
-    inline mzBoundingBox(float mmin, float mmax,
+    /*inline mzBoundingBox(float mmin, float mmax,
                          float rmin, float rmax,
                          map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& h,
                          Ownership ownership):
@@ -93,6 +101,7 @@ public:
         _rtmin(rmin), _rtmax(rmax),
         _peaksByScanIDs(h),
         _runSliceIdx(0), _ownership(ownership) {}
+    */
 
     /** move constructor */
     /*inline mzBoundingBox(mzBoundingBox&& o):
@@ -110,39 +119,25 @@ public:
     }*/
 
 
-
-
     /**
      * @brief ~mzBoundingBox
      * Destruct map pointer if the bounding box has been
-     * constructed with the flag TAKE_OWNERSHIP
      * Else it is assumed that pointer will be automatically
      * be destroyed
      */
-    /*inline ~mzBoundingBox() {
-        if (_ownership == TAKE_OWNERSHIP) {
-            //delete centroid (belongs to spectrum)
-            for (auto it = _peaksByScanIDs.begin(); it != _peaksByScanIDs.end(); ++it) {
-                for (auto it_ = it->second.begin(); it_ != it->second.end(); ++it_) {
-                    delete (*it_);
-                }
-            }
-        }
-    }*/
+
 
     /**
      * @brief computeMzBounds
      */
-    void computeMzBounds() {
+    /*void computeMzBounds() {
         if (! _peaksByScanIDs.empty())
            this->setMzBoundaries();
-    }
-
-
-
+    }*/
 
     template<class mz_t, class int_t>
-    inline static int getByteLength(map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& m, map<int, DataMode>& dataModes) {
+    inline static int getByteLength(map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& m,
+                                    map<int, DataMode>& dataModes) {
         int sum = 0;
         for(auto it = m.begin(); it != m.end(); ++it ) {
             const int& idx = it->first;
@@ -156,53 +151,58 @@ public:
         return sum;
     }
 
-
+    /** */
     int getBytesVectorLength(map<int, DataMode>& dataModes) const {
         int sum = 0;
-        if ( ! _peaksByScanID.empty())
-            sum += mzBoundingBox::getByteLength<mz_t, int_t>(_peaksByScanIDs, dataModes);
+        if (! _highResPeaks->empty())
+            sum += mzBoundingBox::getByteLength<h_mz_t, h_int_t>(_highResPeaksByScanIDs, dataModes);
+        if (! _lowResPeaks->empty())
+            sum += mzBoundingBox::getByteLength<l_mz_t, l_int_t>(_lowResPeaksByScanIDs, dataModes);
         return sum;
     }
 
-
-    /**
-     * @brief asByteArray
-     * @param v
-     * @param dataModes
-     */
-
+    /** */
     void asByteArray(vector<byte>& v, map<int, DataMode>& dataModes) const {
-        for (auto it = this->_peaksByScanIDs.begin(); it != this->_peaksByScanIDs.end(); ++it) {
-            const int& idx = it->first;
-            DataMode& dm = dataModes[idx];
-            if (dm == FITTED)
-                insertFittedToBinaryVector<mz_t, int_t>(v, idx, _peaksByScanIDs);
-            else
-                insertCentroidToBinaryVector<mz_t, int_t>(v, idx, _peaksByScanIDs);
-
+        vector<pair<int, int> > o;
+        this->iterationOrder(o);
+        for (size_t i = 0; i < o.size(); ++i) {
+            const auto& p = o[i];
+            const int& idx = p.second;
+            auto& dm = dataModes[idx];
+            if (p.first == 1) {
+                // high res mode
+                if (dm == FITTED)
+                    insertFittedToBinaryVector<h_mz_t, h_int_t>(v, idx, *_highResPeaksByScanIDs);
+                else
+                    insertCentroidToBinaryVector<h_mz_t, h_int_t>(v, idx, *_highResPeaksByScanIDs);
+            } else {
+                // low res mode
+                if (dm == FITTED)
+                    insertFittedToBinaryVector<l_mz_t, l_int_t>(v, idx, *_lowResPeaksByScanIDs);
+                else
+                    insertCentroidToBinaryVector<l_mz_t, l_int_t>(v, idx, *_lowResPeaksByScanIDs);
+            }
         }
     }
 
-    /**
-     *TODOOOOOOOOOOOOOOOOOOOO
-     */
+    /** */
     template<typename mz_t, typename int_t>
-    inline static void insertCentroidToBinaryVector(vector<byte>& v, int idx, map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& w)  {
+    inline static void insertCentroidToBinaryVector(vector<byte>& v, int idx,
+                                                    map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& w)  {
         auto& peaks = w[idx];
         put<int>(idx, v);
         put<int>(peaks.size(), v);
         for (size_t j = 0; j < peaks.size(); ++j) {
             Centroid<mz_t, int_t>& p_ = *(peaks[j]);
-            put<float>(p_.mz, v);
-            put<float>(p_.intensity, v);
+            put<mz_t>(p_.mz, v);
+            put<int_t>(p_.intensity, v);
         }
     }
 
-    /**
-     *TODOOOOOOOOOOOOOOOOOOOO
-     */
+    /** */
     template<typename mz_t, typename int_t>
-    inline static void insertFittedToBinaryVector(vector<byte>& v, int idx, map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& w) {
+    inline static void insertFittedToBinaryVector(vector<byte>& v, int idx,
+                                                  map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& w) {
         auto& peaks = w[idx];
         put<int>(idx, v);
         put<int>(peaks.size(), v);
@@ -215,34 +215,60 @@ public:
         }
     }
 
-    /**
-     * @brief update
-     * @param mh
-     */
-    inline void update(map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& h) throw(){
+    /** */
+    inline void update(map<int, vector<HighResCentroidSPtr> >& h,
+                       map<int, vector<LowResCentroidSPtr> >& l) throw(){
         for (auto it = h.begin(); it != h.end(); ++it) {
             const int& p = it->first;
-            if (_peaksByScanIDs.find(p) == _peaksByScanIDs.end()) {
-                _peaksByScanIDs[p];
+            if (_highResPeaksByScanIDs->find(p) == _highResPeaksByScanIDs->end()) {
+                (*_highResPeaksByScanIDs)[p]; //call the default ctor
+            }
+        }
+        for (auto it = l.begin(); it != l.end(); ++it) {
+            const int& p = it->first;
+            if (_lowResPeaksByScanIDs->find(p) == _lowResPeaksByScanIDs->end()) {
+                (*_lowResPeaksByScanIDs)[p]; //call the default ctor
             }
         }
     }
 
     /** */
     inline void setRtBoundaries() {
-        _rtmin = 1e9, _rtmax = 0;
-        for (auto it = this->_peaksByScanIDs.begin(); it != _peaksByScanIDs.end(); ++it) {
+        _rtmin = 1e9;
+        for (auto it = _highResPeaksByScanIDs->begin(); it != _highResPeaksByScanIDs->end(); ++it) {
             if ( it->second.empty())
                 continue;
-            Centroid<mz_t, int_t>& p = *(it->second.front());
-            const float& t = p.rt;
-            _rtmin = min(_rtmin, t);
-            _rtmax = max(_rtmax, t);
+            Centroid<h_mz_t, h_int_t>& p = *(it->second.front());
+            _rtmin = p.rt;
+            break;
+        }
+        for (auto it = _lowResPeaksByScanIDs->begin(); it != _lowResPeaksByScanIDs->end(); ++it) {
+            if ( it->second.empty())
+                continue;
+            Centroid<l_mz_t, l_int_t>& p = *(it->second.front());
+            _rtmin = std::min(p.rt, _rtmin);
+            break;
+        }
+
+        _rtmax = 0;
+        for (auto it = _highResPeaksByScanIDs->rbegin(); it != _highResPeaksByScanIDs->rend(); ++it) {
+            if ( it->second.empty())
+                continue;
+            Centroid<h_mz_t, h_int_t>& p = *(it->second.front());
+            _rtmax = p.rt;
+            break;
+        }
+        for (auto it = _lowResPeaksByScanIDs->rbegin(); it != _lowResPeaksByScanIDs->rend(); ++it) {
+            if ( it->second.empty())
+                continue;
+            Centroid<l_mz_t, l_int_t>& p = *(it->second.front());
+            _rtmax = std::max(p.rt, _rtmin);
+            break;
         }
     }
 
-    /** */
-    inline void setMzBoundaries()  {
+    /** not used even if we can get slightly better performance in R*Tree request */
+    /*inline void setMzBoundaries()  {
         _mzmin = 1e9, _mzmax = 0;
         for (auto it = _peaksByScanIDs.begin(); it != _peaksByScanIDs.end(); ++it) {
             vector<Centroid<mz_t, int_t>*>&  vec = it->second;
@@ -253,15 +279,41 @@ public:
             _mzmin = min( _mzmin, (float) p1->mz );
             _mzmax = max( _mzmax, (float) p2->mz );
         }
+    }*/
+
+    struct PairSorter {
+        bool operator() (const pair<int, int>&a, const pair<int, int>& b) {
+            return (a.second < b.second);
+        }
+    };
+
+    /** Iteration order */
+    inline void iterationOrder(vector<pair<int, int> >& v) const {
+
+        for (auto it = _highResPeaksByScanIDs->begin(); it != _highResPeaksByScanIDs->end(); ++it)
+            v.push_back(make_pair(1, it->first));
+        for (auto it = _lowResPeaksByScanIDs->begin(); it != _lowResPeaksByScanIDs->end(); ++it)
+            v.push_back(make_pair(2, it->first));
+        std::sort(v.begin(), v.end(),mzBoundingBox::PairSorter());
     }
 
+    // static version, assume both highrespeaks and lowrespeaks are not empty
+    inline static void iterationOrder(map<int, vector<HighResCentroidSPtr> >& highResPeaks,
+                                      map<int, vector<LowResCentroidSPtr> >& lowResPeaks,
+                                      vector<pair<int, int> >& v) {
+        for (auto it = highResPeaks.begin(); it != highResPeaks.end(); ++it)
+            v.push_back(make_pair(1, it->first));
+        for (auto it = lowResPeaks.begin(); it != lowResPeaks.end(); ++it)
+            v.push_back(make_pair(2, it->first));
+        std::sort(v.begin(), v.end(), mzBoundingBox::PairSorter());
 
+    }
 };
 
-template<class mz_t, class int_t>
+template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
 struct mzBoundingBoxPtrComp {
 
-    bool operator()(const mzBoundingBox<mz_t, int_t>* a, const mzBoundingBox<mz_t, int_t>* b) {
+    bool operator()(const mzBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t>* a, const mzBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t>* b) {
         return a->mzmin() < b->mzmin();
     }
 };

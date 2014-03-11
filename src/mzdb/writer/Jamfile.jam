@@ -48,7 +48,6 @@ lib libceres
 lib mzdb_writer
         : #sources
             mzDBWriter.cpp
-            mzPeakFinderProxy.cpp
             libceres
 
         : #requirments
@@ -63,7 +62,7 @@ lib mzdb_writer
             <library>../lib/snappy
             <library>../utils
 
-        : <variant>release <link>static <cxxflags>"/Ox /Gy /GA" # /GF #default-build
+        : <variant>release <link>static # /GF #default-build <cxxflags>"/Ox /Gy /GA"
         : #usage-requirments
             <include>.
             <include>optimization

@@ -1,16 +1,29 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//author marc.dubois@ipbs.fr
+
 #ifndef DATAPOINTSCOLLECTION_HPP
 #define DATAPOINTSCOLLECTION_HPP
 
 #include <iterator>
 
-
-#include "types.h"
 #include "mzPeak.hpp"
 #include "boost/thread/thread.hpp"
 #include "../peak_picking/mzPeakFinderUtils.hpp"
-
-#define INTENSITY_CUT_OFF 10000
-
 
 
 namespace mzdb {
@@ -19,8 +32,8 @@ template<class mz_t, class int_t>
 struct DataPointsCollection {
 
     pwiz::msdata::SpectrumPtr spectrum;
-    const vector<mz_t>& mzData; //taken as references
-    const vector<int_t>& intData; //taken as references
+    const vector<mz_t>& mzData;                                 //taken as references
+    const vector<int_t>& intData;                               //taken as references
     vector<unique_ptr<mzPeak<mz_t, int_t> > > detectedPeaks;
 
 private:
@@ -70,8 +83,6 @@ private:
             }
         }
     }
-
-
 
     /**
       * @brief _createPeakForIndex
@@ -126,9 +137,7 @@ private:
 
             this->_addPeak(mzp, intp, params);
 
-
         }
-
     }
 
     /**
@@ -195,7 +204,8 @@ public:
                 peak.snr < snr;
             });
         std::for_each(it, this->detectedPeaks.end(), [](unique_ptr<mzPeak<mz_t, int_t> >& peak){
-            delete peak;
+            auto* p = peak.release();
+            delete p;
             peak = 0;
         });
          this->detectedPeaks.erase(it, this->detectedPeaks.end());

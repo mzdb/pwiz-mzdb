@@ -1,10 +1,27 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//author marc.dubois@ipbs.fr
+
+
 #include "mzDBWriter.hpp"
 #include "boost/thread/thread.hpp"
 #include "wchar.h"
 #include "string.h"
-//#include "windows.h"
 #include "boost/algorithm/string.hpp"
-
 #include "pwiz_aux/msrc/utility/vendor_api/thermo/RawFile.h" //to test purpose
 
 
@@ -304,10 +321,7 @@ void mzDBWriter::setIndexes() {
 void mzDBWriter::checkMetaData() {
 
     //Run& run = _msdata->run;
-
     vector<SoftwarePtr>& softwares = _msdata->softwarePtrs;
-    //MS_MS_GF_PEP = 1002056,
-    //static const CVID MS_mzdb = static_cast<CVID>((int)MS_MS_GF_PEP + 1);
     SoftwarePtr mzdbSoftPtr(new Software("mzDB", CVParam(MS_mzdb, ""), SOFT_VERSION_STR));
     softwares.push_back(mzdbSoftPtr);
 
@@ -325,7 +339,7 @@ void mzDBWriter::checkMetaData() {
             _msdata->dataProcessingPtrs.push_back(dataProc);
 
         }  else {
-            LOG(WARNING) << "TODO: rebuild the entire dataProcessing";
+            LOG(WARNING) << "TODO: rebuild the entire dataProcessing, not done yet";
             /*printf("data processings not found...Creating a default instance.\n");
                 vector<DataProcessingPtr>& dataProcessings = _msdata->dataProcessingPtrs;
 
@@ -465,13 +479,6 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f, map<int, DataMode>& m, b
 }
 
 /**
- * destructor, does not handle the delete of the database
- */
-/*PWIZ_API_DECL mzDBWriter::~mzDBWriter() {
-    delete _metadataExtractor;
-}*/
-
-/**
  * @brief mzDBWriter::insertMetaData
  * @param noLoss: boolean, if true encoding both mz and intensity in 64 bits
  */
@@ -496,6 +503,7 @@ void mzDBWriter::insertMetaData(bool noLoss) {
 
     _mzdb.userParams.push_back( this->_metadataExtractor->getExtraDataAsUserText());
 
+    //compression options
     //string compressed = _compress ? "true" : "false";
     //_mzdb.userParams.push_back(UserParam("compressed", compressed, "boolean"));
 
@@ -588,8 +596,6 @@ void mzDBWriter::insertMetaData(bool noLoss) {
     }
     string binaryProfString = ISerializer::serialize(prof, _serializer);
     string binaryCentString = ISerializer::serialize(cent, _serializer);
-    //if (binaryProfString == binaryCentString)
-    //    printf("problem...\n");
     string profileMode = "INSERT INTO data_encoding VALUES (NULL, 'profile', 'none', 'little_endian', '" + binaryProfString + "')";
     sqlite3_exec(_mzdb.db, profileMode.c_str(), 0, 0, 0);
     _mzdb.stmt = 0;

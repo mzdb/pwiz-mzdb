@@ -1,7 +1,20 @@
 /*
-author:marco
-entry point of the application
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
+//author marc.dubois@ipbs.fr
 
 #include <algorithm>
 #include <cstdio>
@@ -22,13 +35,12 @@ using namespace mzdb;
 using namespace GetOpt;
 using namespace pwiz::msdata;
 
-
+/**
+ * @param string filename
+ * @return
+ */
 int deleteIfExists(const string &filename) {
-    /**
-     * 
-     * @param string filename
-     * @return 
-     */
+
     if (ifstream(filename.c_str())) {
         //file exist
         cout << "Found file with the same name" << endl;
@@ -122,7 +134,7 @@ int main(int argc, char* argv[]) {
     float bbWidth = 15, bbWidthMSn = 0; //15
     float bbHeight = 5, bbHeightMSn = 10000; //5
     bool noLoss = false; //32 bits intensity encoding by default
-    int peakPickingAlgo = 0, nscans = 0;
+    int peakPickingAlgo = 0, nscans = 0, nbCycles = 3;
 
     map<int, DataMode> results;
     map<int, string> dataModes;
@@ -136,7 +148,21 @@ int main(int argc, char* argv[]) {
         results[i] = CENTROID;
     }
 
-    string help = "\n\nusage: raw2mzDB.exe -input filename <parameters> \n\nOptions:\n\n\t-c, --centroid : centroidization, eg: -c 1 (centroidization msLevel 1) or -c 1-5 (centroidization msLevel 1 to msLevel 5) \n\t-p, --profile : idem but for profile mode \n\t-f, --fitted : idem buf for fitted mode \n\t-W, --bbWidth : bounding box width for ms1 in seconds\n\t-H, --bbHeight: bounding box height for ms1 in Da \n\t-h, --bbHeightMSn: bounding box height for msn in Da \n\t-p, --peakPickingAlgo: generic (1) or thermo (2) \n\t--no_loss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n ";
+    string help = "\n\nusage: raw2mzDB.exe -input filename <parameters>"
+                  "\n\nOptions:\n\n"
+                  "\t-i, --input : specify the input rawfile path"
+                  "\t-o, --output : specify the output filename (must be an absolute path)"
+                  "\t-c, --centroid : centroidization, eg: -c 1 (centroidization msLevel 1) or -c 1-5 (centroidization msLevel 1 to msLevel 5) \n"
+                  "\t-p, --profile : idem but for profile mode \n"
+                  "\t-f, --fitted : idem buf for fitted mode \n"
+                  "\t-T, --bbTimeWidth : bounding box width for ms1 in seconds, default: 15s\n"
+                  "\t-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s\n:"
+                  "\t-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da \n"
+                  "\t-m, --bbMzWidthMSn : bounding box height for msn in Da, default: 10000Da \n"
+                  "\t--bufferSize : low value (min 2) will enforce the program to use less memory (max 50), default: 3"
+                  "\t--no_loss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
+                  "\t--nscans : nb scans to convert into the mzDB file (max: number of scans in the rawfile)"
+                  "\t-h --help : show help";
 
 
     GetOpt_pp ops(argc, argv);
@@ -144,38 +170,38 @@ int main(int argc, char* argv[]) {
     ops >> Option('c', "centroid", centroid);
     ops >> Option('p', "profile", profile);
     ops >> Option('f', "fitted", fitted);
-    ops >> Option('W', "bbWidth", bbWidth);
-    ops >> Option('H', "bbHeight", bbHeight);
-    //ops >> Option('w', "bbWidthMSn", bbWidthMSn);
-    ops >> Option('h', "bbHeightMSn", bbHeightMSn);
-    //ops >> Option('p', "peakPickingAlgo", peakPickingAlgo);
+    ops >> Option('T', "bbTimeWidth", bbWidth);
+    ops >> Option('M', "bbMzWidth", bbHeight);
+    ops >> Option('t', "bbTimeWidthMSn", bbWidthMSn);
+    ops >> Option('m', "bbMzWidthMSn", bbHeightMSn);
     //ops >> Option('s', "serialize", serialization);
     ops >> Option('o', "output", namefile);
     ops >> Option('n', "nscans", nscans);
-    ops >> OptionPresent("no_loss", noLoss),
-    ops >> OptionPresent("compress", compress);
-    //ops >> Option("help")
+    ops >> Option("no_loss", noLoss);
+    ops >> Option("bufferSize", nbCycles);
+    if (ops >> OptionPresent('h', "help"))
+        cout << help << endl;
     //ops >> Option('C', "compress", compression)
     if (ops.options_remain()) {
-        puts("Oops! Unexpected options. Refer to help\n");
+        LOG(ERROR) <<"Oops! Unexpected options. Refer to help";
         cout << help << endl;
         return 1;
     }
 
     if (! exists(filename)) {
-        puts("Filepath does not exist.\nExiting.\n");
+        LOG(ERROR) << "Filepath does not exist.Exiting.";
         return 1;
     }
 
     if (!filename.size()) {
-        puts("empty raw filename ! Exiting...\n");
+        LOG(ERROR) << "empty raw filename ! Exiting...";
         cout << help << endl;
         return 1;
     }
 
 #ifdef WIN32
     if (alreadyOpened(filename)) {
-        puts("File already open in another application.\nPlease close it to perform conversion.\n");
+        LOG(ERROR) << "File already open in another application.\nPlease close it to perform conversion.";
         return 1;
     }
 #endif
@@ -208,10 +234,10 @@ int main(int argc, char* argv[]) {
         mzPeakFinderUtils::PeakPickerParams p;
         if (noLoss) {
             LOG(INFO) << "no loss detected";
-            writer.writeMzRTreeDB<double, double>(noLoss, namefile, nscans, p);
+            writer.writeMzRTreeDB<double, double, double, double>(noLoss, namefile, nscans, nbCycles, p);
         } else {
             LOG(INFO) << "mz64 int32 detected";
-            writer.writeMzRTreeDB<double, float>(noLoss, namefile, nscans, p);
+            writer.writeMzRTreeDB<double, float, float, float>(noLoss, namefile, nscans, nbCycles, p);
         }
         LOG(INFO) << "check run slices numbers";
         writer.checkAndFixRunSliceNumberAnId();

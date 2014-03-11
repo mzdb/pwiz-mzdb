@@ -1,7 +1,25 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//author marc.dubois@ipbs.fr
+
 #ifndef __MZDBWRITER__
 #define __MZDBWRITER__
 
-/* Base import */
+//--- Base import
 #include <time.h>
 #include <cmath>
 #include <string>
@@ -10,11 +28,7 @@
 #include <array>
 #include <memory>
 #include <functional>
-//SSE4 operation
-//#include <emmintrin.h> // not needed for x64 architecture ?
-
-
-/* Pwiz import */
+//--- Pwiz import
 #include "pwiz/data/msdata/MSDataFile.hpp"
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/IO.hpp"
@@ -23,22 +37,18 @@
 #include "pwiz/data/vendor_readers/Thermo/SpectrumList_Thermo.hpp"
 #include "pwiz/data/vendor_readers/ABI/SpectrumList_ABI.hpp"
 #include "boost/thread/thread.hpp"
-//#include "ppl.h" // for Concurrency::parallel_for, parallel_for_each, on windows
-
-/* SQLite import */
+//--- SQLite import
 #include "../lib/sqlite3/include/sqlite3.h"
 #include "../lib/pugixml/include/pugixml.hpp"
-
-/* MzDB import */
+//--- MzDB import
 #include "include_msdata.h"
 #include "../utils/mzDBFile.h"
 #include "../utils/mzISerializer.h"
 #include "msdata/mzCycleObject.hpp"
 #include "../threading/Queue.hpp"
+#include "../threading/SpScQueue.hpp"
 #include "../msdata/mzUserText.h"
 #include "mzAbstractMetadataExtractor.hpp"
-/*#include "mzPeakFinderProxy.hpp"*/
-
 //--- Compression import
 #ifdef USE_COMPRESSION
 #include "../utils/lz4.h"
@@ -49,7 +59,7 @@ namespace mzdb {
 
 using namespace std;
 
-//versioning of the application, we distinguish schema database
+//versioning of the application: we distinguish schema database
 //version against application version, both can have different version numbers
 #define SCHEMA_VERSION_STR "0.6.0"
 #define SCHEMA_VERSION_INT 0.6.0
@@ -71,7 +81,7 @@ using namespace std;
 /**
  * Base class for writing a raw to mzDBFile
  */
-class mzDBWriter: boost::noncopyable {
+class mzDBWriter: private boost::noncopyable {
 
 private:
 
@@ -224,14 +234,17 @@ private:
     /**
      * insert several scans
      */
-    template<class h_mz_t, class h_int_t>
-    inline void insertScans(unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> >& cycleObject) {
+    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
+    inline void insertScans(unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> >& cycleObject) {
         auto& spectra = cycleObject->spectra;
         for (auto it = spectra.begin(); it != spectra.end(); ++it) {
-            this->insertScan<h_mz_t, h_int_t>(*it, cycleObject->getBeginId(), cycleObject->parentSpectrum);
+            if (it->first != nullptr)
+                this->insertScan<h_mz_t, h_int_t>(it->first, cycleObject->getBeginId(), cycleObject->parentSpectrum);
+            else
+                this->insertScan<l_mz_t, l_int_t>(it->second, cycleObject->getBeginId(), cycleObject->parentSpectrum);
+
         }
     }
-
 
     //---------------------------- BOUNDING BOX INSERTIONS ---------------------
     /**
@@ -247,7 +260,7 @@ private:
 
         for_each(spectra.begin(), spectra.end(), [&centroidsByScanId, &dataModes]( std::shared_ptr<mzSpectrum<U, V> > spectrum) {
             const int& id = spectrum->id;
-            centroidsByScanId[id] = spectrum->peaks;//std::move(spectrum->peaks); //move semantics to avoid copy
+            centroidsByScanId[id] = std::move(spectrum->peaks); //move semantics to avoid copy, leads to bug ?
             dataModes[id] = spectrum->effectiveMode;
         });
     }
@@ -262,12 +275,18 @@ private:
      */
     template<class mz_t, class int_t>
     inline static void groupByMzIndex(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& v, //correspond to the entire centroid of one spectrum,
-                                      map<int, map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > > >& x, //run Slice
+                                      map<int, unique_ptr<map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > > > >& x, //run Slice
                                       int scanIdx, double& bbheight) {
 
-        for_each(v.begin(), v.end(), [&x, &scanIdx, &bbheight](std::shared_ptr<Centroid<mz_t, int_t> >& peak) {
+        typedef std::shared_ptr<Centroid<mz_t, int_t> > CentroidSPtr;
+
+        for_each(v.begin(), v.end(), [&x, &scanIdx, &bbheight](CentroidSPtr& peak) {
             const int idx = peak->mz * bbheight;
-            x[idx][scanIdx].push_back(peak); //warning move here
+            if (x.find(idx) == x.end()) {//not found
+                auto m = unique_ptr<map<int, vector<CentroidSPtr> > >(new map<int, vector<CentroidSPtr> >);
+                x[idx] = move(m);
+            }
+            (*(x[idx]))[scanIdx].push_back(peak);
         });
 
     }
@@ -280,28 +299,63 @@ private:
      * @param hrs: map<int, map<int, vector<mzPeak> > > runSliceidx / scanidx, peaks(hr) contained in this scan
      * @see MapHolder
      */
-    template<class h_mz_t, class h_int_t>
+    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
     static void computeBoundingBox(double& bbheight,
-                                   map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> >> >& peaksByScanIDs,
-                                   vector<unique_ptr<mzBoundingBox<h_mz_t, h_int_t> > >& bbs, // output
-                                   map<int, map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> > > > >& hrs) {
+                                   map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> > > >& highResPeaksByScanIDs,
+                                   map<int, vector<std::shared_ptr<Centroid<l_mz_t, l_int_t> > > >& lowResPeaksByScanIDs,
+                                   vector<unique_ptr<mzBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& bbs, // output
+                                   map<int, unique_ptr<map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> > > > > >& hrs,
+                                   map<int, unique_ptr<map<int, vector<std::shared_ptr<Centroid<l_mz_t, l_int_t> > > > > >& lrs ) {
 
+        typedef std::shared_ptr<Centroid<h_mz_t, h_int_t> > HighResCentroidSPtr;
+        typedef std::shared_ptr<Centroid<l_mz_t, l_int_t> > LowResCentroidSPtr;
+        typedef unique_ptr<mzBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t> > mzBoundingBoxUPtr;
         //group all peaks by their runSliceId
-        for (auto it = peaksByScanIDs.begin(); it != peaksByScanIDs.end(); ++it) {
-                const int& scanIdx = it->first;
-                mzDBWriter::groupByMzIndex<h_mz_t, h_int_t>( peaksByScanIDs[scanIdx], hrs, scanIdx, bbheight );
 
+        vector<pair<int, int> > v;
+        mzBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t>::iterationOrder(highResPeaksByScanIDs, lowResPeaksByScanIDs, v);
+        for (size_t i = 0; i < v.size(); ++i) {
+            pair<int, int>& p = v[i];
+            int scanIdx = p.second;
+            if (p.first == 1) {
+                mzDBWriter::groupByMzIndex<h_mz_t, h_int_t>( highResPeaksByScanIDs[scanIdx], hrs, scanIdx, bbheight );
+            } else {
+                mzDBWriter::groupByMzIndex<l_mz_t, l_int_t>( lowResPeaksByScanIDs[scanIdx], lrs, scanIdx, bbheight );
+            }
         }
+
+        vector<int> treatedRunSliceIdx;
 
         //retrieve all bounding box belonging to the same runSlice idx
         for (auto it = hrs.begin(); it != hrs.end(); ++it) {
             const int& runSliceIdx = it->first;
-            auto bb = unique_ptr<mzBoundingBox<h_mz_t, h_int_t> >(
-                        new mzBoundingBox<h_mz_t, h_int_t>(runSliceIdx, 1.0/bbheight, it->second, TAKE_OWNERSHIP));
-            bb->update(peaksByScanIDs);
+            auto lp = unique_ptr<map<int, vector<LowResCentroidSPtr> > >(new map<int, vector<LowResCentroidSPtr> >);
+            if (lrs.find(runSliceIdx) != lrs.end()) {
+                for (auto iit = lrs[runSliceIdx]->begin(); iit != lrs[runSliceIdx]->end(); ++iit) {
+                    (*lp)[iit->first] = std::move(iit->second);
+                }
+                treatedRunSliceIdx.push_back(runSliceIdx);
+            }
+            auto bb = mzBoundingBoxUPtr(
+                        new mzBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t>(runSliceIdx, 1.0/bbheight, it->second, lp));
+            bb->update(highResPeaksByScanIDs, lowResPeaksByScanIDs);
             if (! bb->isEmpty()) {
                 //bb->computeMzBounds();
-                bbs.push_back(move(bb)); //transfer owernership to the container
+                bbs.push_back(move(bb));
+            }
+        }
+
+        for (auto it = lrs.begin(); it != lrs.end(); ++it) {
+            const int& runSliceIdx = it->first;
+            if (find(treatedRunSliceIdx.begin(), treatedRunSliceIdx.end(), runSliceIdx) == treatedRunSliceIdx.end()) {
+                auto hp = unique_ptr<map<int, vector<HighResCentroidSPtr> > >(new map<int, vector<HighResCentroidSPtr> >);
+                auto bb = mzBoundingBoxUPtr(
+                            new mzBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t>(runSliceIdx, 1.0/bbheight, hp, it->second));
+                bb->update(highResPeaksByScanIDs, lowResPeaksByScanIDs);
+                if (! bb->isEmpty()) {
+                    //bb->computeMzBounds();
+                    bbs.push_back(move(bb));
+                }
             }
         }
         //seems to be unuseful
@@ -317,45 +371,53 @@ private:
      * @param bbheight: height of BBs, could be different among msLevel (mz: ms1 5da)
      * @param nbPeaks: count the number of peaks (just for debugging)
      * @param runSlices: idxRunSlices / RunSlice Count
-     * @param spectra: MapHolder @see mapHolder
      * @param dataModes: scanIdx / DataMode
      */
-    template<class h_mz_t, class h_int_t>
+    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
     void insertData(int msLevel,
                     double& bbheight,
                     map<int, int>& runSlices,
-                    map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> >> >& highResPeaks,
+                    map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> > > >& highResPeaks,
+                    map<int, vector<std::shared_ptr<Centroid<l_mz_t, l_int_t> > > >& lowResPeaks,
                     map<int, DataMode>& dataModes) {
 
+        typedef std::shared_ptr<Centroid<h_mz_t, h_int_t> > HighResCentroidSPtr;
+        typedef std::shared_ptr<Centroid<l_mz_t, l_int_t> > LowResCentroidSPtr;
+        typedef unique_ptr<mzBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t> > mzBoundingBoxUPtr;
 
-        vector<unique_ptr<mzBoundingBox<h_mz_t, h_int_t> > > bbs;
+        vector<mzBoundingBoxUPtr> bbs;
 
-        map<int, map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> >> > > r1;
+        map<int, unique_ptr<map<int, vector<HighResCentroidSPtr> > > > r1;
+        map<int, unique_ptr<map<int, vector<LowResCentroidSPtr> > > > r2;
 
-        mzDBWriter::computeBoundingBox<h_mz_t, h_int_t>(bbheight, highResPeaks, bbs, r1);
+        mzDBWriter::computeBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t>(bbheight, highResPeaks, lowResPeaks, bbs, r1, r2);
 
         //special cases leading to failure IMPORTANT SEGFAULT
         bool emptyMsLevel = false;
-        map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> > > > emptyMap;
-        for (auto it = highResPeaks.begin(); it != highResPeaks.end(); ++it) {
-            const int& p = it->first;
-            if (emptyMap.find(p) == emptyMap.end()) {
-                emptyMap[p];
-            }
-        }
-
         if (bbs.empty()) {
             LOG(INFO) << "Found a bounding box empty";
             emptyMsLevel = true;
-            auto bb = unique_ptr<mzBoundingBox<h_mz_t, h_int_t> >(
-                        new mzBoundingBox<h_mz_t, h_int_t>(emptyMap, TAKE_OWNERSHIP));
-            bb->update(highResPeaks);
+            auto bb = mzBoundingBoxUPtr(
+                        new mzBoundingBox<h_mz_t, h_int_t,l_mz_t, l_int_t>(
+                            unique_ptr<map<int, vector<HighResCentroidSPtr> > >(new map<int, vector<HighResCentroidSPtr> >),
+                            unique_ptr<map<int, vector<LowResCentroidSPtr> > >(new map<int, vector<LowResCentroidSPtr> >)));
+
+            bb->update(highResPeaks, lowResPeaks);
             bbs.push_back(move(bb));
         }
 
 
-        int refScanIdx = highResPeaks.begin()->first;
-        int refLastScanId = highResPeaks.rbegin()->first;
+        int refScanIdx, refLastScanId;
+        if ( ! highResPeaks.empty() && ! lowResPeaks.empty()) {
+            refScanIdx = min(highResPeaks.begin()->first, lowResPeaks.begin()->first);
+            refLastScanId = max(highResPeaks.rbegin()->first, lowResPeaks.rbegin()->first);
+        } else if ( ! highResPeaks.empty() && lowResPeaks.empty()) {
+            refScanIdx = highResPeaks.begin()->first;
+            refLastScanId = highResPeaks.rbegin()->first;
+        } else{
+            refScanIdx = lowResPeaks.begin()->first;
+            refLastScanId = lowResPeaks.rbegin()->first;
+        }
 
         //bbs are sorted by mz and so on by runSliceIdx
         auto firstRunSliceIdx = bbs.front()->runSliceIdx();
@@ -423,7 +485,7 @@ private:
         sqlite3_prepare_v2(_mzdb.db, sql_4, -1, &stmtHigherLevel, 0);
 
         for (auto it = bbs.begin(); it != bbs.end(); ++it) {
-            mzBoundingBox<h_mz_t, h_int_t>& bb = **it;
+            mzBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t>& bb = **it;
             //int N = bb.getBytesVectorLength(dataModes);
             vector<byte> data;// output;
             //data.reserve(N);
@@ -497,16 +559,20 @@ private:
     }
 
     /** @brief mzDBWriter::buildAndInsertData */
-    template<class h_mz_t, class h_int_t>
+    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
     void buildAndInsertData(int msLevel,
                             double& bbheight,
                             vector<std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > >& highResBuffer,
+                            vector<std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > >& lowResBuffer,
                             map<int, int>& runSlices) {
 
         map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> > > >p1;
+        map<int, vector<std::shared_ptr<Centroid<l_mz_t, l_int_t> > > >p2;
         map<int, DataMode> dataModes;
         this->buildCentroidsByScanID<h_mz_t, h_int_t>(p1, highResBuffer, dataModes);
-        this->insertData<h_mz_t, h_int_t>(msLevel, bbheight, runSlices, p1, dataModes);
+        this->buildCentroidsByScanID<l_mz_t, l_int_t>(p2, lowResBuffer, dataModes);
+
+        this->insertData<h_mz_t, h_int_t>(msLevel, bbheight, runSlices, p1, p2, dataModes);
     }
 
 
@@ -515,8 +581,9 @@ private:
      * launch peakPicking using a thread group
      * @brief lauchPeakPicking
      */
-    template<class h_mz_t, class h_int_t>
+    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
     inline void launchPeakPicking(vector<std::shared_ptr<mzSpectrum<h_mz_t,h_int_t> > >& highResBuffer,
+                                  vector<std::shared_ptr<mzSpectrum<l_mz_t,l_int_t> > >& lowResBuffer,
                                   DataMode m,
                                   pwiz::msdata::CVID filetype,
                                   mzPeakFinderUtils::PeakPickerParams& params) {
@@ -526,6 +593,9 @@ private:
             //use std::shared_ptr instead which is less efficient
             g.create_thread(std::bind(&mzSpectrum<h_mz_t, h_int_t>::doPeakPicking, highResBuffer[j], m, filetype, params));
         }
+        for (size_t j = 0; j < lowResBuffer.size(); ++j) {
+            g.create_thread(std::bind(&mzSpectrum<l_mz_t, l_int_t>::doPeakPicking, lowResBuffer[j], m, filetype, params));
+        }
         g.join_all();
     }
 
@@ -533,12 +603,14 @@ private:
     /**
      * wrapper of the function above
      */
-    template<class h_mz_t, class h_int_t>
-    inline void launchPeakPicking(unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> >& cycleObject,
+    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
+    inline void launchPeakPicking(unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> >& cycleObject,
                                   pwiz::msdata::CVID filetype,
                                   mzPeakFinderUtils::PeakPickerParams& params) {
-        auto& spectra = cycleObject->getSpectra();
-        this->launchPeakPicking<h_mz_t, h_int_t>(spectra, _msnMode[cycleObject->msLevel], filetype, params);
+        vector<std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > > highResSpectra;
+        vector<std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > > lowResSpectra;
+        cycleObject->getSpectra(highResSpectra, lowResSpectra);
+        this->launchPeakPicking<h_mz_t, h_int_t, l_mz_t, l_int_t>(highResSpectra, lowResSpectra, _msnMode[cycleObject->msLevel], filetype, params);
     }
 
 
@@ -566,7 +638,7 @@ private:
     /** get the good data extractor */
     inline std::unique_ptr<mzIMetadataExtractor> getMetadataExtractor() {
         switch ( (int) this->_originFileFormat ) {
-        case (int) pwiz::msdata::MS_Thermo_RAW_file: {
+        case (int) pwiz::msdata::MS_Thermo_RAW_format: {
             return  std::unique_ptr<mzIMetadataExtractor>(new mzThermoMetadataExtractor(this->_mzdb.name));
         }
         default: {
@@ -604,26 +676,25 @@ private:
     /**
      *
      */
-    template<class h_mz_t, class h_int_t>
+    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t, class SpectrumListType>
     inline void mzCycleCollectionProducer(pwiz::util::IntegerSet& levelsToCentroid,
-                                          CycleCollectionQueue<unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> > >& cyclesCollectionQueue,
-                                          pwiz::msdata::SpectrumListPtr& spectrumList, int nscans,
+                                          folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& cyclesCollectionQueue,
+                                          SpectrumListType* spectrumList, int nscans,
                                           map<int, double>& bbWidthManager) { // only for test purpose
 
 
-        unordered_map<int, std::unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> > > spectraByMsLevel;
+        unordered_map<int, std::unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > > spectraByMsLevel;
         pwiz::msdata::SpectrumPtr currMs1;
+
+
 
         for (size_t i = 0; i < nscans; ++i) {
 
-            const pwiz::msdata::SpectrumPtr spectrum = (this->_originFileFormat == pwiz::msdata::MS_Thermo_RAW_file) ?
-                        ((pwiz::msdata::detail::SpectrumList_Thermo*)spectrumList.get())->spectrum(i, true, levelsToCentroid) :
-                         ((pwiz::msdata::detail::SpectrumList_ABI*)spectrumList.get())->spectrum(i, true, levelsToCentroid);
-
+            const pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(i, true, levelsToCentroid);
             const int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
             const float rt = rtOf(spectrum);
 
-            //bool isInHighRes = this->_metadataExtractor->isInHighRes(spectrum);
+            bool isInHighRes = this->_metadataExtractor->isInHighRes(spectrum);
 
             if (msLevel == 1 ) {
                 ++_cycleCount;
@@ -632,7 +703,8 @@ private:
 
             //init
             if (spectraByMsLevel.find(msLevel) == spectraByMsLevel.end()) {
-                unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> >spectraCollection(new mzSpectraCollection<h_mz_t, h_int_t>(msLevel));
+                unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> >spectraCollection(
+                            new mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t>(msLevel));
                 spectraCollection->parentSpectrum = currMs1;
                 spectraByMsLevel[msLevel] = std::move(spectraCollection);
             }
@@ -641,95 +713,104 @@ private:
             auto& container = spectraByMsLevel[msLevel];
 
             if ( (!container->empty()) && ( abs( rt - container->getBeginRt() ) > bbWidthManager[msLevel]) ) {
-                cyclesCollectionQueue.put(std::move(container)); //transfer ownership to the cyclesCollectionQueue
+                while ( ! cyclesCollectionQueue.write(std::move(container)))
+                  continue;
                 //recreate a unique pointer
-                unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> > c(new mzSpectraCollection<h_mz_t, h_int_t>(msLevel));
+                unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > c(
+                            new mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t>(msLevel));
                 c->parentSpectrum = currMs1;
                 spectraByMsLevel[msLevel] = std::move(c); // transfer ownership to the map
             }
 
-           // if (isInHighRes) {
-            auto s = std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> >(new mzSpectrum<h_mz_t, h_int_t>(_scanCount, _cycleCount, spectrum));
-            container->addSpectrum(s);
-            /*} else {
-                auto* s = new mzSpectrum<l_mz_t, l_int_t>(_scanCount, _cycleCount, spectrum);
-                container->addLowResSpectra(s);
-            }*/
+           if (isInHighRes) {
+                auto s = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(_scanCount, _cycleCount, spectrum);
+                container->addHighResSpectrum(s);
+           } else {
+                auto s = std::make_shared<mzSpectrum<l_mz_t, l_int_t> >(_scanCount, _cycleCount, spectrum);
+                container->addLowResSpectrum(s);
+            }
             ++_scanCount;
         }
 
         //handles ending
         for(int i = 1; i <= spectraByMsLevel.size(); ++i) {
             auto& container = spectraByMsLevel[i];
-            if (! container->empty())
-                cyclesCollectionQueue.put(std::move(container));  //transfer ownership
+            if (! container->empty()) {
+                while (! cyclesCollectionQueue.write(std::move(container)))
+                  continue;
+            }
         }
 
         //signify that we finished producing
-        LOG(INFO) << "producer finished...Sending ending signal to consumers...OK\n";
-        cyclesCollectionQueue.close();
+        LOG(INFO) << "Producer finished...\n";
     }
 
     /**
      *
      */
-    template<class h_mz_t, class h_int_t>
-    inline void mzCycleCollectionConsumer(CycleCollectionQueue<unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> > >& cyclesCollectionQueue, //try to get cycleCollection
+    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
+    inline void mzCycleCollectionConsumer(folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& cyclesCollectionQueue, //try to get cycleCollection
                                           pwiz::msdata::CVID filetype, mzPeakFinderUtils::PeakPickerParams& params, // peak picking parameters
-                                          CycleCollectionQueue<unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> > >& peakPickedCyclesCollectionQueue) {
-        while ( 1 ) { // ! cyclesCollectionQueue.isClosed() ) {
+                                          folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& peakPickedCyclesCollectionQueue,
+                                          int nscans) {
+        int progress = 0;
+        while ( 1 ) {
             //get back the ownership
-            unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> > cycleCollection(nullptr);
-            cyclesCollectionQueue.get(cycleCollection);
+            unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > cycleCollection(nullptr);
+            while (! cyclesCollectionQueue.read(cycleCollection))
+              continue;
             if (cycleCollection == nullptr) {
-                LOG(INFO) << "cycleCollection was null" <<endl;
+                LOG(INFO) << "Peak picking consumer/producer finished due to null pointer" <<endl;
                 break;
             }
-
-            /*if ( cycleCollection == 0) {
-                LOG(INFO) << "Peak Picking consumer finished...OK\n";
-                break;
-            }*/
-            this->launchPeakPicking<h_mz_t, h_int_t>(cycleCollection, filetype, params);
+            this->launchPeakPicking<h_mz_t, h_int_t, l_mz_t, l_int_t>(cycleCollection, filetype, params);
             //after joining put the cycle collection in the peak picked collection queue
-            peakPickedCyclesCollectionQueue.put(std::move(cycleCollection)); // transfer to the next cycle collection
+            progress += cycleCollection->size();
 
+            while (! peakPickedCyclesCollectionQueue.write(std::move(cycleCollection)))
+              continue;
+
+            if (progress == nscans) {
+              LOG(INFO) << "Peak picking consumer/producer finished: reaches final progression" <<endl;
+              break;
+            }
         }
-        peakPickedCyclesCollectionQueue.close();
     }
 
     /**
      *
      */
-    template<typename h_mz_t, typename h_int_t>
-    inline void mzCycleCollectionInserter(CycleCollectionQueue<unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> > >& peakPickedCyclesCollectionQueue,
+    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
+    inline void mzCycleCollectionInserter(folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& peakPickedCyclesCollectionQueue,
                                           map<int, double>& bbHeightManager,
                                           map<int, map<int, int> >& runSlices,
                                           int& progressionCount, int nscans) {
         int lastPercent = 0;
-        while ( 1 ) {//  ! peakPickedCyclesCollectionQueue.isClosed() ) {
-            unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> > cycleCollection(nullptr);
-            peakPickedCyclesCollectionQueue.get(cycleCollection); //try to get the last entry
+        while ( 1 ) {
+            unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > cycleCollection(nullptr);
+            while (! peakPickedCyclesCollectionQueue.read(cycleCollection))
+              continue;
 
             if ( cycleCollection == nullptr ) {
-                LOG(INFO) << "Breaking insertion function due to null pointer...OK\n";
+                LOG(INFO) << "Inserter consumer finished to null pointer\n";
                 break;
             }
             this->insertScans(cycleCollection);
-            auto& spectra = cycleCollection->getSpectra(); //no const since will be deleted in buildAndInsertData
+            vector<std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > > highResSpectra;
+            vector<std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > > lowResSpectra;
+            cycleCollection->getSpectra(highResSpectra, lowResSpectra); //no const since will be deleted in buildAndInsertData
             progressionCount += cycleCollection->size();
             const int& msLevel = cycleCollection->msLevel;
-            this->buildAndInsertData(msLevel, bbHeightManager[msLevel], spectra, runSlices[msLevel]);
+            this->buildAndInsertData(msLevel, bbHeightManager[msLevel], highResSpectra, lowResSpectra, runSlices[msLevel]);
 
             int newPercent = (int) (((float) progressionCount / nscans * HUNDRED));
             if (newPercent == lastPercent + STEP_PERCENT) {
                 printProgBar(newPercent);
                 lastPercent = newPercent;
             }
-           // delete cycleCollection;
 
             if (progressionCount == nscans ) {
-                LOG(INFO) << "Breaking insertion because reach final progression...\n";
+                LOG(INFO) << "Inserter consumer finished: reaches final progression";
                 break;
             }
         }
@@ -738,7 +819,7 @@ private:
 
 public:
     PWIZ_API_DECL mzDBWriter(MzDBFile& f, map<int, DataMode>& m, bool compress);
-    //mzdbWriter is not copyable and not affectable
+    //mzdbWriter is not copyable, not affectable, may be movable ?
     //PWIZ_API_DECL mzDBWriter(const mzDBWriter &o){}
     //PWIZ_API_DECL mzDBWriter& operator=(const mzDBWriter& o){}
     //PWIZ_API_DECL ~mzDBWriter();
@@ -751,8 +832,8 @@ public:
      * @param filename
      * @param nscans
      */
-    template<typename h_mz_t, typename h_int_t>
-    void writeMzRTreeDB(bool noLoss, string& filename, int nscans, mzPeakFinderUtils::PeakPickerParams& params) {
+    template<typename h_mz_t, typename h_int_t, typename l_mz_t, typename l_int_t>
+    void writeMzRTreeDB(bool noLoss, string& filename, int nscans, int nbCycles, mzPeakFinderUtils::PeakPickerParams& params) {
 
         clock_t beginTime = clock();
         //open database
@@ -767,14 +848,14 @@ public:
 
         mzPeakFinderUtils::PeakPickerParams p;
 
-        if (filetype == pwiz::msdata::MS_ABI_WIFF_file) {
+        if (filetype == pwiz::msdata::MS_ABI_WIFF_format) {
             if ( ! params.minSNR ) {
                 p.minSNR = 0.0;
             }
             p.baseline = params.baseline;
             p.noise = params.noise;
 
-        } else if (filetype == pwiz::msdata::MS_Thermo_RAW_file) {
+        } else if (filetype == pwiz::msdata::MS_Thermo_RAW_format) {
             if ( params.minSNR) {
                 LOG(INFO) <<"Setting minSNR since it is a Thermo  raw data file";
                 p.minSNR = 0;
@@ -787,7 +868,7 @@ public:
 
         //create and open database
         if ( _mzdb.open(filename) != SQLITE_OK) {
-            LOG(FATAL) << "Can not create database, not enough space ? Exiting\n";
+            LOG(FATAL) << "Can not create database...Locked, space ? Exiting\n";
             exit(0);
         }
 
@@ -817,7 +898,7 @@ public:
             LOG(INFO) << "Empty spectrum list...Exiting\n";
             return;
         }
-        LOG(INFO) << "SpectrumList size: " << nscans <<endl << endl;
+        LOG(INFO) << "SpectrumList size: " << nscans;
 
         map<int, map<int, int> >runSlices;
         //settings currentRt
@@ -838,49 +919,75 @@ public:
 
         sqlite3_exec(_mzdb.db, "BEGIN;", 0, 0, 0);
 
-        CycleCollectionQueue<unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> > > cyclesCollectionQueue(3);
-        CycleCollectionQueue<unique_ptr<mzSpectraCollection<h_mz_t, h_int_t> > > peakPickedCyclesCollectionQueue(3);
+// critical code, this code is twice faster than the other one but 1/60 crashes the machine
+        //CycleCollectionQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > > cyclesCollectionQueue(3);
+        //CycleCollectionQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > > peakPickedCyclesCollectionQueue(3);
+        folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > > cyclesCollectionQueue(nbCycles);
+        folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > > peakPickedCyclesCollectionQueue(nbCycles);
 
         int progressCount = 0;
 
         size_t nbProc = boost::thread::hardware_concurrency();
-        //printf("#DETECTED CORE(S):%d\n", nbProc);
+        LOG(INFO) << "#detected core(s): " << nbProc;
+        LOG(INFO) << "using #" << 1 << " core(s)";
 
         //iterate (get spectra for example) on it
         //if (nbProc > 2)
         //   printf("The raw2mzdb power has been unleashed...it could even break your computer!\n");
+        boost::thread producer;
+        if (this->_originFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
+            producer = boost::thread(boost::bind(&mzDBWriter::mzCycleCollectionProducer<h_mz_t, h_int_t, l_mz_t, l_int_t, pwiz::msdata::detail::SpectrumList_Thermo>,
+                                                 this,
+                                                 std::ref(levelsToCentroid),
+                                                 std::ref(cyclesCollectionQueue),
+                                                 (pwiz::msdata::detail::SpectrumList_Thermo*)spectrumList.get(),
+                                                 nscans,
+                                                 std::ref(bbWidthManager)));
+        } else if (this->_originFileFormat == pwiz::msdata::MS_ABI_WIFF_format){
+            producer = boost::thread(boost::bind(&mzDBWriter::mzCycleCollectionProducer<h_mz_t, h_int_t, l_mz_t, l_int_t, pwiz::msdata::detail::SpectrumList_ABI>,
+                                                 this,
+                                                 std::ref(levelsToCentroid),
+                                                 std::ref(cyclesCollectionQueue),
+                                                 (pwiz::msdata::detail::SpectrumList_ABI*)spectrumList.get(),
+                                                 nscans,
+                                                 std::ref(bbWidthManager)));
+        } else {
+            LOG(FATAL) << "Constructor file not yet supported. Aborting...";
+            exit(0);
+        }
 
-        boost::thread producer(boost::bind(&mzDBWriter::mzCycleCollectionProducer<h_mz_t, h_int_t>, this,
-                                           std::ref(levelsToCentroid), std::ref(cyclesCollectionQueue),
-                                           std::ref(spectrumList), nscans, std::ref(bbWidthManager)));
         boost::thread_group consumers;
         for (int i = 0; i < 1; ++i) {
-            consumers.create_thread(boost::bind(&mzDBWriter::mzCycleCollectionConsumer<h_mz_t, h_int_t>, this,
+            consumers.create_thread(boost::bind(&mzDBWriter::mzCycleCollectionConsumer<h_mz_t, h_int_t, l_mz_t, l_int_t>, this,
                                                 std::ref(cyclesCollectionQueue), this->_originFileFormat,
-                                                std::ref(p), std::ref(peakPickedCyclesCollectionQueue)));
+                                                std::ref(p), std::ref(peakPickedCyclesCollectionQueue),
+                                                nscans));
         }
-        boost::thread inserter(boost::bind(&mzDBWriter::mzCycleCollectionInserter<h_mz_t, h_int_t>, this,
+        boost::thread inserter(boost::bind(&mzDBWriter::mzCycleCollectionInserter<h_mz_t, h_int_t, l_mz_t, l_int_t>, this,
                                            std::ref(peakPickedCyclesCollectionQueue), std::ref(bbHeightManager),
                                            std::ref(runSlices), std::ref(progressCount), nscans));
         producer.join();
         consumers.join_all();
         inserter.join();
 
+//---end critical
 
-        //--------------------------FIX BUT 2x slower-----------------------------------------
+//--------------------------FIX BUT 2x slower-----------------------------------------
 //        int lastPercent = 0;
 //        float progression = 0;
-//        map<int, mzSpectraCollection<h_mz_t, h_int_t>* > spectraByMsLevel;
+//        map<int, unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > > spectraByMsLevel;
 //        pwiz::msdata::SpectrumPtr currMs1;
 
 //        for (size_t i = 0; i < nscans; ++i) {
 
-//            const pwiz::msdata::SpectrumPtr spectrum = (this->_originFileFormat == pwiz::msdata::MS_Thermo_RAW_file) ?
+//            const pwiz::msdata::SpectrumPtr spectrum = (this->_originFileFormat == pwiz::msdata::MS_Thermo_RAW_format) ?
 //                        ((pwiz::msdata::detail::SpectrumList_Thermo*)spectrumList.get())->spectrum(i, true, levelsToCentroid) :
 //                         ((pwiz::msdata::detail::SpectrumList_ABI*)spectrumList.get())->spectrum(i, true, levelsToCentroid);
 
 //            const int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
 //            const float rt = rtOf(spectrum);
+
+//            bool isInHighRes = this->_metadataExtractor->isInHighRes(spectrum);
 
 //            if (msLevel == 1 ) {
 //                ++_cycleCount;
@@ -889,28 +996,40 @@ public:
 
 //            //init for specific msLevel
 //            if (spectraByMsLevel.find(msLevel) == spectraByMsLevel.end()) {
-//                auto* cont = new  mzSpectraCollection<h_mz_t, h_int_t>(msLevel);
+//                unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > cont(
+//                      new mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t>(msLevel));
 //                cont->parentSpectrum = currMs1;
-//                spectraByMsLevel[msLevel] = cont;
+//                spectraByMsLevel[msLevel] = std::move(cont);
 //            }
 
-//            auto* container = spectraByMsLevel[msLevel];
+//            auto& container = spectraByMsLevel[msLevel];
 
 //            if ( (!container->empty()) && ( abs( rt - container->getBeginRt() ) > bbWidthManager[msLevel]) ) {
 //                //----Main Data treatment
 //                this->launchPeakPicking(container, filetype, p);
 //                progression += (float)container->size();
-//                this->buildAndInsertData(msLevel, bbHeightManager[msLevel], container->getSpectra(), runSlices[msLevel]);
-//                delete container;
+//                vector<std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > > highResSpectra;
+//                vector<std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > > lowResSpectra;
+//                container->getSpectra(highResSpectra, lowResSpectra);
+//                this->buildAndInsertData(msLevel, bbHeightManager[msLevel], highResSpectra, lowResSpectra, runSlices[msLevel]);
 //                //-----------------------
-//                container = new mzSpectraCollection<h_mz_t, h_int_t>(msLevel);
-//                container->parentSpectrum = currMs1;
-//                spectraByMsLevel[msLevel] = container;
+//                unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > c(
+//                      new mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t>(msLevel));
+//                c->parentSpectrum = currMs1;
+//                spectraByMsLevel[msLevel] = std::move(c);
 //            }
 
-//            mzSpectrum<h_mz_t, h_int_t>* s = new mzSpectrum<h_mz_t, h_int_t>(_scanCount, _cycleCount, spectrum);
-//            container->addSpectrum(s);
-//            this->insertScan(s, container->getBeginId(), currMs1);
+
+//            if (isInHighRes) {
+//                auto s = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(_scanCount, _cycleCount, spectrum);
+//                container->addHighResSpectrum(s);
+//                this->insertScan<h_mz_t, h_int_t>(s, container->getBeginId(), currMs1);
+
+//            } else {
+//                auto s = std::make_shared<mzSpectrum<l_mz_t, l_int_t> >(_scanCount, _cycleCount, spectrum);
+//                container->addLowResSpectrum(s);
+//                this->insertScan<l_mz_t, l_int_t>(s, container->getBeginId(), currMs1);
+//            }
 
 //            ++_scanCount;
 
@@ -923,21 +1042,23 @@ public:
 
 //        //finish
 //        for(int i = 1; i <= spectraByMsLevel.size(); ++i) {
-//            auto* container = spectraByMsLevel[i];
+//            auto& container = spectraByMsLevel[i];
 //            if (! container->empty())
 //                this->launchPeakPicking(container, filetype, p);
 //                progression += container->size();
-//                this->buildAndInsertData(i, bbHeightManager[i], container->getSpectra(), runSlices[i]);
+//                vector<std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > > highResSpectra;
+//                vector<std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > > lowResSpectra;
+//                container->getSpectra(highResSpectra, lowResSpectra);
+//                this->buildAndInsertData(i, bbHeightManager[i], highResSpectra, lowResSpectra, runSlices[i]);
 
 //                int newPercent = (int) (progression / nscans * HUNDRED);
 //                if (newPercent != lastPercent ) {
 //                    printProgBar(newPercent);
 //                    lastPercent = newPercent;
 //                }
-//            delete container;
 //        }
 //        printProgBar(100);
-        //-----------------------END FIX ---------------------------------------
+//-----------------------END FIX ---------------------------------------
 
 
 

@@ -17,6 +17,14 @@
 // @author Bo Hu (bhu@fb.com)
 // @author Jordan DeLong (delong.j@fb.com)
 
+/*
+ * This is slightly modified version of the original implementation that
+ * can be found in folly (facebook c++ library). Change the write method
+ * to be VC10 compatible, removing variadic templates (supported in VC
+ * 12), use boost::atomic instead of std::atomic (does not exist in VC10
+ * include headers).
+ */
+
 #ifndef PRODUCER_CONSUMER_QUEUE_H_
 #define PRODUCER_CONSUMER_QUEUE_H_
 
@@ -27,7 +35,8 @@
 #include <utility>
 #include "boost/noncopyable.hpp"
 #include "boost/type_traits.hpp"
-#include "boost/
+#include "boost/atomic.hpp"
+
 namespace folly {
 
 /*
@@ -73,27 +82,28 @@ struct ProducerConsumerQueue : private boost::noncopyable {
     std::free(records_);
   }
 
-  template<class ...Args>
-  bool write(Args&&... recordArgs) {
-    auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
+  //template<class ...Args>
+  //bool write(Args&&... recordArgs) {
+  bool write(T&& record) {
+    auto const currentWrite = writeIndex_.load(boost::memory_order_relaxed);
     auto nextRecord = currentWrite + 1;
     if (nextRecord == size_) {
       nextRecord = 0;
     }
-    if (nextRecord != readIndex_.load(std::memory_order_acquire)) {
-      new (&records_[currentWrite]) T(std::forward<Args>(recordArgs)...);
-      writeIndex_.store(nextRecord, std::memory_order_release);
+    if (nextRecord != readIndex_.load(boost::memory_order_acquire)) {
+      //new (&records_[currentWrite]) T(std::forward<Args>(recordArgs)...);
+      new (&records_[currentWrite]) T(boost::move(record)); // should a move ctor
+      writeIndex_.store(nextRecord, boost::memory_order_release);
       return true;
     }
-
     // queue is full
     return false;
   }
 
   // move (or copy) the value at the front of the queue to given variable
   bool read(T& record) {
-    auto const currentRead = readIndex_.load(std::memory_order_relaxed);
-    if (currentRead == writeIndex_.load(std::memory_order_acquire)) {
+    auto const currentRead = readIndex_.load(boost::memory_order_relaxed);
+    if (currentRead == writeIndex_.load(boost::memory_order_acquire)) {
       // queue is empty
       return false;
     }
@@ -104,15 +114,15 @@ struct ProducerConsumerQueue : private boost::noncopyable {
     }
     record = std::move(records_[currentRead]);
     records_[currentRead].~T();
-    readIndex_.store(nextRecord, std::memory_order_release);
+    readIndex_.store(nextRecord, boost::memory_order_release);
     return true;
   }
 
   // pointer to the value at the front of the queue (for use in-place) or
   // nullptr if empty.
   T* frontPtr() {
-    auto const currentRead = readIndex_.load(std::memory_order_relaxed);
-    if (currentRead == writeIndex_.load(std::memory_order_acquire)) {
+    auto const currentRead = readIndex_.load(boost::memory_order_relaxed);
+    if (currentRead == writeIndex_.load(boost::memory_order_acquire)) {
       // queue is empty
       return nullptr;
     }
@@ -121,28 +131,28 @@ struct ProducerConsumerQueue : private boost::noncopyable {
 
   // queue must not be empty
   void popFront() {
-    auto const currentRead = readIndex_.load(std::memory_order_relaxed);
-    assert(currentRead != writeIndex_.load(std::memory_order_acquire));
+    auto const currentRead = readIndex_.load(boost::memory_order_relaxed);
+    assert(currentRead != writeIndex_.load(boost::memory_order_acquire));
 
     auto nextRecord = currentRead + 1;
     if (nextRecord == size_) {
       nextRecord = 0;
     }
     records_[currentRead].~T();
-    readIndex_.store(nextRecord, std::memory_order_release);
+    readIndex_.store(nextRecord, boost::memory_order_release);
   }
 
   bool isEmpty() const {
-   return readIndex_.load(std::memory_order_consume) ==
-         writeIndex_.load(std::memory_order_consume);
+   return readIndex_.load(boost::memory_order_consume) ==
+         writeIndex_.load(boost::memory_order_consume);
   }
 
   bool isFull() const {
-    auto nextRecord = writeIndex_.load(std::memory_order_consume) + 1;
+    auto nextRecord = writeIndex_.load(boost::memory_order_consume) + 1;
     if (nextRecord == size_) {
       nextRecord = 0;
     }
-    if (nextRecord != readIndex_.load(std::memory_order_consume)) {
+    if (nextRecord != readIndex_.load(boost::memory_order_consume)) {
       return false;
     }
     // queue is full
@@ -155,8 +165,8 @@ struct ProducerConsumerQueue : private boost::noncopyable {
   //   be removing items concurrently).
   // * It is undefined to call this from any other thread.
   size_t sizeGuess() const {
-    int ret = writeIndex_.load(std::memory_order_consume) -
-              readIndex_.load(std::memory_order_consume);
+    int ret = writeIndex_.load(boost::memory_order_consume) -
+              readIndex_.load(boost::memory_order_consume);
     if (ret < 0) {
       ret += size_;
     }
@@ -166,9 +176,8 @@ struct ProducerConsumerQueue : private boost::noncopyable {
 private:
   const uint32_t size_;
   T* const records_;
-
-  std::atomic<int> readIndex_;
-  std::atomic<int> writeIndex_;
+  boost::atomic<int> readIndex_;
+  boost::atomic<int> writeIndex_;
 };
 
 }

@@ -1,15 +1,39 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//author marc.dubois@ipbs.fr
+
+/*
+ * Simple blocking queue using boost::mutex and boost::condition variable
+ * This a multi-producer multi-consumer implementation
+ */
+
+
 #ifndef __QUEUE__
 #define __QUEUE__
 
 #include "deque"
-#include "boost/thread/condition.hpp"
+#include "boost/thread/condition_variable.hpp"
 #include "boost/thread/thread.hpp"
 #include "boost/thread/mutex.hpp"
 
 namespace mzdb {
 
 template<typename T>
-class CycleCollectionQueue {
+class CycleCollectionQueue: private boost::noncopyable {
 
 private:
     std::deque<T> buf;
@@ -28,7 +52,7 @@ public:
         while( buf.size() == maxSize ) {
             cond.wait(lock);
         }
-        buf.push_back(std::move(m)); // move semantics, done by default VC10 ?
+        buf.push_back(std::move(m));
         cond.notify_one();
     }
 
