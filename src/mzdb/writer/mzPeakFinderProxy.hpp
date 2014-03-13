@@ -123,7 +123,7 @@ public:
             case pwiz::msdata::MS_ABI_WIFF_format :{
                 peakPickerParams.adaptiveBaselineAndNoise = true;
                 peakPickerParams.optimizationOpt = 0x01;
-                peakPickerParams.minSNR = 0.5;
+                peakPickerParams.minSNR = 0.0;
                 peakPickerParams.fwhm = TOF_FWHM;
                 mzPeakFinderWavelet::findPeaks(s, v, peakPickerParams);
                 break;

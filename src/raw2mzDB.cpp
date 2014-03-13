@@ -134,7 +134,7 @@ int main(int argc, char* argv[]) {
     float bbWidth = 15, bbWidthMSn = 0; //15
     float bbHeight = 5, bbHeightMSn = 10000; //5
     bool noLoss = false; //32 bits intensity encoding by default
-    int peakPickingAlgo = 0, nscans = 0, nbCycles = 3;
+    int peakPickingAlgo = 0, nscans = 0, nbCycles = 3, maxNbThreads = 1;
 
     map<int, DataMode> results;
     map<int, string> dataModes;
@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
         results[i] = CENTROID;
     }
 
-    string help = "\n\nusage: raw2mzDB.exe -input filename <parameters>"
+    string help = "\n\nusage: raw2mzDB.exe --input filename <parameters>"
                   "\n\nOptions:\n\n"
                   "\t-i, --input : specify the input rawfile path"
                   "\t-o, --output : specify the output filename (must be an absolute path)"
@@ -159,9 +159,10 @@ int main(int argc, char* argv[]) {
                   "\t-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s\n:"
                   "\t-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da \n"
                   "\t-m, --bbMzWidthMSn : bounding box height for msn in Da, default: 10000Da \n"
-                  "\t--bufferSize : low value (min 2) will enforce the program to use less memory (max 50), default: 3"
+                  "\t--bufferSize : low value (min 2) will enforce the program to use less memory (max 50), default: 3\n"
+                  "\t--max_nb_threads : maximum nb_threads to use, default: nb processors on the machine\n"
                   "\t--no_loss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
-                  "\t--nscans : nb scans to convert into the mzDB file (max: number of scans in the rawfile)"
+                  "\t--nscans : nb scans to convert into the mzDB file (max: number of scans in the rawfile)\n"
                   "\t-h --help : show help";
 
 
@@ -179,36 +180,40 @@ int main(int argc, char* argv[]) {
     ops >> Option('n', "nscans", nscans);
     ops >> Option("no_loss", noLoss);
     ops >> Option("bufferSize", nbCycles);
-    if (ops >> OptionPresent('h', "help"))
+    ops >> Option("max_nb_threads", maxNbThreads);
+
+    if (ops >> OptionPresent('h', "help")) {
         cout << help << endl;
+        return exit(EXIT_SUCCESS);
+    }
     //ops >> Option('C', "compress", compression)
     if (ops.options_remain()) {
         LOG(ERROR) <<"Oops! Unexpected options. Refer to help";
         cout << help << endl;
-        return 1;
+        return exit(EXIT_FAILURE);
     }
 
     if (! exists(filename)) {
         LOG(ERROR) << "Filepath does not exist.Exiting.";
-        return 1;
+        return exit(EXIT_FAILURE);
     }
 
     if (!filename.size()) {
         LOG(ERROR) << "empty raw filename ! Exiting...";
         cout << help << endl;
-        return 1;
+        return exit(EXIT_FAILURE);
     }
 
 #ifdef WIN32
     if (alreadyOpened(filename)) {
         LOG(ERROR) << "File already open in another application.\nPlease close it to perform conversion.";
-        return 1;
+        return exit(EXIT_FAILURE);
     }
 #endif
 
     int res = deleteIfExists(filename + ".mzDB");
     if (res == 1)
-        return 1;
+      return exit(EXIT_FAILURE);
 
     vector<int> modifiedIndex;
 

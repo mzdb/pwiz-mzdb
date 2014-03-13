@@ -28,6 +28,11 @@
 #include <array>
 #include <memory>
 #include <functional>
+
+#ifdef _WIN32
+    #include "ppl.h"
+#endif
+
 //--- Pwiz import
 #include "pwiz/data/msdata/MSDataFile.hpp"
 #include "pwiz_tools/common/FullReaderList.hpp"
@@ -395,7 +400,8 @@ private:
         //special cases leading to failure IMPORTANT SEGFAULT
         bool emptyMsLevel = false;
         if (bbs.empty()) {
-            LOG(INFO) << "Found a bounding box empty";
+            //Too much log in ABI sciex file
+            //LOG(INFO) << "Found a bounding box empty";
             emptyMsLevel = true;
             auto bb = mzBoundingBoxUPtr(
                         new mzBoundingBox<h_mz_t, h_int_t,l_mz_t, l_int_t>(
@@ -577,26 +583,56 @@ private:
 
 
     //------------------ PEAK PICKING FUNCTIONS --------------------------------
+    template<typename mz_t, typename int_t>
+    void launchPP(vector<std::shared_ptr<mzSpectrum<mz_t, int_t> > >& spectra, DataMode m,
+                  pwiz::msdata::CVID filetype,
+                  mzPeakFinderUtils::PeakPickerParams& params,
+                  size_t maxNbThreads) {
+
+        size_t maxVal = 0;
+        for (size_t j = 0, N = spectra.size(); j < N; j += maxNbThreads) {
+            maxVal = j;
+            boost::thread_group g;
+            size_t counter = ( N - j < maxNbThreads ) ? N - j : maxNbThreads;
+            for (size_t i = 0; i < counter; ++i) {
+                g.create_thread(std::bind(&mzSpectrum<mz_t, int_t>::doPeakPicking, spectra[j + i], m, filetype, params));
+            }
+            g.join_all();
+        }
+    }
+
+
     /**
      * launch peakPicking using a thread group
      * @brief lauchPeakPicking
      */
     template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
-    inline void launchPeakPicking(vector<std::shared_ptr<mzSpectrum<h_mz_t,h_int_t> > >& highResBuffer,
-                                  vector<std::shared_ptr<mzSpectrum<l_mz_t,l_int_t> > >& lowResBuffer,
-                                  DataMode m,
-                                  pwiz::msdata::CVID filetype,
-                                  mzPeakFinderUtils::PeakPickerParams& params) {
-        boost::thread_group g;
-        for (size_t j = 0; j < highResBuffer.size(); ++j) {
-            //FIXME: due to a bug in VC10 can move with unique_ptr since it requires to be non copyable
-            //use std::shared_ptr instead which is less efficient
-            g.create_thread(std::bind(&mzSpectrum<h_mz_t, h_int_t>::doPeakPicking, highResBuffer[j], m, filetype, params));
-        }
-        for (size_t j = 0; j < lowResBuffer.size(); ++j) {
-            g.create_thread(std::bind(&mzSpectrum<l_mz_t, l_int_t>::doPeakPicking, lowResBuffer[j], m, filetype, params));
-        }
-        g.join_all();
+    void launchPeakPicking(vector<std::shared_ptr<mzSpectrum<h_mz_t,h_int_t> > >& highResBuffer,
+                           vector<std::shared_ptr<mzSpectrum<l_mz_t,l_int_t> > >& lowResBuffer,
+                           DataMode m,
+                           pwiz::msdata::CVID filetype,
+                           mzPeakFinderUtils::PeakPickerParams& params) {
+//          for (auto it = highResBuffer.begin(); it  != highResBuffer.end(); ++it)
+//              (*it)->doPeakPicking(m, filetype, params);
+//          for (auto it = lowResBuffer.begin(); it  != lowResBuffer.end(); ++it)
+//              (*it)->doPeakPicking(m, filetype, params);
+
+//#ifdef _WIN32
+//        Concurrency::parallel_for_each(highResBuffer.begin(), highResBuffer.end(), [&](std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> >& spectrum) {
+//            spectrum->doPeakPicking(m, filetype, params);
+//        });
+//        Concurrency::parallel_for_each(lowResBuffer.begin(), lowResBuffer.end(), [&](std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> >& spectrum) {
+//            spectrum->doPeakPicking(m, filetype, params);
+//        });
+//#else
+//      //other solution same problem on bilbon
+        size_t nbProc = boost::thread::hardware_concurrency();
+        size_t maxNbThreads = std::max<size_t>(1, (nbProc - 4)/2 + 1);
+
+        this->launchPP<h_mz_t, h_int_t>(highResBuffer, m, filetype, params, maxNbThreads);
+        this->launchPP<l_mz_t, l_int_t>(lowResBuffer, m, filetype, params, maxNbThreads);
+
+//#endif
     }
 
 
@@ -673,14 +709,15 @@ private:
 
 
     //---------------PRODUCER CONSUMER IMPLEMENTATION---------------------------
-    /**
-     *
-     */
+    /** */
     template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t, class SpectrumListType>
-    inline void mzCycleCollectionProducer(pwiz::util::IntegerSet& levelsToCentroid,
-                                          folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& cyclesCollectionQueue,
-                                          SpectrumListType* spectrumList, int nscans,
-                                          map<int, double>& bbWidthManager) { // only for test purpose
+    void mzCycleCollectionProducer(pwiz::util::IntegerSet& levelsToCentroid,
+                                   folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& cyclesCollectionQueue,
+                                   SpectrumListType* spectrumList,
+                                   int nscans,
+                                   map<int, double>& bbWidthManager,
+                                   pwiz::msdata::CVID filetype,
+                                   mzPeakFinderUtils::PeakPickerParams& params) {
 
 
         unordered_map<int, std::unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > > spectraByMsLevel;
@@ -713,6 +750,8 @@ private:
             auto& container = spectraByMsLevel[msLevel];
 
             if ( (!container->empty()) && ( abs( rt - container->getBeginRt() ) > bbWidthManager[msLevel]) ) {
+                //launch peak picking
+                this->launchPeakPicking(container, filetype, params);
                 while ( ! cyclesCollectionQueue.write(std::move(container)))
                   continue;
                 //recreate a unique pointer
@@ -736,59 +775,56 @@ private:
         for(int i = 1; i <= spectraByMsLevel.size(); ++i) {
             auto& container = spectraByMsLevel[i];
             if (! container->empty()) {
+                this->launchPeakPicking(container, filetype, params);
                 while (! cyclesCollectionQueue.write(std::move(container)))
                   continue;
             }
         }
-
         //signify that we finished producing
         LOG(INFO) << "Producer finished...\n";
     }
 
-    /**
-     *
-     */
+    /** */
+//    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
+//    void mzCycleCollectionConsumer(folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& cyclesCollectionQueue, //try to get cycleCollection
+//                                   pwiz::msdata::CVID filetype, mzPeakFinderUtils::PeakPickerParams& params, // peak picking parameters
+//                                   folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& peakPickedCyclesCollectionQueue,
+//                                   int nscans) {
+//        int progress = 0;
+//        while ( 1 ) {
+//            //get back the ownership
+//            unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > cycleCollection(nullptr);
+//            while (! cyclesCollectionQueue.read(cycleCollection))
+//              continue;
+//            if (cycleCollection == nullptr) {
+//                LOG(INFO) << "Peak picking consumer/producer finished due to null pointer" <<endl;
+//                break;
+//            }
+//            this->launchPeakPicking<h_mz_t, h_int_t, l_mz_t, l_int_t>(cycleCollection, filetype, params);
+//            //after joining put the cycle collection in the peak picked collection queue
+//            progress += cycleCollection->size();
+
+//            while (! peakPickedCyclesCollectionQueue.write(std::move(cycleCollection)))
+//              continue;
+
+//            if (progress == nscans) {
+//              LOG(INFO) << "Peak picking consumer/producer finished: reaches final progression" <<endl;
+//              break;
+//            }
+//        }
+//    }
+
+    /** */
     template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
-    inline void mzCycleCollectionConsumer(folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& cyclesCollectionQueue, //try to get cycleCollection
-                                          pwiz::msdata::CVID filetype, mzPeakFinderUtils::PeakPickerParams& params, // peak picking parameters
-                                          folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& peakPickedCyclesCollectionQueue,
-                                          int nscans) {
-        int progress = 0;
-        while ( 1 ) {
-            //get back the ownership
-            unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > cycleCollection(nullptr);
-            while (! cyclesCollectionQueue.read(cycleCollection))
-              continue;
-            if (cycleCollection == nullptr) {
-                LOG(INFO) << "Peak picking consumer/producer finished due to null pointer" <<endl;
-                break;
-            }
-            this->launchPeakPicking<h_mz_t, h_int_t, l_mz_t, l_int_t>(cycleCollection, filetype, params);
-            //after joining put the cycle collection in the peak picked collection queue
-            progress += cycleCollection->size();
-
-            while (! peakPickedCyclesCollectionQueue.write(std::move(cycleCollection)))
-              continue;
-
-            if (progress == nscans) {
-              LOG(INFO) << "Peak picking consumer/producer finished: reaches final progression" <<endl;
-              break;
-            }
-        }
-    }
-
-    /**
-     *
-     */
-    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
-    inline void mzCycleCollectionInserter(folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& peakPickedCyclesCollectionQueue,
-                                          map<int, double>& bbHeightManager,
-                                          map<int, map<int, int> >& runSlices,
-                                          int& progressionCount, int nscans) {
+    void mzCycleCollectionInserter(folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > >& cyclesCollectionQueue,
+                                   map<int, double>& bbHeightManager,
+                                   map<int, map<int, int> >& runSlices,
+                                   int& progressionCount,
+                                   int nscans) {
         int lastPercent = 0;
         while ( 1 ) {
             unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > cycleCollection(nullptr);
-            while (! peakPickedCyclesCollectionQueue.read(cycleCollection))
+            while (! cyclesCollectionQueue.read(cycleCollection))
               continue;
 
             if ( cycleCollection == nullptr ) {
@@ -814,7 +850,7 @@ private:
                 break;
             }
         }
-        printProgBar(HUNDRED);
+        //printProgBar(HUNDRED);
     }
 
 public:
@@ -921,19 +957,14 @@ public:
 
 // critical code, this code is twice faster than the other one but 1/60 crashes the machine
         //CycleCollectionQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > > cyclesCollectionQueue(3);
-        //CycleCollectionQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > > peakPickedCyclesCollectionQueue(3);
         folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > > cyclesCollectionQueue(nbCycles);
-        folly::ProducerConsumerQueue<unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> > > peakPickedCyclesCollectionQueue(nbCycles);
 
         int progressCount = 0;
 
         size_t nbProc = boost::thread::hardware_concurrency();
         LOG(INFO) << "#detected core(s): " << nbProc;
-        LOG(INFO) << "using #" << 1 << " core(s)";
 
         //iterate (get spectra for example) on it
-        //if (nbProc > 2)
-        //   printf("The raw2mzdb power has been unleashed...it could even break your computer!\n");
         boost::thread producer;
         if (this->_originFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
             producer = boost::thread(boost::bind(&mzDBWriter::mzCycleCollectionProducer<h_mz_t, h_int_t, l_mz_t, l_int_t, pwiz::msdata::detail::SpectrumList_Thermo>,
@@ -942,7 +973,9 @@ public:
                                                  std::ref(cyclesCollectionQueue),
                                                  (pwiz::msdata::detail::SpectrumList_Thermo*)spectrumList.get(),
                                                  nscans,
-                                                 std::ref(bbWidthManager)));
+                                                 std::ref(bbWidthManager),
+                                                 this->_originFileFormat,
+                                                 std::ref(p)));
         } else if (this->_originFileFormat == pwiz::msdata::MS_ABI_WIFF_format){
             producer = boost::thread(boost::bind(&mzDBWriter::mzCycleCollectionProducer<h_mz_t, h_int_t, l_mz_t, l_int_t, pwiz::msdata::detail::SpectrumList_ABI>,
                                                  this,
@@ -950,24 +983,18 @@ public:
                                                  std::ref(cyclesCollectionQueue),
                                                  (pwiz::msdata::detail::SpectrumList_ABI*)spectrumList.get(),
                                                  nscans,
-                                                 std::ref(bbWidthManager)));
+                                                 std::ref(bbWidthManager),
+                                                 this->_originFileFormat,
+                                                 std::ref(p)));
         } else {
             LOG(FATAL) << "Constructor file not yet supported. Aborting...";
             exit(0);
         }
 
-        boost::thread_group consumers;
-        for (int i = 0; i < 1; ++i) {
-            consumers.create_thread(boost::bind(&mzDBWriter::mzCycleCollectionConsumer<h_mz_t, h_int_t, l_mz_t, l_int_t>, this,
-                                                std::ref(cyclesCollectionQueue), this->_originFileFormat,
-                                                std::ref(p), std::ref(peakPickedCyclesCollectionQueue),
-                                                nscans));
-        }
         boost::thread inserter(boost::bind(&mzDBWriter::mzCycleCollectionInserter<h_mz_t, h_int_t, l_mz_t, l_int_t>, this,
-                                           std::ref(peakPickedCyclesCollectionQueue), std::ref(bbHeightManager),
+                                           std::ref(cyclesCollectionQueue), std::ref(bbHeightManager),
                                            std::ref(runSlices), std::ref(progressCount), nscans));
         producer.join();
-        consumers.join_all();
         inserter.join();
 
 //---end critical
