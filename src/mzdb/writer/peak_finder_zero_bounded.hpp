@@ -3,11 +3,12 @@
 
 #include <fstream>
 
-#include "pwiz/data/msdata/MSData.hpp"
-#include "../msdata/mzDataPointsCollection.hpp"
-#include "../optimization/mzCeresFittingProblem.hpp"
 #include "ceres/ceres.h"
-#include "../optimization/mzPeakModels.hpp"
+#include "pwiz/data/msdata/MSData.hpp"
+
+#include "data_points_collection.hpp"
+#include "ceres_problems.hpp"
+#include "peak_models.hpp"
 
 
 namespace mzdb {

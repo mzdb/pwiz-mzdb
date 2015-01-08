@@ -2,13 +2,12 @@
 #define MZABSTRACTPEAKFINDER_H
 
 #include <vector>
-
-#include "../../utils/mzUtils.hpp"
-#include "../msdata/mzPeak.hpp"
-#include "../optimization/mzCeresFittingProblem.hpp"
-#include "../../utils/cwtlib/cwtlib"
 #include <cmath>
 
+#include "../../utils/mzUtils.hpp"
+#include "peak.hpp"
+#include "ceres_problems.hpp"
+#include "../../utils/cwtlib/cwtlib"
 
 
 __BEGIN_MZDB_NM
@@ -412,7 +411,7 @@ static Ownership detectPeaksCLASSIC(const vector<double>& intData,
  * @brief detectPeaksCWT
  * @return
  */
-template<class mz_t, class int_t>
+/*template<class mz_t, class int_t>
 static Ownership detectPeaksCWT(const vector<double>& intData,
                                 vector<mzPeak<mz_t, int_t>*>& peaks,
                                 const PeakPickerParams& p) {
@@ -424,7 +423,7 @@ static Ownership detectPeaksCWT(const vector<double>& intData,
     return detectPeaks<mz_t, int_t, double> ( cwtCoeffs, peaks, p );
 
 
-}
+}*/
 
 
 }//end peakpicking nm

@@ -1,12 +1,12 @@
 #ifndef MZPEAKPICKINGWAVELET_HPP
 #define MZPEAKPICKINGWAVELET_HPP
 
-
 #include "pwiz/data/msdata/MSData.hpp"
-#include "../msdata/mzPeak.hpp"
+
+#include "peak.hpp"
 #include "../../utils/cwtlib/cwtlib"
-#include "mzPeakFinderUtils.hpp"
-#include "mzDataPointsCollection.hpp"
+#include "peak_finder_utils.hpp"
+#include "data_points_collection.hpp"
 
 
 namespace mzdb {
@@ -34,11 +34,11 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& s,
         return;
     }
 
-    if (params.adaptiveBaselineAndNoise) {
-        const pair<double, double> c = mzPeakFinderUtils::getBaselineAndNoise(ints);
-        params.baseline = c.first;
-        params.noise = c.second;
-    }
+//    if (params.adaptiveBaselineAndNoise) {
+//        const pair<double, double> c = mzPeakFinderUtils::getBaselineAndNoise(ints);
+//        params.baseline = c.first;
+//        params.noise = c.second;
+//    }
 
     //---copy data ! TODO: how to change this
     const vector<mz_t> nmzs(mzs.begin(), mzs.end());
@@ -47,8 +47,7 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& s,
 
     //---detectPeaks using CWT, snr filtered ( snr taken from params.minSNR )
     spectrumData._detectPeaksCWT(params);
-    spectrumData.optimize(centroids, params.optimizationOpt);
-
+    spectrumData.optimize(centroids, 0x01); //params.optimizationOpt);
 }
 
 

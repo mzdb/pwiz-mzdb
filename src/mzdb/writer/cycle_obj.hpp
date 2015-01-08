@@ -24,32 +24,43 @@
 #include "../../utils/mzUtils.hpp"
 #include <memory>
 
-//forward declaration
-template<class mz_t, class int_t>
-class mzSpectrum;
+#include "spectrum.hpp"
+
+//forward declaration, fail to compil on gcc 4.7
+//template<class mz_t, class int_t>
+//class mzSpectrum;
 
 namespace mzdb {
 
 /**
  *
  */
-template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
+template< class h_mz_t, class h_int_t,
+                class l_mz_t, class l_int_t>
 struct mzSpectraContainer {
+
+
+    typedef typename h_mz_t h_mz_t;
+    typedef typename h_int_t h_int_t;
+    typedef typename l_mz_t l_mz_t;
+    typedef typename l_int_t l_int_t;
+
     typedef std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > HighResSpectumSPtr;
     typedef std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > LowResSpectrumSPtr;
 
     int msLevel;
     std::vector<pair<HighResSpectumSPtr, LowResSpectrumSPtr > > spectra;
-    pwiz::msdata::SpectrumPtr parentSpectrum;
+    HighResSpectumSPtr parentSpectrum;
 
+    inline mzSpectraContainer() {}
     inline mzSpectraContainer(int msLevel): msLevel(msLevel) {}
 
     inline void addLowResSpectrum(LowResSpectrumSPtr s) {
-        spectra.push_back(std::make_pair<HighResSpectumSPtr, LowResSpectrumSPtr>(nullptr, s));
+        spectra.push_back(std::make_pair(nullptr, s));
     }
 
     inline void addHighResSpectrum(HighResSpectumSPtr s) {
-        spectra.push_back(std::make_pair<HighResSpectumSPtr, LowResSpectrumSPtr>(s, nullptr));
+        spectra.push_back(std::make_pair(s, nullptr));
     }
 
     inline float getBeginRt() const {
@@ -86,8 +97,8 @@ template<class h_mz_t, class h_int_t>
 struct mzSpectraCollection {
     int msLevel;
     std::vector<std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > > spectra;
-    pwiz::msdata::SpectrumPtr parentSpectrum;
-
+    //pwiz::msdata::SpectrumPtr parentSpectrum;
+    std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > parentSpectrum;
 
     inline explicit mzSpectraCollection(int msLevel): msLevel(msLevel) {}
 

@@ -47,7 +47,8 @@ lib libceres
 
 lib mzdb_writer
         : #sources
-            mzDBWriter.cpp
+            mzdb_writer.cpp
+            params_collecter.cpp
             libceres
 
         : #requirments
@@ -56,22 +57,10 @@ lib mzdb_writer
             <include>msdata
             <include>peak_picking
             <include>../../../ceres
-            <include>../lib/glog
-            #<include>../lib/gflags
             <library>../../../pwiz_tools/common
             <library>../lib/snappy
             <library>../utils
 
         : <variant>release <cxxflags>/Ox <link>static # /GF #default-build <cxxflags>"/Ox /Gy /GA"
         : #usage-requirments
-            <include>.
-            <include>optimization
-            <include>msdata
-            <include>peak_picking
-            <include>../../../ceres
-            <include>../lib/glog
-            #<include>../lib/gflags
-            <library>../../../pwiz_tools/common
-            <library>../lib/snappy
-            <library>../utils
 ;

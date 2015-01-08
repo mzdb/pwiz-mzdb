@@ -1,43 +1,76 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//author marc.dubois@ipbs.fr
+
 #ifndef ABSTRACTMETADATAEXTRACTOR_H
 #define ABSTRACTMETADATAEXTRACTOR_H
 
 
 #include "pwiz/data/common/cv.hpp"
-#include "../msdata/mzUserText.h"
 #include "pwiz_aux/msrc/utility/vendor_api/thermo/RawFile.h"
-#include "../lib/glog/glog/logging.h"
+#include "pwiz_aux/msrc/utility/vendor_api/ABI/WiffFile.hpp"
+
+#include "../utils/glog/logging.h"
+#include "../utils/mzUtils.hpp"
+#include "user_text.h"
 
 namespace mzdb {
 
-/**
- *interface for extracting metadata
-*/
+
+/// interface for extracting metadata, defining the minimum knowledge about
+/// on sample
 class mzIMetadataExtractor {
+
 protected:
     std::string filepath;
 
+
 public:
-    inline mzIMetadataExtractor(std::string& s): filepath(s) {
 
-    }
+    /// Path of the raw file as parameter
+    inline mzIMetadataExtractor(std::string& s): filepath(s) {}
 
+    /// This function is Thermo-specific. But may return additional informations
+    /// for others constructors
     virtual UserText getExtraDataAsUserText() = 0;
+
     virtual pwiz::msdata::SamplePtr getSample() = 0;
+
+    /// Important function to determine resolution of a spectra. It will
+    /// determine the encoding mode of its mzs, intensities
     virtual bool isInHighRes(pwiz::msdata::SpectrumPtr) = 0;
+
+    /// Suppose to return the lowest mz observed during the run
     virtual inline double getLowMass() = 0;
+
+    /// Suppose to return the highest mz observed during the run
     virtual inline double getHighMass() = 0;
 
 
 };
 
-/**
- *  Abstract class implementing the extraction interface, and calling
- *  the derivde class implementation
- */
+
+/// Abstract class implementing the extraction interface, and calling
+/// the derived class implementation (CRTP pattern)
 template<class Derived, int>
 class mzAbstractMetadataExtractor : public mzIMetadataExtractor {
 
 public:
+
     inline mzAbstractMetadataExtractor(std::string& s): mzIMetadataExtractor(s) {}
 
      virtual inline UserText getExtraDataAsUserText() {
@@ -63,17 +96,18 @@ public:
 };
 
 
-/**
- * @brief The mzEmptyMetadataExtractor class
- */
+
+/// Extractor used when provided raw file is a xml based file
+/// A priori we do not have extra knowledge about the method etc...
 class mzEmptyMetadataExtractor : public mzAbstractMetadataExtractor< mzEmptyMetadataExtractor, 0 > {
+
 public:
+
     inline mzEmptyMetadataExtractor(std::string& f) : mzAbstractMetadataExtractor< mzEmptyMetadataExtractor, 0 >(f) {}
     virtual inline UserText getExtraDataAsUserText() {
         return UserText();
    }
 
-    /**/
     virtual inline pwiz::msdata::SamplePtr getSample() {
         return pwiz::msdata::SamplePtr(new pwiz::msdata::Sample());
    }
@@ -84,25 +118,101 @@ public:
         return true;
    }
 
-   /* return default values ?*/
+   //return default values ?
    virtual inline double getLowMass() {return 300.0;}
 
-   /* return default values ?*/
+   // return default values ?
    virtual inline double getHighMass() {return 1500.0;}
 
 };
 
+/// ABI Sciex metadata extractor
+
+#ifdef _WIN32
+class mzABSciexMetadataExtractor : public mzAbstractMetadataExtractor< mzABSciexMetadataExtractor, (int) pwiz::cv::MS_ABI_WIFF_format > {
+
+    pwiz::vendor_api::ABI::WiffFilePtr _wiffFilePtr;
+    double _lowMz, _highMz;
+
+    public:
+
+    /// Ctor
+    inline mzABSciexMetadataExtractor(std::string& f) : mzAbstractMetadataExtractor<mzABSciexMetadataExtractor,
+                                                        (int) pwiz::cv::MS_ABI_WIFF_format >(f) {
+        try {
+        _wiffFilePtr = pwiz::vendor_api::ABI::WiffFile::create(f);
+        } catch (...) {
+
+        }
+    }
+
+    /// Data fetch from api constructor, could methods details etc...
+    virtual inline UserText getExtraDataAsUserText() {
+        return UserText();
+   }
+
+    /**/
+    virtual inline pwiz::msdata::SamplePtr getSample() {
+        return pwiz::msdata::SamplePtr(new pwiz::msdata::Sample());
+   }
+
+    /// Always return true, WARNING
+    /// It is true for triple TOF but not for the others
+    ///  TODO: check ?
+    virtual inline bool isInHighRes(pwiz::msdata::SpectrumPtr p) {
+        return true;
+   }
+
+    /// Note: the following define start and end mzs of swath window
+    /// so this is not always relevant
+   /* return default values ?*/
+   virtual inline double getLowMass() {
+        if (! _wiffFilePtr) {
+            LOG(WARNING) << "Wiff file shared pointer seems to be null";
+            return 0.0;
+        }
+        //TODO: getting the first spectrum to gather lowest, highest Mass
+        // acquisition
+        if (! _lowMz) {
+            auto& experiment = _wiffFilePtr->getExperiment(1, 1, 1);
+            experiment->getAcquisitionMassRange(_lowMz, _highMz);
+        }
+        return _lowMz;
+    }
+
+   /* return default values ?*/
+   virtual inline double getHighMass() {
+        if (! _wiffFilePtr) {
+            LOG(WARNING) << "Wiff file shared pointer seems to be null";
+            return 0.0;
+        }
+        //TODO: getting the first spectrum to gather lowest, highest Mass
+        // acquisition
+        if (! _highMz) {
+            auto& experiment = _wiffFilePtr->getExperiment(1, 1, 1);
+            experiment->getAcquisitionMassRange(_lowMz, _highMz);
+        }
+        return _highMz;
+    }
+
+};
+
+#endif
 
 /**
  * @brief The mzThermoMetadataExtractor class
  */
+#ifdef _WIN32
 class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMetadataExtractor, (int) pwiz::cv::MS_Thermo_RAW_format> {
     pwiz::vendor_api::Thermo::RawFilePtr _rawfilePtr;
 
     public:
-    inline mzThermoMetadataExtractor(std::string& f) : mzAbstractMetadataExtractor< mzThermoMetadataExtractor, (int) pwiz::cv::MS_Thermo_RAW_format>(f),
-                                                  _rawfilePtr(pwiz::vendor_api::Thermo::RawFile::create(f)){
+    inline mzThermoMetadataExtractor(std::string& f) : mzAbstractMetadataExtractor< mzThermoMetadataExtractor, (int) pwiz::cv::MS_Thermo_RAW_format>(f) {
+        try {
+            _rawfilePtr = pwiz::vendor_api::Thermo::RawFile::create(f);
+         } catch (...) {
 
+        }
     }
 
 
@@ -114,7 +224,7 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
             std::string v = l->value(i) + "\n";
             instrumentMethods += v;
         }
-        return UserText("instrumentMethods", instrumentMethods, "xsd:string");
+        return UserText("instrumentMethods", instrumentMethods, XML_STRING);
 
     }
 
@@ -123,14 +233,12 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
         std::string filename = "", filenameId = "";
         try {
             filename = _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowRawFileName);
-        } catch (exception& e) {
-            printf("%s\n", e.what());
+        } catch (exception& ) {
         }
 
         try {
             filenameId =  _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowSampleID);
-        } catch (exception& e) {
-            printf("%s\n", e.what());
+        } catch (exception& ) {
         }
 
 
@@ -138,44 +246,44 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
         try {
             sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowComment),
                                                                  _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowComment),
-                                                                 "xsd:string"));
+                                                                 XML_STRING));
         } catch (exception&) {}
 
         try {
             sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowDataPath),
                                                                  _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowDataPath),
-                                                                 "xsd:string"));
+                                                                 XML_STRING));
         } catch (exception&) {}
 
         try {
             sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::CreatorID),
                                                                  _rawfilePtr->value(pwiz::vendor_api::Thermo::CreatorID),
-                                                                 "xsd:string"));
-        } catch (exception&) { LOG(INFO) << "creator id user param failed";}
+                                                                 XML_STRING));
+        } catch (exception&) { }
 
         try {
             sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowCalibrationFile),
                                                                  _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowCalibrationFile),
-                                                                 "xsd:string"));
-        } catch (exception&) {LOG(INFO) << "seqrowcalibrationfile param failed";}
+                                                                 XML_STRING));
+        } catch (exception&) { }
 
         try {
             sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::InstSoftwareVersion),
                                                                  _rawfilePtr->value(pwiz::vendor_api::Thermo::InstSoftwareVersion),
-                                                                 "xsd:string"));
-        } catch (exception&) {LOG(INFO) << "instsoftware version param failed";}
+                                                                 XML_STRING));
+        } catch (exception&) { }
 
         try {
             sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod),
                                                                  _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod),
-                                                                 "xsd:string"));
-        } catch (exception&) {LOG(INFO) << "seqrowintrumentmethod version param failed";}
+                                                                 XML_STRING));
+        } catch (exception&) { }
 
         try {
             sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowProcessingMethod),
                                                                  _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowProcessingMethod),
-                                                                 "xsd:string"));
-        } catch (exception&) {LOG(INFO) << "seqrowprocessingmethod version param failed";}
+                                                                 XML_STRING));
+        } catch (exception&) { }
 
         return sample;
     }
@@ -187,11 +295,21 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
    }
 
     /* return default values ?*/
-    virtual inline double getLowMass() {return this->_rawfilePtr->value(pwiz::vendor_api::Thermo::LowMass);}
+    virtual inline double getLowMass() {
+        if (this->_rawfilePtr)
+            return this->_rawfilePtr->value(pwiz::vendor_api::Thermo::LowMass);
+        return 0.0;
+     }
 
     /* return default values ?*/
-    virtual inline double getHighMass() {return this->_rawfilePtr->value(pwiz::vendor_api::Thermo::HighMass);}
+    virtual inline double getHighMass() {
+        if (this->_rawfilePtr)
+            return this->_rawfilePtr->value(pwiz::vendor_api::Thermo::HighMass);
+        return 0.0;
+     }
 };
+
+#endif
 
 }
 

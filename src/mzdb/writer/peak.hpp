@@ -30,7 +30,6 @@
 #include "pwiz/data/msdata/MSData.hpp"
 #include "../../utils/mzUtils.hpp"
 
-/*#define SIGMA_FACTOR 2.35482*/ //macro redefinition
 #define MIN_SEMI_WIDTH 0.001f
 
 namespace mzdb {
@@ -64,6 +63,8 @@ struct PWIZ_API_DECL Centroid {
 template<class mz_t, class int_t>
 class PWIZ_API_DECL mzPeak {
 
+    typedef std::shared_ptr<Centroid<mz_t, int_t> > CentroidSPtr;
+
 protected:
 
     vector<mz_t> _mzData; //mz data points constituting the peak
@@ -74,11 +75,7 @@ protected:
 
 public:
 
-
-    //inline bool operator<(mzPeak<U, V> &o) const throw(){return mz() < o.mz();}
-
-
-    inline int apexIndex()const throw() {
+    inline int apexIndex() const throw() {
         if (_intData.empty())
             return -1;
         return max_element(_intData.begin(), _intData.end()) - _intData.begin();
@@ -110,7 +107,10 @@ public:
     
     inline mzPeak(const pwiz::msdata::SpectrumPtr &s) : _spectrum(s), _index(0){}
 
-    inline mzPeak(const vector<mz_t>& mz, const vector<int_t>& ints, const pwiz::msdata::SpectrumPtr& s):_mzData(mz), _intData(ints), _spectrum(s), _index(0) {
+    inline mzPeak(const vector<mz_t>& mz,
+                         const vector<int_t>& ints,
+                         const pwiz::msdata::SpectrumPtr& s):
+        _mzData(mz), _intData(ints), _spectrum(s), _index(0) {
 
     }
     
@@ -122,7 +122,6 @@ public:
     }
 
 
-
     inline float rt() const {
         pwiz::msdata::Scan* scan =  &_spectrum->scanList.scans[0];
         pwiz::msdata::CVParam& scanTimeParam = scan->cvParam(pwiz::msdata::MS_scan_start_time);
@@ -130,21 +129,17 @@ public:
     }
 
 
-    //********************************************************************************
+    //-----------------------------------------------------------------------------------------------------------
     //                             CENTROID FUNCTIONS
-    //*********************************************************************************/
 
-    PWIZ_API_DECL std::shared_ptr<Centroid<mz_t, int_t> > _computeCentroid() const{
+    PWIZ_API_DECL CentroidSPtr _computeCentroid() const{
 
         if (_mzData.empty() || _intData.empty()) {
-
             throw exception("Can not compute centroid: Empty data");
-            //return 0;
-
         }
 
-        auto _centroid = std::shared_ptr<Centroid<mz_t, int_t> >(new Centroid<mz_t, int_t>);
-        _centroid->rt = rtOf(_spectrum);
+        auto _centroid = std::make_shared<Centroid<mz_t, int_t> >();
+        _centroid->rt = PwizHelper::rtOf(_spectrum);
         int nbDataPoints = _mzData.size();
         int apexPos = apexIndex();
         // Check that apex pos is a valid value
@@ -164,7 +159,7 @@ public:
         _centroid->intensity = maxIntensity;
         int nbPointsLeft = apexPos;
         int nbPointsRight = nbDataPoints - (apexPos + 1);
-        double halfY = maxIntensity / 2.0;
+        double halfY = maxIntensity * 0.5;
 
         if (_mzData.size() >= 3) {
             if (nbPointsLeft != 0 && nbPointsRight != 0 ) {
@@ -190,8 +185,8 @@ public:
                     if (fwhmApprox == 0) {
                         throw exception("fwhm aproximation == 0\n");
                     }
-                    _centroid->lwhm = fwhmApprox / 2.0;
-                    _centroid->rwhm = fwhmApprox / 2.0;
+                    _centroid->lwhm = fwhmApprox * 0.5;
+                    _centroid->rwhm = fwhmApprox * 0.5;
                 }
 
             } else {
@@ -207,8 +202,8 @@ public:
                         if (fwhmApprox == 0) {
                             throw exception("fwhm aproximation == 0\n");
                         }
-                        _centroid->lwhm = fwhmApprox / 2.0;
-                        _centroid->rwhm = fwhmApprox / 2.0;
+                        _centroid->lwhm = fwhmApprox * 0.5;
+                        _centroid->rwhm = fwhmApprox * 0.5;
                     }
                 } else { // if (nbPointsRight == 0) {
                     //left
@@ -221,8 +216,8 @@ public:
                         if (fwhmApprox == 0) {
                             throw exception("fwhm aproximation == 0\n");
                         }
-                        _centroid->lwhm = fwhmApprox / 2.0;
-                        _centroid->rwhm = fwhmApprox / 2.0;
+                        _centroid->lwhm = fwhmApprox * 0.5;
+                        _centroid->rwhm = fwhmApprox * 0.5;
                     }
                 }
             }
@@ -242,6 +237,16 @@ public:
             _centroid->lwhm = MIN_SEMI_WIDTH;
             _centroid->rwhm = MIN_SEMI_WIDTH;
         }
+
+        //if  (! _centroid || _centroid->mz < 0.0 || _centroid->mz > 3000.0)
+        //    printf("ERROR mz centroid out of bound: %f\n", _centroid->mz);
+
+        if (! mzMath::isFiniteNumber<mz_t>(_centroid->mz))
+            _centroid->mz = _mzData[apexPos];
+
+         //if (! mzMath::isFiniteNumber<mz_t>(_centroid->mz))
+         //   printf("ERROR mz centroid is not a finite number: %f\n", _centroid->mz);
+
         return _centroid;
     }
 

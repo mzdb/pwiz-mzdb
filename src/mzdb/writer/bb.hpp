@@ -29,7 +29,7 @@ use to store minmz, maxmz, minrt, maxrt
 #include "pwiz/data/msdata/MSData.hpp"
 
 #include "../../utils/mzUtils.hpp"
-#include "mzPeak.hpp"
+#include "peak.hpp"
 
 namespace mzdb {
 using namespace std;
@@ -154,9 +154,9 @@ public:
     /** */
     int getBytesVectorLength(map<int, DataMode>& dataModes) const {
         int sum = 0;
-        if (! _highResPeaks->empty())
+        if (! _highResPeaksByScanIDs->empty())
             sum += mzBoundingBox::getByteLength<h_mz_t, h_int_t>(_highResPeaksByScanIDs, dataModes);
-        if (! _lowResPeaks->empty())
+        if (! _lowResPeaksByScanIDs->empty())
             sum += mzBoundingBox::getByteLength<l_mz_t, l_int_t>(_lowResPeaksByScanIDs, dataModes);
         return sum;
     }

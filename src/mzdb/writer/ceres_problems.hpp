@@ -2,8 +2,8 @@
 #define MZBUILDFITTINGPROBLEM_HPP
 
 #include "ceres/ceres.h"
-#include "../msdata/mzPeak.hpp"
-#include "mzPeakModels.hpp"
+#include "peak.hpp"
+#include "peak_models.hpp"
 
 namespace mzdb {
 using namespace std;
