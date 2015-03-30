@@ -14,7 +14,8 @@ namespace mzdb {
 			}
 		}
 
-     mzDataCache::mzDataCache(string& f) : filename(f) {}//unicity guaranteed
+     //unicity guaranteed
+     mzDataCache::mzDataCache(string& f) : filename(f) {}
 
      mzDataCache::~mzDataCache() {
 			db.close();

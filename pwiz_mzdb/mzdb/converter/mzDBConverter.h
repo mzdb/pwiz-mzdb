@@ -31,35 +31,43 @@ struct PWIZ_API_DECL mzConverter {
         virtual Status update(const UpdateMessage& updateMessage)
         {
             // add tabs to erase all of the previous line
-            cout << updateMessage.iterationIndex+1 << "/" << updateMessage.iterationCount << "\t\t\t\r" << flush;
+            std::cout << updateMessage.iterationIndex+1 << "/" << updateMessage.iterationCount << "\t\t\t\r" << std::flush;
 
             // spectrum and chromatogram lists both iterate; put them on different lines
             if (updateMessage.iterationIndex+1 == updateMessage.iterationCount)
-                cout << endl;
+                std::cout << std::endl;
             return pwiz::util::IterationListener::Status_Ok;
         }
     };
 
     string destination;
-    MzDBFile* _mzdb;
+    MzDBFile& _mzdb;
 
     mzDBReader* mzdbReader;
     pwiz::msdata::MSData msd;
 
 
 
-    PWIZ_API_DECL mzConverter( MzDBFile* mzdb);
-    PWIZ_API_DECL ~mzConverter();
+    mzConverter( MzDBFile& mzdb);
+    ~mzConverter();
 
-    PWIZ_API_DECL void convert(bool noLoss = false, FileFormat = MZ_XML);
+    void convert(bool noLoss = false, FileFormat = MZ_XML);
 
     //
-    //PWIZ_API_DECL void regionExtractorPwizImpl(const MSDataFile& msdata, const string& filename, double minmz, double maxmz, double minrt, double maxrt) const;
-    //PWIZ_API_DECL void xicExtractorPwizImpl(const MSDataFile& msdata, const string& filename,  double mz, double radius) const;
+    void regionExtractorPwizImpl(const MSDataFile& msdata,
+                                               const string& filename,
+                                               double minmz,
+                                               double maxmz,
+                                               double minrt,
+                                               double maxrt) const;
+    void xicExtractorPwizImpl(const MSDataFile& msdata,
+                                            const string& filename,
+                                            double mz,
+                                            double radius) const;
 
 
     //mzdb specialized functions for tests purposes
-    PWIZ_API_DECL void enumerateSpectra();
+    void enumerateSpectra();
    // PWIZ_API_DECL void rtreeRequest();
 
 };

@@ -10,10 +10,10 @@
 
 namespace mzdb {
 
-template<class QueueingPolicy,
-         class SpectrumListType>
+template<class QueueingPolicy, class SpectrumListType>
 class mzDDAConsumer:  QueueingPolicy, mzSpectrumInserter, mzBBInserter {
 
+    //Some typedef
     typedef typename QueueingPolicy::Obj SpectraContainer;
 
     typedef typename QueueingPolicy::UPtr SpectraContainerUPtr;

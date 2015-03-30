@@ -15,54 +15,56 @@
 
 namespace mzdb {
 
-//template< class MetadataExtractorPolicy >
 class mzSpectrumInserter {
-
 
 private:
 
     /* can have different way to collect cv and user params */
-    mzParamsCollecter& m_paramsCollecter;
+    mzParamsCollecter& mParamsCollecter;
 
-    MzDBFile& m_mzdbFile;
+    MzDBFile& mMzdbFile;
 
     /* raw file format currently treated */
-    pwiz::msdata::CVID m_rawFileFormat;
+    pwiz::msdata::CVID mRawFileFormat;
 
-    pwiz::vendor_api::ABI::WiffFilePtr m_wiffFile;
+    /* pointer to the raw wiff file */
+    pwiz::vendor_api::ABI::WiffFilePtr mWiffFile;
 
-    map<int, DataMode>& m_dataModeByMsLevel;
+    /* warning if HCD wrong dataMode */
+    map<int, DataMode>& mDataModeByMsLevel;
 
-    map<DataMode, int> m_dataModePosition;
+    map<DataMode, int> mDataModePosition;
 
 
 public:
 
     /* constructor, object will hold a reference to the unique paramsCollecter */
-    mzSpectrumInserter(MzDBFile& mzdb,  mzParamsCollecter& pc,
-                                   pwiz::msdata::CVID rawFileFormat,
-                                   map<int, DataMode>& dataModeByMsLevel) :
-        m_mzdbFile(mzdb),
-        m_paramsCollecter(pc),
-        m_rawFileFormat(rawFileFormat),
-        m_dataModeByMsLevel(dataModeByMsLevel) {
+    mzSpectrumInserter(MzDBFile& mzdb,
+                       mzParamsCollecter& pc,
+                       pwiz::msdata::CVID rawFileFormat,
+                       map<int, DataMode>& dataModeByMsLevel) :
 
-        m_dataModePosition[PROFILE] = 1;
-        m_dataModePosition[FITTED] = 2 ;
-        m_dataModePosition[CENTROID] = 3;
+        mMzdbFile(mzdb),
+        mParamsCollecter(pc),
+        mRawFileFormat(rawFileFormat),
+        mDataModeByMsLevel(dataModeByMsLevel) {
+
+        mDataModePosition[PROFILE] = 1;
+        mDataModePosition[FITTED] = 2 ;
+        mDataModePosition[CENTROID] = 3;
 
 
-        if (m_rawFileFormat == pwiz::msdata::MS_ABI_WIFF_format)
-            m_wiffFile = pwiz::vendor_api::ABI::WiffFile::create(m_mzdbFile.name);
+        if (mRawFileFormat == pwiz::msdata::MS_ABI_WIFF_format)
+            mWiffFile = pwiz::vendor_api::ABI::WiffFile::create(mMzdbFile.name);
     }
 
     template<typename mz_t, typename int_t, typename h_mz_t, typename h_int_t>
     void insertScan(std::shared_ptr<mzSpectrum<mz_t, int_t> >& spectrum,
-                           int idxInCycle,                                                                    //needed by ABI low level API
-                           int bbFirstScanId,                                                               // id of the first scan of the bounding box
-                           std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> >& parentSpectrum,
-                           pwiz::msdata::MSDataPtr msdata,
-                           ISerializer::xml_string_writer& serializer) {
+                    int idxInCycle,  //needed by ABI low level API
+                    int bbFirstScanId, // id of the first scan of the bounding box
+                    std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> >& parentSpectrum,
+                    pwiz::msdata::MSDataPtr msdata,
+                    ISerializer::xml_string_writer& serializer) {
 
         // should never happen
         if (! spectrum) {
@@ -73,54 +75,62 @@ public:
         const auto& spec = spectrum->spectrum;
 
         // update spectra cv params
-        m_paramsCollecter.updateCVMap(*spec);
-        m_paramsCollecter.updateUserMap(*spec);
+        mParamsCollecter.updateCVMap(*spec);
+        mParamsCollecter.updateUserMap(*spec);
 
-        // update for cvparams of scans
         // TODO: crash if scans vector does not contain any scan !
         const pwiz::msdata::Scan& scan = spec->scanList.scans[0];
-        m_paramsCollecter.updateCVMap(scan);
-        m_paramsCollecter.updateUserMap(scan);
+
+        // update for cvparams of scans
+        mParamsCollecter.updateCVMap(scan);
+        mParamsCollecter.updateUserMap(scan);
 
         // case thermo file
         double highResPrecMz = 0.0;
-        if (m_rawFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
+        if (mRawFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
             highResPrecMz = scan.userParam(THERMO_TRAILER).valueAs<double>();
         }
 
         const int& msLevel = spectrum->msLevel();
-        const char* sql = "INSERT INTO spectrum  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
-        sqlite3_prepare_v2(m_mzdbFile.db, sql, -1, &(m_mzdbFile.stmt), 0);
 
-        sqlite3_bind_int(m_mzdbFile.stmt, 1, spectrum->id);
+        const char* sql = "INSERT INTO spectrum  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+        sqlite3_prepare_v2(mMzdbFile.db, sql, -1, &(mMzdbFile.stmt), 0);
+
+        sqlite3_bind_int(mMzdbFile.stmt, 1, spectrum->id);
 
         //initial_id
-        sqlite3_bind_int(m_mzdbFile.stmt, 2, spectrum->id);
+        sqlite3_bind_int(mMzdbFile.stmt, 2, spectrum->id);
         const string& id = spec->id;
+
         //title
-        sqlite3_bind_text(m_mzdbFile.stmt, 3, id.c_str(), id.length(), SQLITE_TRANSIENT);
+        sqlite3_bind_text(mMzdbFile.stmt, 3, id.c_str(), id.length(), SQLITE_TRANSIENT);
+
         //cycle
-        sqlite3_bind_int(m_mzdbFile.stmt, 4, spectrum->cycle);
+        sqlite3_bind_int(mMzdbFile.stmt, 4, spectrum->cycle);
+
         //time
-        sqlite3_bind_double(m_mzdbFile.stmt, 5, PwizHelper::rtOf(spec));
+        sqlite3_bind_double(mMzdbFile.stmt, 5, PwizHelper::rtOf(spec));
+
         //msLevel
-        sqlite3_bind_int(m_mzdbFile.stmt, 6, msLevel);
+        sqlite3_bind_int(mMzdbFile.stmt, 6, msLevel);
 
         //activation_type
         if (msLevel > 1) {
             const string activationCode = mzdb::getActivationCode(spec->precursors.front().activation);
-            sqlite3_bind_text(m_mzdbFile.stmt, 7, activationCode.c_str(), activationCode.length(), SQLITE_TRANSIENT);
+            sqlite3_bind_text(mMzdbFile.stmt, 7, activationCode.c_str(), activationCode.length(), SQLITE_TRANSIENT);
         } else {
-            // in the model shoud not be null -> use an empty string
-            sqlite3_bind_text(m_mzdbFile.stmt, 7, "", 0, SQLITE_STATIC);
+            // in the sql model shoud not be null -> use an empty string
+            sqlite3_bind_text(mMzdbFile.stmt, 7, "", 0, SQLITE_STATIC);
         }
 
         //tic
-        sqlite3_bind_double(m_mzdbFile.stmt, 8, spec->cvParam(pwiz::msdata::MS_total_ion_current).valueAs<float>());
+        sqlite3_bind_double(mMzdbFile.stmt, 8, spec->cvParam(pwiz::msdata::MS_total_ion_current).valueAs<float>());
+
         //base peak mz
-        sqlite3_bind_double(m_mzdbFile.stmt, 9, spec->cvParam(pwiz::msdata::MS_base_peak_m_z).valueAs<double>());
+        sqlite3_bind_double(mMzdbFile.stmt, 9, spec->cvParam(pwiz::msdata::MS_base_peak_m_z).valueAs<double>());
+
         //base peak intensity
-        sqlite3_bind_double(m_mzdbFile.stmt, 10, spec->cvParam(pwiz::msdata::MS_base_peak_intensity).valueAs<float>());
+        sqlite3_bind_double(mMzdbFile.stmt, 10, spec->cvParam(pwiz::msdata::MS_base_peak_intensity).valueAs<float>());
 
         //precursor mz precursor charge
         if (msLevel > 1) {
@@ -135,12 +145,12 @@ public:
             //seems to be buggy
             //spectrum->refinedPrecursorMzPwiz(parentSpectrum, selectedIons);
             if (highResPrecMz)
-                sqlite3_bind_double(m_mzdbFile.stmt, 11, spectrum->precursorMz());
+                sqlite3_bind_double(mMzdbFile.stmt, 11, spectrum->precursorMz());
 //            else {
 //                if (! siEmpty)
 //                    sqlite3_bind_double(m_mzdbFile.stmt, 11, si.cvParam(pwiz::msdata::MS_selected_ion_m_z).valueAs<double>());
                 else
-                    sqlite3_bind_double(m_mzdbFile.stmt, 11, spectrum->precursorMz());
+                    sqlite3_bind_double(mMzdbFile.stmt, 11, spectrum->precursorMz());
 
             //}
             //---charge
@@ -157,15 +167,15 @@ public:
                 sqlite3_bind_double(m_mzdbFile.stmt, 12, charge);
 
             } else*/
-            sqlite3_bind_double(m_mzdbFile.stmt, 12, PwizHelper::precursorChargeOf(spec));
+            sqlite3_bind_double(mMzdbFile.stmt, 12, PwizHelper::precursorChargeOf(spec));
 
         } else {
-            sqlite3_bind_null(m_mzdbFile.stmt, 11);
-            sqlite3_bind_null(m_mzdbFile.stmt, 12);
+            sqlite3_bind_null(mMzdbFile.stmt, 11);
+            sqlite3_bind_null(mMzdbFile.stmt, 12);
         }
 
         //datapointscount
-        sqlite3_bind_int(m_mzdbFile.stmt, 13, spectrum->nbPeaks());
+        sqlite3_bind_int(mMzdbFile.stmt, 13, spectrum->nbPeaks());
 
         //TODO: put a new user param to evaluate the resolution of a spectrum
         bool isInHighRes =  spectrum->isInHighRes;
@@ -177,14 +187,14 @@ public:
         }
         spec->userParams.push_back(p);
         string& r = ISerializer::serialize(*spec, serializer);
-        sqlite3_bind_text(m_mzdbFile.stmt, 14, r.c_str(), r.length(), SQLITE_TRANSIENT);
+        sqlite3_bind_text(mMzdbFile.stmt, 14, r.c_str(), r.length(), SQLITE_TRANSIENT);
         // ---Here we use directly the pwiz api for writing xml chunks
         //scan list
         ostringstream os_2;
         pwiz::minimxml::XMLWriter writer_2(os_2);
         pwiz::msdata::IO::write(writer_2, spec->scanList, *msdata);
         string r_2 = os_2.str();
-        sqlite3_bind_text(m_mzdbFile.stmt, 15, r_2.c_str(), r_2.length(), SQLITE_TRANSIENT);
+        sqlite3_bind_text(mMzdbFile.stmt, 15, r_2.c_str(), r_2.length(), SQLITE_TRANSIENT);
 
         //precursor list
         if (msLevel > 1) {
@@ -194,7 +204,7 @@ public:
                 pwiz::msdata::IO::write(writer_3, *p);
             }
             string r_3 =  os_3.str();
-            sqlite3_bind_text(m_mzdbFile.stmt, 16, r_3.c_str(), r_3.length(), SQLITE_TRANSIENT);
+            sqlite3_bind_text(mMzdbFile.stmt, 16, r_3.c_str(), r_3.length(), SQLITE_TRANSIENT);
 
             //product list
             ostringstream os_4;
@@ -203,41 +213,40 @@ public:
                 pwiz::msdata::IO::write(writer_4, *p);
             }
             string r_4 = os_4.str();
-            sqlite3_bind_text(m_mzdbFile.stmt, 17, r_4.c_str(), r_4.length(), SQLITE_TRANSIENT);
+            sqlite3_bind_text(mMzdbFile.stmt, 17, r_4.c_str(), r_4.length(), SQLITE_TRANSIENT);
         } else {
-            sqlite3_bind_null(m_mzdbFile.stmt, 16);
-            sqlite3_bind_null(m_mzdbFile.stmt, 17);
+            sqlite3_bind_null(mMzdbFile.stmt, 16);
+            sqlite3_bind_null(mMzdbFile.stmt, 17);
         }
 
         //shared param tree id
-        sqlite3_bind_null(m_mzdbFile.stmt, 18);
+        sqlite3_bind_null(mMzdbFile.stmt, 18);
         //instrument config id
-        sqlite3_bind_int(m_mzdbFile.stmt, 19, instrumentConfigurationIndex( msdata, spec->scanList.scans[0].instrumentConfigurationPtr));
+        sqlite3_bind_int(mMzdbFile.stmt, 19, instrumentConfigurationIndex( msdata, spec->scanList.scans[0].instrumentConfigurationPtr));
         //source file id
-        sqlite3_bind_int(m_mzdbFile.stmt, 20, sourceFileIndex(msdata, spec->sourceFilePtr));
+        sqlite3_bind_int(mMzdbFile.stmt, 20, sourceFileIndex(msdata, spec->sourceFilePtr));
         //run id
-        sqlite3_bind_int(m_mzdbFile.stmt, 21, 1); //run id default to 1
+        sqlite3_bind_int(mMzdbFile.stmt, 21, 1); //run id default to 1
         //data proc id
-        sqlite3_bind_int(m_mzdbFile.stmt, 22, dataProcessingIndex(msdata, spec->dataProcessingPtr));
+        sqlite3_bind_int(mMzdbFile.stmt, 22, dataProcessingIndex(msdata, spec->dataProcessingPtr));
         //data enc id
         //TODO: fix this we like before
-        sqlite3_bind_int(m_mzdbFile.stmt, 23, m_dataModePosition[spectrum->getEffectiveMode(m_dataModeByMsLevel[msLevel])]);
+        sqlite3_bind_int(mMzdbFile.stmt, 23, mDataModePosition[spectrum->getEffectiveMode(mDataModeByMsLevel[msLevel])]);
         //bb first spec id
-        sqlite3_bind_int(m_mzdbFile.stmt, 24, bbFirstScanId);
-        sqlite3_step(m_mzdbFile.stmt);
-        sqlite3_finalize(m_mzdbFile.stmt);
+        sqlite3_bind_int(mMzdbFile.stmt, 24, bbFirstScanId);
+        sqlite3_step(mMzdbFile.stmt);
+        sqlite3_finalize(mMzdbFile.stmt);
 
         //safe reinit
-        m_mzdbFile.stmt = 0;
+        mMzdbFile.stmt = 0;
     }
 
     //insert several scans
-    template<class h_mz_t, class h_int_t,
-                  class l_mz_t, class l_int_t >
+    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t >
     void insertScans(unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> >& cycleObject,
-                            pwiz::msdata::MSDataPtr msdata,
-                            ISerializer::xml_string_writer& serializer,
-                            int bbFirstScanID=0) {
+                     pwiz::msdata::MSDataPtr msdata,
+                     ISerializer::xml_string_writer& serializer,
+                     int bbFirstScanID=0) {
 
         //to handle swath cycle
         int i = 1;

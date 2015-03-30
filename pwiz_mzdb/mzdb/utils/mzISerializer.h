@@ -27,7 +27,7 @@ void getCvParams(const pwiz::msdata::ParamContainer&, pugi::xml_node& doc);
 
 void getUserParams(const pwiz::msdata::ParamContainer&, pugi::xml_node& doc);
 
-string& serialize(const pwiz::msdata::ParamContainer&, xml_string_writer&);
+string& serialize(const pwiz::msdata::ParamContainer&, xml_string_writer &);
 
 }//end serialization
 

@@ -4,21 +4,22 @@
 
 #include <memory>
 
+using namespace std;
+using namespace pwiz::msdata;
+
 namespace mzdb {
 
-	using namespace std;
-	using namespace pwiz::msdata;
 
-    mzSpectrumList::mzSpectrumList(MzDBFile* mzdb, MSData* msd, bool cache_, bool isNoLoss_) :
-        _db(mzdb->db), _stmt(mzdb->stmt), _msdata(msd), _isCached(cache_), _isNoLoss(isNoLoss_) {
+    mzSpectrumList::mzSpectrumList(MzDBFile& mzdb, MSData* msd, bool cache_, bool isNoLoss_) :
+        _db(mzdb.db), _stmt(mzdb.stmt), _msdata(msd), _isCached(cache_), _isNoLoss(isNoLoss_) {
 
-            const char* sql = "select max(id) from spectrum where ms_level = 1;";
+            /*const char* sql = "select max(id) from spectrum where ms_level = 1;";
             sqlite3_prepare_v2(this->_db, sql, -1, &(this->_stmt), 0);
             sqlite3_step(this->_stmt);
             this->_lastMs1Id = sqlite3_column_int(this->_stmt, 0);
             sqlite3_finalize(this->_stmt);
             this->_stmt = 0;
-            this->_hasReachedLastMs2 = false;
+            this->_hasReachedLastMs2 = false;*/
 
             this->buildSpectrumIdentities();
             this->initIteration();
@@ -26,7 +27,9 @@ namespace mzdb {
 
     void mzSpectrumList::buildSpectrumIdentities() {
 		//need to do that
-        const char* sql = "SELECT spectrum.*, data_encoding.mode FROM spectrum, data_encoding WHERE spectrum.data_encoding_id = data_encoding.id";
+        const char* sql = "SELECT spectrum.*, data_encoding.mode FROM spectrum,"
+                "data_encoding WHERE spectrum.data_encoding_id = data_encoding.id "
+                "ORDER BY spectrum.id";
         sqlite3_prepare_v2(this->_db, sql, -1, &(this->_stmt), 0);
 
         while (sqlite3_step(this->_stmt) == SQLITE_ROW) {
@@ -147,7 +150,6 @@ namespace mzdb {
             sqlite3_step(this->_stmt);
             nextBoundingBox(this->_nextScans);//fill the first bb
 		}
-        //printf("reached\n");
         this->loadBoundingBoxes();
 	}
 
@@ -173,7 +175,7 @@ namespace mzdb {
 			return ptr;
 		}*/
 		SpectrumPtr p = s->next();
-        References::resolve(*p, *_msdata);
+        //References::resolve(*p, *_msdata);
 		//s->cacheDB.addKeyValue(str, p);
 		//s->cache++;
 		return p;
@@ -184,35 +186,31 @@ namespace mzdb {
     void mzSpectrumList::nextBoundingBox(vector<mzScan*>& scans) {
 
         byte* data = (byte*) sqlite3_column_blob(this->_stmt, 1);
-        size_t size = (size_t)sqlite3_column_bytes(this->_stmt, 1);
+        int size = sqlite3_column_bytes(this->_stmt, 1);
 
         int firstScanID = sqlite3_column_int(this->_stmt, 3);
-        //printf("firstScanId:%d", firstScanID);
 		mzSpectrumIdentity* si = (mzSpectrumIdentity*) _spectrumIdentities[firstScanID - 1];
-
         int currentMsLevel = si->msLevel;
 		map<int, vector<int> > scansInfos;
 
         int nbScans = IBlobReader::buildMapPositions(data, size, scansInfos, this->_dataEncodings);
 
-#ifdef _DEBUG
-        cout << "nbScans: " << nbScans << " msLevel: " << currentMsLevel << endl;
-#endif
 		for (int i = 1; i <= nbScans; ++i) {
             int id = scansInfos[i][0];
-            //printf("%d, %d\n", i, id);
-            mzSpectrumIdentity* specIdent = (mzSpectrumIdentity*) this->_spectrumIdentities[ id - 1 ];
+
+            mzSpectrumIdentity* specIdent =  (mzSpectrumIdentity*) this->_spectrumIdentities[ id - 1 ];
+
             mzScan* s = new mzScan(specIdent->idMzDB, currentMsLevel, specIdent->time);
 
             IBlobReader::readData(data, size, i, s, scansInfos);
-
             if (currentMsLevel == 1) {
                 scans.push_back(s);
             } else {
                 //direct add to the mslevel > 1 (one spectrum per bounding box)
-                this->_msnBuffers[currentMsLevel].push_back(s);
-                this->_maxIdMzdbByMsLevel[currentMsLevel] = s->idMzDB;
-			}
+               this->_msnBuffers[currentMsLevel].push_back(s);
+               this->_maxIdMzdbByMsLevel[currentMsLevel] = s->idMzDB;
+
+           }
 		}
 
 	}
@@ -245,12 +243,11 @@ namespace mzdb {
                     this->_currentScans[i]->addScanData(scans[i]);
                     delete scans[i];
 				}
-			} else {
+            } else {
                 this->_nextScans = scans;
 				break;
 			}
 		}
-
         for (size_t i = 0, l = this->_currentScans.size(); i < l; ++i ) {
             mzScan* s = this->_currentScans[i];
             int msLevel = s->msLevel;
@@ -263,11 +260,11 @@ namespace mzdb {
 	
         mzSpectrumIdentity* si = (mzSpectrumIdentity*) this->_spectrumIdentities[this->_overallScanIndex];
         int msLevel = si->msLevel;
-
         int& maxIdForMsLevel = this->_maxIdMzdbByMsLevel[msLevel];
-        while (si->idMzDB > maxIdForMsLevel)
+        while (si->idMzDB > maxIdForMsLevel) {
             this->loadBoundingBoxes();
 
+        }
         deque<mzScan*>& m = this->_msnBuffers[msLevel];
         mzScan* scan = m.front();
         m.pop_front();
@@ -311,18 +308,18 @@ namespace mzdb {
         ptr->index = scan->idMzDB - 1;
         ptr->defaultArrayLength = scan->mz.size();
 
-        if ( ptr->hasCVParam(MS_profile_spectrum) ) {
-            ptr->cvParams.erase(std::remove_if(ptr->cvParams.begin(),
-                                               ptr->cvParams.end(),
-                                               [](const CVParam& cv)->bool {
-                                                    if (cv.cvid == MS_profile_spectrum)
-                                                        return true;
-                                                    else
-                                                        return false;
-                                               }
-                                ),
-                                ptr->cvParams.end());
-            }
+//        if ( ptr->hasCVParam(MS_profile_spectrum) ) {
+//            ptr->cvParams.erase(std::remove_if(ptr->cvParams.begin(),
+//                                               ptr->cvParams.end(),
+//                                               [](const CVParam& cv)->bool {
+//                                                    if (cv.cvid == MS_profile_spectrum)
+//                                                        return true;
+//                                                    else
+//                                                        return false;
+//                                               }
+//                                ),
+//                                ptr->cvParams.end());
+//            }
         ptr->cvParams.push_back(CVParam(MS_centroid_spectrum, ""));
         Scan s;
         s.cvParams.push_back(CVParam(MS_scan_start_time, boost::lexical_cast<string>(scan->rt), UO_second));

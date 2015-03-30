@@ -7,7 +7,7 @@
 #include "pwiz/data/msdata/ChromatogramListBase.hpp"
 
 #include "../reader/msdata/mzScan.hpp"
-#include "../utils/MzDBFile.h"
+#include "../utils/mzDBFile.h"
 #include "BinnedSpectrum.h"
 
 

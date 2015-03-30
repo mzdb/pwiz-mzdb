@@ -4,7 +4,7 @@ lib mzdb_utils
     lz4.c
     lz4hc.c
     [ glob cwtlib/*.cpp ]
-    [ glob glog/*.cpp ]
+    [ glob glog/*.cc ]
 
 : #requirments
     <include>.

@@ -8,8 +8,9 @@
 #include "../../lib/kyoto_cabinet/kchashdb.h"
 #include "../../utils/mzUtils.hpp"
 
+using namespace std;
+
 namespace mzdb {
-	using namespace std;
 
     class mzDataCache {
 
@@ -34,8 +35,6 @@ namespace mzdb {
 		kyotocabinet::HashDB db;
 		const string filename;
 
-
-
 	public:
 
          mzDataCache();
@@ -45,7 +44,9 @@ namespace mzdb {
          ~mzDataCache();
 
          inline void open() {db.open("-", kyotocabinet::HashDB::OWRITER | kyotocabinet::HashDB::OCREATE);}
+
          inline void clear() {db.clear();}
+
          inline size_t count() {return db.count();}
 
          void addKeyValue(const string& s, pwiz::msdata::SpectrumPtr& spec);

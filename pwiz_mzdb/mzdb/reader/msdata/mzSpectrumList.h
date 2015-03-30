@@ -76,9 +76,12 @@ namespace mzdb {
         bool _hasNext;
         //string _sqlQuery;
         map<int, DataEncoding> _dataEncodings;
+
         bool _isCached, _isNoLoss;
+        /*
         int _lastMs1Id;
         bool _hasReachedLastMs2;
+        */
 		//mzDataCache cacheDB;
         map<int, deque<mzScan*> > _msnBuffers;
         map<int, int> _maxIdMzdbByMsLevel;
@@ -87,18 +90,19 @@ namespace mzdb {
 
 	public:
         /**interface from SpectrumList */
-        mzSpectrumList(MzDBFile* mzdb, pwiz::msdata::MSData* msd, bool cache = false, bool isNoLoss_ = false);
+        mzSpectrumList(MzDBFile& mzdb, pwiz::msdata::MSData* msd, bool cache = false, bool isNoLoss_ = false);
 
         ~mzSpectrumList();
 
 		//interface herited by SpectrumListBase
         pwiz::msdata::SpectrumPtr spectrum(size_t index, bool getBinaryData) const;
 
-        inline size_t size() const {
+        size_t size() const {
             return this->_spectrumIdentities.size();
         }
        
-        inline const pwiz::msdata::SpectrumIdentity& spectrumIdentity(size_t index) const {
+        const pwiz::msdata::SpectrumIdentity& spectrumIdentity(size_t index) const {
+
             return *(this->_spectrumIdentities[index + 1]);
         }
 

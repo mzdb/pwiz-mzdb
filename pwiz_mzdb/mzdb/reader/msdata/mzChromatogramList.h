@@ -14,7 +14,7 @@ class mzChromatogramList : public pwiz::msdata::ChromatogramListBase{
     pwiz::msdata::MSData* _msdata;
     std::vector<pwiz::msdata::ChromatogramIdentity*> _chromatogramIdentities;
 
-    pwiz::msdata::ChromatogramPtr mzChromatogramList::nextChromatogram();
+    pwiz::msdata::ChromatogramPtr nextChromatogram();
     void initIteration();
 
 public:

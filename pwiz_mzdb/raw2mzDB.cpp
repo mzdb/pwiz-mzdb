@@ -19,41 +19,42 @@
 #include <algorithm>
 #include <cstdio>
 #include <stdio.h>
-#include <share.h>
 #include <iostream>
 #include <fstream>
 
+#ifdef _WIN32
+#include <share.h>
+#endif
+
 #include "mzdb/lib/getopt_pp/include/getopt_pp.h"
-#include "mzdb/writer/mzDBWriter.hpp"
+#include "mzdb/writer/mzdb_writer.hpp"
 #include "mzdb/utils/MzDBFile.h"
 #include "boost/algorithm/string.hpp"
 
-#include "mzdb/lib/glog/glog/logging.h"
+#include "mzdb/utils/glog/logging.h"
 
 using namespace std;
 using namespace mzdb;
 using namespace GetOpt;
 using namespace pwiz::msdata;
 
-/**
- * @param string filename
- * @return
- */
+/// Warning, calling this function will delete a previous mzdb file.
 int deleteIfExists(const string &filename) {
 
-    if (ifstream(filename.c_str())) {
+    if (std::ifstream(filename.c_str())) {
         //file exist
-        cout << "Found file with the same name" << endl;
-        cout << "Delete...";
+        std::cout << "Found file with the same name" << std::endl;
+        std::cout << "Delete...";
         if (remove(filename.c_str()) != 0) {
             LOG(ERROR) << "Error trying to delete file, exiting...May the file is opened elsewhere ?";
             exit(EXIT_FAILURE);
         } else
-            cout << "Done" << endl;
+            std::cout << "Done" << endl;
     }
     return 0;
 }
 
+/// windows specific
 #ifdef _WIN32 
 bool alreadyOpened(const string& filename) {
 
@@ -65,7 +66,7 @@ bool alreadyOpened(const string& filename) {
 }
 #endif
 
-
+/// TODO: why using a different than above, could be more portable (ifstream)
 inline bool exists (const std::string& name) {
     if (FILE *file = fopen(name.c_str(), "r")) {
         fclose(file);
@@ -75,11 +76,14 @@ inline bool exists (const std::string& name) {
     }   
 }
 
-void parseRange(string& range, DataMode mode, map<int, DataMode>& results, vector<int>& modifiedIndex, string& help) {
+/// Parse command line, range (1-, 1-3)
+void parseRange(string& range, DataMode mode,
+                         map<int, DataMode>& results,
+                         vector<int>& modifiedIndex, const string& help) {
     if (range != "") {
         if (range.size() > 3) {
             LOG(ERROR) << "Error in parsing command line";
-            cout << help << endl;
+            std::cout << help << endl;
             exit(EXIT_FAILURE);
         }
         if (range.size() == 1) {
@@ -88,7 +92,7 @@ void parseRange(string& range, DataMode mode, map<int, DataMode>& results, vecto
                 p = boost::lexical_cast<int>(range);
             } catch (boost::bad_lexical_cast &) {
                 LOG(ERROR) << "Error, index must be an integer";
-                cout << help << endl;
+                std::cout << help << endl;
                 exit(EXIT_FAILURE);
             }
             results[p] = mode;
@@ -104,7 +108,7 @@ void parseRange(string& range, DataMode mode, map<int, DataMode>& results, vecto
                 p2 = boost::lexical_cast<int>(splitted[1]);
             } catch (boost::bad_lexical_cast &) {
                 LOG(ERROR) << "Error, the two indexes must be integers";
-                cout << help << endl;
+                std::cout << help << endl;
                 exit(EXIT_FAILURE);
             }
             if (p1 && p2 && p1 <= p2) {
@@ -113,7 +117,7 @@ void parseRange(string& range, DataMode mode, map<int, DataMode>& results, vecto
                     modifiedIndex.push_back(i);
                 }
             } else {
-                cout << help << "\n";
+                std::cout << help << "\n";
                 LOG(ERROR) << "Error parameter 2 greater than parameter 1";
                 exit(EXIT_FAILURE);
             }
@@ -121,46 +125,51 @@ void parseRange(string& range, DataMode mode, map<int, DataMode>& results, vecto
     }
 }
 
-
-
-
+/// Starting point !
 int main(int argc, char* argv[]) {
-
-    google::InitGoogleLogging("logger");
-    google::SetStderrLogging(0);
 
     string filename = "", centroid = "", profile = "", fitted = "", namefile = "", serialization = "xml";
     bool compress = false;
+
+    //bounding boxes sizes defaults
     float bbWidth = 15, bbWidthMSn = 0; //15
     float bbHeight = 5, bbHeightMSn = 10000; //5
-    bool noLoss = false; //32 bits intensity encoding by default
+
+    //32 bits intensity encoding by default
+    bool noLoss = false;
+
     int peakPickingAlgo = 0, nscans = 0, nbCycles = 3, maxNbThreads = 1;
 
-    map<int, DataMode> results;
+
+    // filling several helping maps
+    map<int, DataMode> dataModeByMsLevel;
     map<int, string> dataModes;
 
-    //init results by default a mS1 is fitted others are centroided
-    results[1] = FITTED;
+    //init results by default a Ms1 is fitted others are centroided
+    //keys of dataMode are the sizes of structures in bytes,  so
+    //this not really portable
+    dataModeByMsLevel[1] = FITTED;
     dataModes[1] = "PROFILE";
     dataModes[20] = "FITTED";
     dataModes[12] = "CENTROID";
+
     for (size_t i = 2; i <= MAX_MS; ++i) {
-        results[i] = CENTROID;
+        dataModeByMsLevel[i] = CENTROID;
     }
 
-    string help = "\n\nusage: raw2mzDB.exe --input filename <parameters>"
+    const string help = "\n\nusage: raw2mzDB.exe --input filename <parameters>"
                   "\n\nOptions:\n\n"
-                  "\t-i, --input : specify the input rawfile path"
-                  "\t-o, --output : specify the output filename (must be an absolute path)"
+                  "\t-i, --input : specify the input rawfile path\n"
+                  "\t-o, --output : specify the output filename (must be an absolute path)\n"
                   "\t-c, --centroid : centroidization, eg: -c 1 (centroidization msLevel 1) or -c 1-5 (centroidization msLevel 1 to msLevel 5) \n"
                   "\t-p, --profile : idem but for profile mode \n"
                   "\t-f, --fitted : idem buf for fitted mode \n"
                   "\t-T, --bbTimeWidth : bounding box width for ms1 in seconds, default: 15s\n"
-                  "\t-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s\n:"
+                  "\t-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s\n"
                   "\t-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da \n"
                   "\t-m, --bbMzWidthMSn : bounding box height for msn in Da, default: 10000Da \n"
                   "\t--bufferSize : low value (min 2) will enforce the program to use less memory (max 50), default: 3\n"
-                  "\t--max_nb_threads : maximum nb_threads to use, default: nb processors on the machine\n"
+                  // "\t--max_nb_threads : maximum nb_threads to use, default: nb processors on the machine\n"
                   "\t--no_loss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
                   "\t--nscans : nb scans to convert into the mzDB file (max: number of scans in the rawfile)\n"
                   "\t-h --help : show help";
@@ -183,77 +192,119 @@ int main(int argc, char* argv[]) {
     ops >> Option("max_nb_threads", maxNbThreads);
 
     if (ops >> OptionPresent('h', "help")) {
-        cout << help << endl;
-        return exit(EXIT_SUCCESS);
+        std::cout << help << std::endl;
+        exit(EXIT_SUCCESS);
     }
     //ops >> Option('C', "compress", compression)
     if (ops.options_remain()) {
         LOG(ERROR) <<"Oops! Unexpected options. Refer to help";
-        cout << help << endl;
-        return exit(EXIT_FAILURE);
+        std::cout << help << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     if (! exists(filename)) {
         LOG(ERROR) << "Filepath does not exist.Exiting.";
-        return exit(EXIT_FAILURE);
+        std::cout << help << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     if (!filename.size()) {
         LOG(ERROR) << "empty raw filename ! Exiting...";
-        cout << help << endl;
-        return exit(EXIT_FAILURE);
+        std::cout << help << std::endl;
+        exit(EXIT_FAILURE);
     }
 
 #ifdef WIN32
     if (alreadyOpened(filename)) {
         LOG(ERROR) << "File already open in another application.\nPlease close it to perform conversion.";
-        return exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
     }
 #endif
 
     int res = deleteIfExists(filename + ".mzDB");
-    if (res == 1)
-      return exit(EXIT_FAILURE);
+    if (res == 1) {
+        //should never pass here
+      exit(EXIT_FAILURE);
+    }
 
     vector<int> modifiedIndex;
 
-    parseRange(profile, PROFILE, results, modifiedIndex, help);
-    parseRange(fitted, FITTED, results, modifiedIndex, help);
-    parseRange(centroid, CENTROID, results, modifiedIndex, help);
+    parseRange(profile, PROFILE, dataModeByMsLevel, modifiedIndex, help);
+    parseRange(fitted, FITTED, dataModeByMsLevel, modifiedIndex, help);
+    parseRange(centroid, CENTROID, dataModeByMsLevel, modifiedIndex, help);
 
     //check stuffs
-    cout << "\nWhat I understood :" << endl;
-    cout << "Treating: " << filename << endl;
-    map<int, DataMode>::iterator it;
-    for (it = results.begin(); it != results.end(); ++it) {
-        cout << "ms " << it->first << " => selected Mode: " << dataModes[(int) it->second] << endl;
+    std::cout << "\nWhat I understood :\n";
+    std::cout << "Treating: " << filename << "\n";
+    for (auto it = dataModeByMsLevel.begin(); it != dataModeByMsLevel.end(); ++it) {
+        std::cout << "ms " << it->first << " => selected Mode: " << dataModes[(int) it->second] << "\n";
     }
-    cout << endl;
-#ifdef DEBUG
-    cout << bbHeight<<", " << bbHeightMSn<< ", " <<bbWidth<< ", " << bbWidthMSn <<endl;
-#endif
+    std::cout << "\n";
+    //end parsing commandline
 
+
+    //--- Sarting launching code
+    //create a mzDBFile
     MzDBFile f(filename, bbHeight, bbHeightMSn, bbWidth, bbWidthMSn);
-    try {
-        mzDBWriter writer(f, results, compress);
-        mzPeakFinderUtils::PeakPickerParams p;
+
+    // pwiz file detection
+    ReaderPtr readers(new FullReaderList);
+    vector<MSDataPtr> msdList;
+
+    _TRY_BEGIN
+        ( (FullReaderList*) readers.get() )->read(f.name, msdList);
+    _CATCH(exception& e)
+        LOG(ERROR) << e.what() << endl;
+        LOG(FATAL) << "This a fatal error. Exiting..." << endl;
+        exit(EXIT_FAILURE);
+    _CATCH_END
+
+    auto& msData = msdList[0];
+    auto originFileFormat = pwiz::msdata::identifyFileFormat( readers, f.name );
+
+    mzDBWriter writer(f, dataModeByMsLevel, originFileFormat, msData, compress);
+
+    _TRY_BEGIN
+        writer.checkMetaData();
+    _CATCH (exception& e)
+        LOG(ERROR) << "Error checking metadata: ";
+        LOG(ERROR) << "\t->" << e.what();
+    _CATCH_END
+
+
+    //---check swath mode
+    _TRY_BEGIN
+            writer.isSwathAcquisition();
+    _CATCH(exception& e)
+        LOG(ERROR) << "Error checking DDA/SWATH Mode: ";
+        LOG(ERROR) << "\t->" << e.what();
+    _CATCH_END
+
+    //insert metadata
+
+    //---create parameters for peak picking
+    mzPeakFinderUtils::PeakPickerParams p;
+
+    _TRY_BEGIN
         if (noLoss) {
-            LOG(INFO) << "no loss detected";
-            writer.writeMzRTreeDB<double, double, double, double>(noLoss, namefile, nscans, nbCycles, p);
+            LOG(INFO) << "No-loss mode encoding: all ms Mz-64, all ms Int-64";
+            writer.writeNoLossMzDB(namefile, nscans, nbCycles, p);
         } else {
-            LOG(INFO) << "mz64 int32 detected";
-            writer.writeMzRTreeDB<double, float, float, float>(noLoss, namefile, nscans, nbCycles, p);
+            if (false) { // If msInstrument only good at ms1
+                LOG(INFO) << "ms1 Mz-64, all ms Int-32 encoding";
+                writer.writeMzDBMzMs1Hi(namefile, nscans, nbCycles, p);
+            } else {
+                LOG(INFO) << "all ms Mz-64, all ms Int-32 encoding";
+                writer.writeMzDBMzHi(namefile, nscans, nbCycles, p);
+            }
         }
-        LOG(INFO) << "check run slices numbers";
+
+        LOG(INFO) << "Checking run slices numbers";
         writer.checkAndFixRunSliceNumberAnId();
 
-    } catch (exception& e) {
-        cout << e.what() << endl;
-    }
-
-    printf("See ya !\n");
-
-    google::ShutdownGoogleLogging();
+    _CATCH(exception& e)
+        LOG(ERROR) << e.what();
+    _CATCH_END
 
     return 0;
 }

@@ -33,7 +33,7 @@
 namespace mzdb {
 
 template<typename T>
-class CycleCollectionQueue: private boost::noncopyable {
+class BlockingQueue: private boost::noncopyable {
 
 private:
     std::deque<T> buf;
@@ -43,8 +43,9 @@ private:
     volatile bool m_isClosed;
 
 public:
+    typedef T value_type;
 
-    inline explicit CycleCollectionQueue(size_t max_size) : maxSize(max_size), m_isClosed(false) {}
+    inline explicit BlockingQueue(size_t max_size) : maxSize(max_size), m_isClosed(false) {}
 
     /** */
     inline void put(T& m) {
@@ -111,7 +112,6 @@ public:
         boost::mutex::scoped_lock lock(mutex);
         return m_isClosed;
     }
-
 
 };
 

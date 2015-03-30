@@ -49,9 +49,11 @@ struct PWIZ_API_DECL mzSpectrum {
     bool isInHighRes, isInserted;
 
     //double precurorMz;
-    /*detail::Lazy<std::function<int ()> > precursorCharge; // = lazy(mzSpectrum::precurorCharge); //lazy<int> precursorCharge;
+    /*
+    detail::Lazy<std::function<int ()> > precursorCharge; // = lazy(mzSpectrum::precurorCharge); //lazy<int> precursorCharge;
     detail::Lazy<std::function<double ()> > precursorMz;
-    detail::Lazy<std::function<int ()> > msLevel;*/
+    detail::Lazy<std::function<int ()> > msLevel;
+    */
     int _precursorCharge;
     double _precursorMz;
     int _msLevel;
