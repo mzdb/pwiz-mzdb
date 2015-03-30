@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TimeSegments>
+    <Version>3</Version>
+    <TimeSegment TimeSegmentID="1">
+        <!--start time in minutes-->
+        <StartTime>0.05</StartTime>
+        <!--end time in minutes-->
+        <EndTime>0.05</EndTime>
+        <NumOfScans>1</NumOfScans>
+        <!--0=no, 1=yes-->
+        <FixedCycleLength>1</FixedCycleLength>
+    </TimeSegment>
+    <TimeSegment TimeSegmentID="2">
+        <StartTime>0.07</StartTime>
+        <EndTime>0.07</EndTime>
+        <NumOfScans>1</NumOfScans>
+        <FixedCycleLength>1</FixedCycleLength>
+    </TimeSegment>
+    <TimeSegment TimeSegmentID="3">
+        <StartTime>0.09</StartTime>
+        <EndTime>0.09</EndTime>
+        <NumOfScans>1</NumOfScans>
+        <FixedCycleLength>1</FixedCycleLength>
+    </TimeSegment>
+    <TimeSegment TimeSegmentID="4">
+        <StartTime>0.11</StartTime>
+        <EndTime>0.11</EndTime>
+        <NumOfScans>1</NumOfScans>
+        <FixedCycleLength>1</FixedCycleLength>
+    </TimeSegment>
+    <TimeSegment TimeSegmentID="5">
+        <StartTime>0.13</StartTime>
+        <EndTime>0.13</EndTime>
+        <NumOfScans>1</NumOfScans>
+        <FixedCycleLength>1</FixedCycleLength>
+    </TimeSegment>
+    <TimeSegment TimeSegmentID="6">
+        <StartTime>0.15</StartTime>
+        <EndTime>0.15</EndTime>
+        <NumOfScans>1</NumOfScans>
+        <FixedCycleLength>1</FixedCycleLength>
+    </TimeSegment>
+    <TimeSegment TimeSegmentID="7">
+        <StartTime>0.17</StartTime>
+        <EndTime>0.17</EndTime>
+        <NumOfScans>1</NumOfScans>
+        <FixedCycleLength>1</FixedCycleLength>
+    </TimeSegment>
+    <TimeSegment TimeSegmentID="8">
+        <StartTime>0.19</StartTime>
+        <EndTime>0.19</EndTime>
+        <NumOfScans>1</NumOfScans>
+        <FixedCycleLength>1</FixedCycleLength>
+    </TimeSegment>
+    <IRMStatus>0</IRMStatus>
+</TimeSegments>

@@ -1,0 +1,5 @@
+30/03/2015
+--add proteowizard build 3.0_7320
+--update sqlite 3.8.8
+--create temporary table tmp_spectrum, to avoid long vacuum
+--fix hcd encoding problem
