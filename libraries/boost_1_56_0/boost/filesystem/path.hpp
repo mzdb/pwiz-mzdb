@@ -127,8 +127,7 @@ namespace filesystem
 
     //  -----  constructors  -----
 
-    path(){}                                          
-
+    path(){}
     path(const path& p) : m_pathname(p.m_pathname) {}
 
     template <class Source>
