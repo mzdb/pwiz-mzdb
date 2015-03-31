@@ -20,7 +20,7 @@ MzDBFile::~MzDBFile() {
     //handles the closing of the sqlite file
     sqlite3_finalize(stmt);
     sqlite3_close_v2(db);
-    LOG(INFO) <<  "Database closed";
+    LOG(INFO) <<  "Database automatically closed";
 }
 
 bool MzDBFile::isNoLoss() {

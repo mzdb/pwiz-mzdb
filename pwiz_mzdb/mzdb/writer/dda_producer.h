@@ -160,7 +160,7 @@ public:
         //signify that we finished producing
         SpectraContainerUPtr nullContainer(nullptr);
         this->put(nullContainer);
-        LOG(INFO) << "Producer finished...\n";
+        //LOG(INFO) << "Producer finished...\n";
     }
 
     /// constructor

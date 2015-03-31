@@ -69,7 +69,7 @@ public:
             }
 
             if (progressionCount == nscans) {
-                LOG(INFO) << "Inserter consumer finished: reaches final progression";
+                //LOG(INFO) << "Inserter consumer finished: reaches final progression";
                 break;
             }
         }

@@ -44,7 +44,8 @@
 #include "boost/thread/thread.hpp"
 
 //--- SQLite import
-#include "../lib/sqlite3/include/sqlite3.h"
+//#include "../lib/sqlite3/include/sqlite3.h"
+#include "libraries/SQLite/sqlite3.h"
 #include "../lib/pugixml/include/pugixml.hpp"
 
 //--- MzDB import
@@ -62,12 +63,6 @@
 
 #include "params_collecter.h"
 #include "queueing_policy.hpp"
-
-//#include "mzDDAConsumer.h"
-//#include "mzDDAProducer.h"
-
-//#include "mzSwathConsumer.hpp"
-//#include "mzSwathProducer.hpp"
 
 #include "prod_cons_builder.hpp"
 
@@ -210,14 +205,15 @@ public:
         typedef FollyQueueingPolicy<SpectraContainerUPtr> FollyNonBlockingQueueing;
         typedef BlockingQueueingPolicy<SpectraContainerUPtr> MzDBBlockingQueueing;
 
-        clock_t beginTime = clock();
-
         //open database
         if (filename == "")
             filename = m_mzdbFile.name + ".mzDB";
 
         if (! nscans)
             nscans = m_msdata->run.spectrumListPtr->size();
+
+        // just log sqlite version for information
+        LOG(INFO) << "SQLITE VERSION: " << SQLITE_VERSION;
 
         //create and open database
         if ( m_mzdbFile.open(filename) != SQLITE_OK) {
@@ -288,12 +284,13 @@ public:
         );
 
         if (m_originFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
-            //LOG(INFO) << "Thermo raw file format detected";
+            LOG(INFO) << "Thermo raw file format detected";
 
             auto* spectrumListThermo =
                     static_cast<pwiz::msdata::detail::SpectrumList_Thermo*>(spectrumList.get());
 
             if (m_swathMode) {
+                LOG(INFO) << "DIA producer/consumer";
                 auto prod = pcThreadBuilder.getDIAThermoProducerThread(levelsToCentroid, spectrumListThermo,
                                                                        nscans, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDIAThermoConsumerThread(m_msdata, m_serializer,
@@ -302,7 +299,7 @@ public:
 
             } else {
 
-                //LOG(INFO) << "Data dependant acquisition detected";
+                LOG(INFO) << "DDA producer/consumer";
                 auto prod = pcThreadBuilder.getDDAThermoProducerThread( levelsToCentroid, spectrumListThermo,
                                                                         nscans, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAThermoConsumerThread( m_msdata, m_serializer, bbHeightManager,
@@ -366,14 +363,20 @@ public:
         //--- metadata cv terms (user param and cv param)
         m_paramsCollecter.insertCollectedCVTerms();
 
+
+        //--- insert tmp_spectrum into permanent spectrum table
+        LOG(INFO) << "Creating permanent spectrum table";
+        sqlite3_exec(m_mzdbFile.db, "CREATE TABLE spectrum AS SELECT * from tmp_spectrum;", 0, 0, 0);
+
         //--- set sqlite indexes
         this->createIndexes();
 
+        //finally commit
         sqlite3_exec(m_mzdbFile.db, "COMMIT;", 0, 0, 0);
+
+        //
         LOG(INFO) << "Precursors not found at 50ppm (using vendor peak-piking) count: "<< this->m_emptyPrecCount;
 
-        clock_t endTime = clock();
-        LOG(INFO) << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl;
     }
 
      /// TODO: Make this clearer: no mslevel intervention, but instead the notion of HighResMode

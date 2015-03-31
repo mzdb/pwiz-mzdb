@@ -264,6 +264,7 @@ int main(int argc, char* argv[]) {
 
     mzDBWriter writer(f, dataModeByMsLevel, originFileFormat, msData, compress);
 
+    //insert metadata
     _TRY_BEGIN
         writer.checkMetaData();
     _CATCH (exception& e)
@@ -280,11 +281,10 @@ int main(int argc, char* argv[]) {
         LOG(ERROR) << "\t->" << e.what();
     _CATCH_END
 
-    //insert metadata
-
     //---create parameters for peak picking
     mzPeakFinderUtils::PeakPickerParams p;
 
+    clock_t beginTime = clock();
     _TRY_BEGIN
         if (noLoss) {
             LOG(INFO) << "No-loss mode encoding: all ms Mz-64, all ms Int-64";
@@ -305,6 +305,9 @@ int main(int argc, char* argv[]) {
     _CATCH(exception& e)
         LOG(ERROR) << e.what();
     _CATCH_END
+
+   clock_t endTime = clock();
+   LOG(INFO) << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl;
 
     return 0;
 }

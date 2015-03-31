@@ -205,7 +205,7 @@ void mzDBWriter::createTables() {
                     "run_id INTEGER NOT NULL,\n"
                     "FOREIGN KEY (run_id) REFERENCES run (id) );"
 
-                    "CREATE TABLE spectrum (\n"
+                    "CREATE TEMP TABLE tmp_spectrum (\n"
                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                     "initial_id INTEGER NOT NULL,\n"
                     "title TEXT NOT NULL,\n"
@@ -1000,7 +1000,6 @@ bool mzDBWriter::isSwathAcquisition() {
     LOG(WARNING) << "Not able to detected DDA/SWATH mode: fallbacks to DDA";
 
     // directly return m_swathMode attribute as it is set to 'false' as default
-    m_swathMode = true;
     return m_swathMode;
 } // end function
 
