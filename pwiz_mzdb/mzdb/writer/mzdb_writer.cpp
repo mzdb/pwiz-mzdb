@@ -66,236 +66,236 @@ void mzDBWriter::createTables() {
     LOG(INFO) << "Create database tables...";
 
     r = sqlite3_exec(m_mzdbFile.db,
-                    "CREATE TABLE data_processing (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                    "name TEXT NOT NULL);"
+                     "CREATE TABLE data_processing (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                     "name TEXT NOT NULL);"
 
-                    "CREATE TABLE scan_settings (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                    "param_tree,\n"
-                    "shared_param_tree_id INTEGER,\n"
-                    "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id) );"
+                     "CREATE TABLE scan_settings (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                     "param_tree,\n"
+                     "shared_param_tree_id INTEGER,\n"
+                     "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id) );"
 
-                    "CREATE TABLE data_encoding (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT(10) NOT NULL,\n"
-                    "compression TEXT, byte_order TEXT(13) NOT NULL, \n"
-                    "param_tree TEXT NOT NULL);"
+                     "CREATE TABLE data_encoding (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT(10) NOT NULL,\n"
+                     "compression TEXT, byte_order TEXT(13) NOT NULL, \n"
+                     "param_tree TEXT NOT NULL);"
 
-                    "CREATE TABLE software (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, \n"
-                    "name TEXT NOT NULL, \n"
-                    "version TEXT NOT NULL,\n"
-                    "param_tree TEXT NOT NULL, \n"
-                    "shared_param_tree_id INTEGER, \n"
-                    "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id) );"
+                     "CREATE TABLE software (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT, \n"
+                     "name TEXT NOT NULL, \n"
+                     "version TEXT NOT NULL,\n"
+                     "param_tree TEXT NOT NULL, \n"
+                     "shared_param_tree_id INTEGER, \n"
+                     "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id) );"
 
-                    "CREATE TABLE processing_method (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, \n"
-                    "number INTEGER NOT NULL, \n"
-                    "param_tree TEXT NOT NULL, \n"
-                    "shared_param_tree_id INTEGER, \n"
-                    "data_processing_id INTEGER NOT NULL, \n"
-                    "software_id INTEGER NOT NULL, \n"
-                    "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id), \n"
-                    "FOREIGN KEY (data_processing_id) REFERENCES data_processing (id), \n"
-                    "FOREIGN KEY (software_id) REFERENCES software (id) );"
+                     "CREATE TABLE processing_method (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT, \n"
+                     "number INTEGER NOT NULL, \n"
+                     "param_tree TEXT NOT NULL, \n"
+                     "shared_param_tree_id INTEGER, \n"
+                     "data_processing_id INTEGER NOT NULL, \n"
+                     "software_id INTEGER NOT NULL, \n"
+                     "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id), \n"
+                     "FOREIGN KEY (data_processing_id) REFERENCES data_processing (id), \n"
+                     "FOREIGN KEY (software_id) REFERENCES software (id) );"
 
-                    "CREATE TABLE sample (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, \n"
-                    "name TEXT NOT NULL, \n"
-                    "param_tree TEXT, \n"
-                    "shared_param_tree_id INTEGER, \n"
-                    "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id));"
+                     "CREATE TABLE sample (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT, \n"
+                     "name TEXT NOT NULL, \n"
+                     "param_tree TEXT, \n"
+                     "shared_param_tree_id INTEGER, \n"
+                     "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id));"
 
-                    "CREATE TABLE source_file (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                    "name TEXT NOT NULL,\n"
-                    "location TEXT NOT NULL,\n"
-                    "param_tree TEXT NOT NULL,\n"
-                    "shared_param_tree_id INTEGER,\n"
-                    "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id));"
+                     "CREATE TABLE source_file (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                     "name TEXT NOT NULL,\n"
+                     "location TEXT NOT NULL,\n"
+                     "param_tree TEXT NOT NULL,\n"
+                     "shared_param_tree_id INTEGER,\n"
+                     "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id));"
 
-                    "CREATE TABLE source_file_scan_settings_map (\n"
-                    "scan_settings_id INTEGER NOT NULL,\n"
-                    "source_file_id INTEGER NOT NULL,\n"
-                    "PRIMARY KEY (scan_settings_id, source_file_id));"
+                     "CREATE TABLE source_file_scan_settings_map (\n"
+                     "scan_settings_id INTEGER NOT NULL,\n"
+                     "source_file_id INTEGER NOT NULL,\n"
+                     "PRIMARY KEY (scan_settings_id, source_file_id));"
 
-                    "CREATE TABLE cv (\n"
-                    "id TEXT(10) NOT NULL,\n"
-                    "full_name TEXT NOT NULL,\n"
-                    "version TEXT(10),\n"
-                    "uri TEXT NOT NULL,\n"
-                    "PRIMARY KEY (id));\n"
+                     "CREATE TABLE cv (\n"
+                     "id TEXT(10) NOT NULL,\n"
+                     "full_name TEXT NOT NULL,\n"
+                     "version TEXT(10),\n"
+                     "uri TEXT NOT NULL,\n"
+                     "PRIMARY KEY (id));\n"
 
-                    "CREATE TABLE param_tree_schema (\n"
-                    "name TEXT NOT NULL,\n"
-                    "type TEXT(10) NOT NULL,\n"
-                    "schema TEXT NOT NULL,PRIMARY KEY (name));"
-                    "CREATE TABLE table_param_tree_schema (\n"
-                    "table_name TEXT NOT NULL,\n"
-                    "schema_name TEXT NOT NULL,\n"
-                    "PRIMARY KEY (table_name),\n"
-                    "FOREIGN KEY (schema_name) REFERENCES param_tree_schema (name));"
+                     "CREATE TABLE param_tree_schema (\n"
+                     "name TEXT NOT NULL,\n"
+                     "type TEXT(10) NOT NULL,\n"
+                     "schema TEXT NOT NULL,PRIMARY KEY (name));"
+                     "CREATE TABLE table_param_tree_schema (\n"
+                     "table_name TEXT NOT NULL,\n"
+                     "schema_name TEXT NOT NULL,\n"
+                     "PRIMARY KEY (table_name),\n"
+                     "FOREIGN KEY (schema_name) REFERENCES param_tree_schema (name));"
 
-                    "CREATE TABLE shared_param_tree (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                    "data TEXT NOT NULL,\n"
-                    "schema_name TEXT NOT NULL,\n"
-                    "FOREIGN KEY (schema_name) REFERENCES param_tree_schema (name));"
+                     "CREATE TABLE shared_param_tree (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                     "data TEXT NOT NULL,\n"
+                     "schema_name TEXT NOT NULL,\n"
+                     "FOREIGN KEY (schema_name) REFERENCES param_tree_schema (name));"
 
-                    "CREATE TABLE instrument_configuration (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                    "name TEXT NOT NULL,\n"
-                    "param_tree TEXT, \n"
-                    "component_list TEXT NOT NULL,\n"
-                    "shared_param_tree_id INTEGER,\n"
-                    "software_id INTEGER NOT NULL,\n"
-                    "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id),\n"
-                    "FOREIGN KEY (software_id) REFERENCES software (id));"
+                     "CREATE TABLE instrument_configuration (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                     "name TEXT NOT NULL,\n"
+                     "param_tree TEXT, \n"
+                     "component_list TEXT NOT NULL,\n"
+                     "shared_param_tree_id INTEGER,\n"
+                     "software_id INTEGER NOT NULL,\n"
+                     "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id),\n"
+                     "FOREIGN KEY (software_id) REFERENCES software (id));"
 
-                    "CREATE TABLE mzdb (\n"
-                    "version TEXT(10) NOT NULL,\n"
-                    "creation_timestamp TEXT NOT NULL,\n"
-                    "file_content TEXT NOT NULL,\n"
-                    "contacts TEXT NOT NULL,\n"
-                    "param_tree TEXT NOT NULL,\n"
-                    "PRIMARY KEY (version));"
+                     "CREATE TABLE mzdb (\n"
+                     "version TEXT(10) NOT NULL,\n"
+                     "creation_timestamp TEXT NOT NULL,\n"
+                     "file_content TEXT NOT NULL,\n"
+                     "contacts TEXT NOT NULL,\n"
+                     "param_tree TEXT NOT NULL,\n"
+                     "PRIMARY KEY (version));"
 
-                    "CREATE TABLE run (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, \n"
-                    "name TEXT NOT NULL,\n"
-                    "start_timestamp TEXT,\n"
-                    "param_tree TEXT,\n"
-                    "shared_param_tree_id INTEGER,\n"
-                    "sample_id INTEGER NOT NULL,\n"
-                    "default_instrument_config_id INTEGER NOT NULL,\n"
-                    "default_source_file_id INTEGER,\n"
-                    "default_scan_processing_id INTEGER NOT NULL,\n"
-                    "default_chrom_processing_id INTEGER NOT NULL,\n"
-                    "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id),\n"
-                    "FOREIGN KEY (sample_id) REFERENCES sample (id),\n"
-                    "FOREIGN KEY (default_instrument_config_id) REFERENCES instrument_configuration (id),\n"
-                    "FOREIGN KEY (default_source_file_id) REFERENCES source_file (id),\n"
-                    "FOREIGN KEY (default_scan_processing_id) REFERENCES data_processing (id),\n"
-                    "FOREIGN KEY (default_chrom_processing_id) REFERENCES data_processing (id));"
+                     "CREATE TABLE run (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT, \n"
+                     "name TEXT NOT NULL,\n"
+                     "start_timestamp TEXT,\n"
+                     "param_tree TEXT,\n"
+                     "shared_param_tree_id INTEGER,\n"
+                     "sample_id INTEGER NOT NULL,\n"
+                     "default_instrument_config_id INTEGER NOT NULL,\n"
+                     "default_source_file_id INTEGER,\n"
+                     "default_scan_processing_id INTEGER NOT NULL,\n"
+                     "default_chrom_processing_id INTEGER NOT NULL,\n"
+                     "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id),\n"
+                     "FOREIGN KEY (sample_id) REFERENCES sample (id),\n"
+                     "FOREIGN KEY (default_instrument_config_id) REFERENCES instrument_configuration (id),\n"
+                     "FOREIGN KEY (default_source_file_id) REFERENCES source_file (id),\n"
+                     "FOREIGN KEY (default_scan_processing_id) REFERENCES data_processing (id),\n"
+                     "FOREIGN KEY (default_chrom_processing_id) REFERENCES data_processing (id));"
 
-                    "CREATE TABLE chromatogram (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                    "name TEXT NOT NULL,\n"
-                    "activation_type TEXT(10) NOT NULL,\n"
-                    "data_points BLOB NOT NULL,\n"
-                    "param_tree TEXT NOT NULL, \n"
-                    "precursor TEXT,\n"
-                    "product TEXT,\n"
-                    "shared_param_tree_id INTEGER,\n"
-                    "run_id INTEGER NOT NULL,\n"
-                    "data_processing_id INTEGER,\n"
-                    "data_encoding_id INTEGER NOT NULL,\n"
-                    "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id),\n"
-                    "FOREIGN KEY (run_id) REFERENCES run (id),\n"
-                    "FOREIGN KEY (data_processing_id) REFERENCES data_processing (id),\n"
-                    "FOREIGN KEY (data_encoding_id) REFERENCES data_encoding (id));"
-                    "CREATE TABLE run_slice ( \n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                    "ms_level INTEGER NOT NULL,\n"
-                    "number INTEGER NOT NULL,\n"
-                    "begin_mz REAL NOT NULL,\n"
-                    "end_mz REAL NOT NULL,\n"
-                    "param_tree TEXT,\n"
-                    "run_id INTEGER NOT NULL,\n"
-                    "FOREIGN KEY (run_id) REFERENCES run (id) );"
+                     "CREATE TABLE chromatogram (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                     "name TEXT NOT NULL,\n"
+                     "activation_type TEXT(10) NOT NULL,\n"
+                     "data_points BLOB NOT NULL,\n"
+                     "param_tree TEXT NOT NULL, \n"
+                     "precursor TEXT,\n"
+                     "product TEXT,\n"
+                     "shared_param_tree_id INTEGER,\n"
+                     "run_id INTEGER NOT NULL,\n"
+                     "data_processing_id INTEGER,\n"
+                     "data_encoding_id INTEGER NOT NULL,\n"
+                     "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id),\n"
+                     "FOREIGN KEY (run_id) REFERENCES run (id),\n"
+                     "FOREIGN KEY (data_processing_id) REFERENCES data_processing (id),\n"
+                     "FOREIGN KEY (data_encoding_id) REFERENCES data_encoding (id));"
+                     "CREATE TABLE run_slice ( \n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                     "ms_level INTEGER NOT NULL,\n"
+                     "number INTEGER NOT NULL,\n"
+                     "begin_mz REAL NOT NULL,\n"
+                     "end_mz REAL NOT NULL,\n"
+                     "param_tree TEXT,\n"
+                     "run_id INTEGER NOT NULL,\n"
+                     "FOREIGN KEY (run_id) REFERENCES run (id) );"
 
-                    "CREATE TEMP TABLE tmp_spectrum (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                    "initial_id INTEGER NOT NULL,\n"
-                    "title TEXT NOT NULL,\n"
-                    "cycle INTEGER NOT NULL,\n"
-                    "time REAL NOT NULL,\n"
-                    "ms_level INTEGER NOT NULL,\n"
-                    "activation_type TEXT(10) NOT NULL,\n"
-                    "tic REAL NOT NULL,\n"
-                    "base_peak_mz REAL NOT NULL, \n"
-                    "base_peak_intensity REAL NOT NULL,\n"
-                    "main_precursor_mz REAL,\n"
-                    "main_precursor_charge INTEGER,\n"
-                    "data_points_count INTEGER NOT NULL,\n"
-                    "param_tree TEXT NOT NULL,\n"
-                    "scan_list TEXT,\n"
-                    "precursor_list TEXT,\n"
-                    "product_list TEXT,\n"
-                    "shared_param_tree_id INTEGER,\n"
-                    "instrument_configuration_id INTEGER,\n"
-                    "source_file_id INTEGER,\n"
-                    "run_id INTEGER NOT NULL,\n"
-                    "data_processing_id INTEGER,\n"
-                    "data_encoding_id INTEGER NOT NULL,\n"
-                    "bb_first_spectrum_id INTEGER NOT NULL,\n"
-                    "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id),\n"
-                    "FOREIGN KEY (instrument_configuration_id) REFERENCES instrument_configuration (id),\n"
-                    "FOREIGN KEY (source_file_id) REFERENCES source_file (id),\n"
-                    "FOREIGN KEY (run_id) REFERENCES run (id),\n"
-                    "FOREIGN KEY (data_processing_id) REFERENCES data_processing (id),\n"
-                    "FOREIGN KEY (data_encoding_id) REFERENCES data_encoding (id),\n"
-                    "FOREIGN KEY (bb_first_spectrum_id) REFERENCES spectrum (id));"
+                     "CREATE TEMP TABLE tmp_spectrum (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                     "initial_id INTEGER NOT NULL,\n"
+                     "title TEXT NOT NULL,\n"
+                     "cycle INTEGER NOT NULL,\n"
+                     "time REAL NOT NULL,\n"
+                     "ms_level INTEGER NOT NULL,\n"
+                     "activation_type TEXT(10) NOT NULL,\n"
+                     "tic REAL NOT NULL,\n"
+                     "base_peak_mz REAL NOT NULL, \n"
+                     "base_peak_intensity REAL NOT NULL,\n"
+                     "main_precursor_mz REAL,\n"
+                     "main_precursor_charge INTEGER,\n"
+                     "data_points_count INTEGER NOT NULL,\n"
+                     "param_tree TEXT NOT NULL,\n"
+                     "scan_list TEXT,\n"
+                     "precursor_list TEXT,\n"
+                     "product_list TEXT,\n"
+                     "shared_param_tree_id INTEGER,\n"
+                     "instrument_configuration_id INTEGER,\n"
+                     "source_file_id INTEGER,\n"
+                     "run_id INTEGER NOT NULL,\n"
+                     "data_processing_id INTEGER,\n"
+                     "data_encoding_id INTEGER NOT NULL,\n"
+                     "bb_first_spectrum_id INTEGER NOT NULL,\n"
+                     "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id),\n"
+                     "FOREIGN KEY (instrument_configuration_id) REFERENCES instrument_configuration (id),\n"
+                     "FOREIGN KEY (source_file_id) REFERENCES source_file (id),\n"
+                     "FOREIGN KEY (run_id) REFERENCES run (id),\n"
+                     "FOREIGN KEY (data_processing_id) REFERENCES data_processing (id),\n"
+                     "FOREIGN KEY (data_encoding_id) REFERENCES data_encoding (id),\n"
+                     "FOREIGN KEY (bb_first_spectrum_id) REFERENCES spectrum (id));"
 
-                    "CREATE TABLE bounding_box (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                    "data BLOB NOT NULL, \n"
-                    "run_slice_id INTEGER NOT NULL,\n"
-                    "first_spectrum_id INTEGER NOT NULL,\n"
-                    "last_spectrum_id INTEGER NOT NULL,\n "
-                    "FOREIGN KEY (run_slice_id) REFERENCES run_slice (id),\n"
-                    "FOREIGN KEY (first_spectrum_id) REFERENCES spectrum (id),\n"
-                    "FOREIGN KEY (last_spectrum_id) REFERENCES spectrum (id));"
+                     "CREATE TABLE bounding_box (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                     "data BLOB NOT NULL, \n"
+                     "run_slice_id INTEGER NOT NULL,\n"
+                     "first_spectrum_id INTEGER NOT NULL,\n"
+                     "last_spectrum_id INTEGER NOT NULL,\n "
+                     "FOREIGN KEY (run_slice_id) REFERENCES run_slice (id),\n"
+                     "FOREIGN KEY (first_spectrum_id) REFERENCES spectrum (id),\n"
+                     "FOREIGN KEY (last_spectrum_id) REFERENCES spectrum (id));"
 
-                    "CREATE TABLE cv_term (\n"
-                    "accession TEXT NOT NULL,\n"
-                    "name TEXT NOT NULL,\n"
-                    "unit_accession TEXT,\n"
-                    "cv_id TEXT(10) NOT NULL,\n"
-                    "PRIMARY KEY (accession),\n"
-                    "FOREIGN KEY (unit_accession) REFERENCES cv_unit (accession),\n"
-                    "FOREIGN KEY (cv_id) REFERENCES cv (id));"
+                     "CREATE TABLE cv_term (\n"
+                     "accession TEXT NOT NULL,\n"
+                     "name TEXT NOT NULL,\n"
+                     "unit_accession TEXT,\n"
+                     "cv_id TEXT(10) NOT NULL,\n"
+                     "PRIMARY KEY (accession),\n"
+                     "FOREIGN KEY (unit_accession) REFERENCES cv_unit (accession),\n"
+                     "FOREIGN KEY (cv_id) REFERENCES cv (id));"
 
-                    "CREATE TABLE cv_unit (\n"
-                    "accession TEXT NOT NULL,\n"
-                    "name TEXT NOT NULL,\n"
-                    "cv_id TEXT(10) NOT NULL,\n"
-                    "PRIMARY KEY (accession),\n"
-                    "FOREIGN KEY (cv_id) REFERENCES cv (id));"
+                     "CREATE TABLE cv_unit (\n"
+                     "accession TEXT NOT NULL,\n"
+                     "name TEXT NOT NULL,\n"
+                     "cv_id TEXT(10) NOT NULL,\n"
+                     "PRIMARY KEY (accession),\n"
+                     "FOREIGN KEY (cv_id) REFERENCES cv (id));"
 
-                    "CREATE TABLE user_term (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                    "name TEXT NOT NULL,\n"
-                    "type TEXT NOT NULL,\n"
-                    "unit_accession TEXT,\n"
-                    "FOREIGN KEY (unit_accession) REFERENCES cv_unit (accession));"
+                     "CREATE TABLE user_term (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                     "name TEXT NOT NULL,\n"
+                     "type TEXT NOT NULL,\n"
+                     "unit_accession TEXT,\n"
+                     "FOREIGN KEY (unit_accession) REFERENCES cv_unit (accession));"
 
-                    "CREATE TABLE target (\n"
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                    "param_tree TEXT NOT NULL,\n"
-                    "shared_param_tree_id INTEGER,\n"
-                    "scan_settings_id INTEGER NOT NULL,\n"
-                    "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id),\n"
-                    "FOREIGN KEY (scan_settings_id) REFERENCES scan_settings (id));"
+                     "CREATE TABLE target (\n"
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                     "param_tree TEXT NOT NULL,\n"
+                     "shared_param_tree_id INTEGER,\n"
+                     "scan_settings_id INTEGER NOT NULL,\n"
+                     "FOREIGN KEY (shared_param_tree_id) REFERENCES shared_param_tree (id),\n"
+                     "FOREIGN KEY (scan_settings_id) REFERENCES scan_settings (id));"
 
-                    "CREATE VIRTUAL TABLE bounding_box_rtree USING rtree(\n"
-                    "id INTEGER NOT NULL PRIMARY KEY,"
-                    "min_mz REAL NOT NULL, \n"
-                    "max_mz REAL NOT NULL, \n"
-                    "min_time REAL NOT NULL, \n"
-                    "max_time REAL NOT NULL);"
+                     "CREATE VIRTUAL TABLE bounding_box_rtree USING rtree(\n"
+                     "id INTEGER NOT NULL PRIMARY KEY,"
+                     "min_mz REAL NOT NULL, \n"
+                     "max_mz REAL NOT NULL, \n"
+                     "min_time REAL NOT NULL, \n"
+                     "max_time REAL NOT NULL);"
 
-                    "CREATE VIRTUAL TABLE bounding_box_msn_rtree USING rtree(\n"
-                    "id INTEGER NOT NULL PRIMARY KEY, \n"
-                    "min_ms_level REAL NOT NULL, \n"
-                    "max_ms_level REAL NOT NULL, \n"
-                    "min_parent_mz REAL NOT NULL, \n"
-                    "max_parent_mz REAL NOT NULL, \n"
-                    "min_mz REAL NOT NULL, \n"
-                    "max_mz REAL NOT NULL, \n"
-                    "min_time REAL NOT NULL, \n"
-                    "max_time REAL NOT NULL);", 0, 0, 0);
+                     "CREATE VIRTUAL TABLE bounding_box_msn_rtree USING rtree(\n"
+                     "id INTEGER NOT NULL PRIMARY KEY, \n"
+                     "min_ms_level REAL NOT NULL, \n"
+                     "max_ms_level REAL NOT NULL, \n"
+                     "min_parent_mz REAL NOT NULL, \n"
+                     "max_parent_mz REAL NOT NULL, \n"
+                     "min_mz REAL NOT NULL, \n"
+                     "max_mz REAL NOT NULL, \n"
+                     "min_time REAL NOT NULL, \n"
+                     "max_time REAL NOT NULL);", 0, 0, 0);
 
     if (r != SQLITE_OK) {
         LOG(ERROR) << "Could not create database tables properly, fatal error: Exiting...\n";
@@ -415,10 +415,10 @@ void mzDBWriter::checkMetaData() {
 ///@param compress or not
 ///@return new instance
 PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
-                                                              map<int, DataMode>& dataModeByMsLevel,
-                                                              CVID originFileFormat,
-                                                              MSDataPtr msdata,
-                                                              bool compress) :
+                                     map<int, DataMode>& dataModeByMsLevel,
+                                     CVID originFileFormat,
+                                     MSDataPtr msdata,
+                                     bool compress) :
     m_mzdbFile(f),
     m_dataModeByMsLevel(dataModeByMsLevel),
     m_originFileFormat(originFileFormat),
@@ -434,9 +434,9 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
     m_progressionCounter(0),
     m_emptyPrecCount(0) {
 
-        //implem goes here
-        m_metadataExtractor = std::move(this->getMetadataExtractor());
-    }
+    //implem goes here
+    m_metadataExtractor = std::move(this->getMetadataExtractor());
+}
 
 
 ///@brief mzDBWriter::insertMetaData
@@ -519,8 +519,8 @@ void mzDBWriter::insertMetaData(bool noLoss) {
     sqlite3_bind_text(m_mzdbFile.stmt, 5, tree.c_str(), tree.length(), SQLITE_STATIC);
 
     int rc_ = sqlite3_step(m_mzdbFile.stmt);
-//    if (rc_ != SQLITE_DONE)
-//        LOG(ERROR) << "mzdb metdata failed: SQLITE ERROR CODE: " << rc_;
+    //    if (rc_ != SQLITE_DONE)
+    //        LOG(ERROR) << "mzdb metdata failed: SQLITE ERROR CODE: " << rc_;
     sqlite3_finalize(m_mzdbFile.stmt);
     m_mzdbFile.stmt = 0;
 
@@ -554,7 +554,7 @@ void mzDBWriter::insertMetaData(bool noLoss) {
     //-----------------------------------------------------------------------------------------------------------
     //DATAENCODING TODO check this WARNING MS2 64 bit mz Encoding not yet inserted
 
-    BinaryDataArray prof, cent;
+    BinaryDataArray prof, cent, cent2;
     if (noLoss) {
         prof.cvParams.push_back(CVParam(MS_64_bit_float, _64_BIT_MZ));
         prof.cvParams.push_back(CVParam(MS_64_bit_float, _64_BIT_INTENSITY));
@@ -571,19 +571,29 @@ void mzDBWriter::insertMetaData(bool noLoss) {
         cent.cvParams.push_back(CVParam(MS_32_bit_float, _32_BIT_INTENSITY));
         //if (_compress)
         //    cent.cvParams.push_back(CVParam(MS_zlib_compression, "none"));
+
+        cent2.cvParams.push_back(CVParam(MS_64_bit_float, _64_BIT_MZ));
+        cent2.cvParams.push_back(CVParam(MS_32_bit_float, _32_BIT_INTENSITY));
     }
     string binaryProfString = ISerializer::serialize(prof, m_serializer);
     string binaryCentString = ISerializer::serialize(cent, m_serializer);
+    string binaryCent2Str = ISerializer::serialize(cent2, m_serializer);
+
     string profileMode = "INSERT INTO data_encoding VALUES (NULL, 'profile', 'none', 'little_endian', '" + binaryProfString + "')";
     sqlite3_exec(m_mzdbFile.db, profileMode.c_str(), 0, 0, 0);
     m_mzdbFile.stmt = 0;
+
     string fittedMode = "INSERT INTO data_encoding VALUES (NULL, 'fitted', 'none', 'little_endian', '" + binaryProfString + "')";
     sqlite3_exec(m_mzdbFile.db, fittedMode.c_str(), 0, 0, 0);
     m_mzdbFile.stmt = 0;
+
     string centMode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', '" + binaryCentString + "')";
     sqlite3_exec(m_mzdbFile.db, centMode.c_str(), 0, 0, 0);
     m_mzdbFile.stmt = 0;
 
+    string cent2Mode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', '" + binaryCent2Str + "')";
+    sqlite3_exec(m_mzdbFile.db, cent2Mode.c_str(), 0, 0, 0);
+    m_mzdbFile.stmt = 0;
 
     //-----------------------------------------------------------------------------------------------------------
     //SOFTWARE
@@ -827,9 +837,9 @@ void mzDBWriter::insertMetaData(bool noLoss) {
     sqlite3_bind_int(m_mzdbFile.stmt, 8, 2);
 
     int rc = sqlite3_step(m_mzdbFile.stmt);
-//    if (rc != SQLITE_DONE)
-//        LOG(ERROR) << "Error inserting run metadata.";
-//        LOG(ERROR) << "SQLITE ERROR CODE: " << (int)rc;
+    //    if (rc != SQLITE_DONE)
+    //        LOG(ERROR) << "Error inserting run metadata.";
+    //        LOG(ERROR) << "SQLITE ERROR CODE: " << (int)rc;
 
     sqlite3_finalize(m_mzdbFile.stmt);
     m_mzdbFile.stmt = 0;
@@ -974,11 +984,11 @@ bool mzDBWriter::isSwathAcquisition() {
             ++cycle;
             lastMz = 0;
             ms2Count = 0;
-//            if (ms1CountWithAtLeastNMs2 == 20) {
-//                LOG(INFO) << "Swath Mode detected ! Congrats";
-//                m_swathMode = true;
-//                return m_swathMode;
-//            }
+            //            if (ms1CountWithAtLeastNMs2 == 20) {
+            //                LOG(INFO) << "Swath Mode detected ! Congrats";
+            //                m_swathMode = true;
+            //                return m_swathMode;
+            //            }
 
             ms1Found = true;
         }  else if (msLevel == 2) {

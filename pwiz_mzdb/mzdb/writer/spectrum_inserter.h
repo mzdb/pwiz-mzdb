@@ -78,24 +78,28 @@ public:
         mParamsCollecter.updateCVMap(*spec);
         mParamsCollecter.updateUserMap(*spec);
 
-        // TODO: crash if scans vector does not contain any scan !
-        const pwiz::msdata::Scan& scan = spec->scanList.scans[0];
+        // fast version: crash if scans vector does not contain any scan !
+        //const pwiz::msdata::Scan& scan = spec->scanList.scans[0];
+        pwiz::msdata::Scan scan;
+        try {
+            scan = spec->scanList.scans.at(0);
+        } catch (exception&) {
+            LOG(ERROR) << "Empty scan vector, spectrum id:" << spectrum->id << ". Skipping it...";
+            return;
+        }
 
         // update for cvparams of scans
         mParamsCollecter.updateCVMap(scan);
         mParamsCollecter.updateUserMap(scan);
 
-        // case thermo file
-        double highResPrecMz = 0.0;
-        if (mRawFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
-            highResPrecMz = scan.userParam(THERMO_TRAILER).valueAs<double>();
-        }
-
+        // mslevel
         const int& msLevel = spectrum->msLevel();
 
-        const char* sql = "INSERT INTO spectrum  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+        // Prepare stmt
+        const char* sql = "INSERT INTO tmp_spectrum  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
         sqlite3_prepare_v2(mMzdbFile.db, sql, -1, &(mMzdbFile.stmt), 0);
 
+        //ID could be autoincrement
         sqlite3_bind_int(mMzdbFile.stmt, 1, spectrum->id);
 
         //initial_id
@@ -103,7 +107,7 @@ public:
         const string& id = spec->id;
 
         //title
-        sqlite3_bind_text(mMzdbFile.stmt, 3, id.c_str(), id.length(), SQLITE_TRANSIENT);
+        sqlite3_bind_text(mMzdbFile.stmt, 3, id.c_str(), id.length(), SQLITE_STATIC);
 
         //cycle
         sqlite3_bind_int(mMzdbFile.stmt, 4, spectrum->cycle);
@@ -117,7 +121,7 @@ public:
         //activation_type
         if (msLevel > 1) {
             const string activationCode = mzdb::getActivationCode(spec->precursors.front().activation);
-            sqlite3_bind_text(mMzdbFile.stmt, 7, activationCode.c_str(), activationCode.length(), SQLITE_TRANSIENT);
+            sqlite3_bind_text(mMzdbFile.stmt, 7, activationCode.c_str(), activationCode.length(), SQLITE_STATIC);
         } else {
             // in the sql model shoud not be null -> use an empty string
             sqlite3_bind_text(mMzdbFile.stmt, 7, "", 0, SQLITE_STATIC);
@@ -134,27 +138,28 @@ public:
 
         //precursor mz precursor charge
         if (msLevel > 1) {
+            /*
             //clear the selected ions
             // just add some metadata, PIP and nearest prec mz
-//            auto& selectedIons = spec->precursors.front().selectedIons;
-//            pwiz::msdata::SelectedIon si = spectrum->refinedPrecursorMz(parentSpectrum, _emptyPrecCount);
-//            bool siEmpty = si.empty();
-//            if (! siEmpty)
-//                selectedIons.push_back(si);
+            auto& selectedIons = spec->precursors.front().selectedIons;
+            pwiz::msdata::SelectedIon si = spectrum->refinedPrecursorMz(parentSpectrum, _emptyPrecCount);
+            bool siEmpty = si.empty();
+            if (! siEmpty)
+                selectedIons.push_back(si);
 
-            //seems to be buggy
-            //spectrum->refinedPrecursorMzPwiz(parentSpectrum, selectedIons);
+            seems to be buggy
+            spectrum->refinedPrecursorMzPwiz(parentSpectrum, selectedIons);
             if (highResPrecMz)
                 sqlite3_bind_double(mMzdbFile.stmt, 11, spectrum->precursorMz());
-//            else {
-//                if (! siEmpty)
-//                    sqlite3_bind_double(m_mzdbFile.stmt, 11, si.cvParam(pwiz::msdata::MS_selected_ion_m_z).valueAs<double>());
+            else {
+                if (! siEmpty)
+                    sqlite3_bind_double(m_mzdbFile.stmt, 11, si.cvParam(pwiz::msdata::MS_selected_ion_m_z).valueAs<double>());
                 else
                     sqlite3_bind_double(mMzdbFile.stmt, 11, spectrum->precursorMz());
 
             //}
             //---charge
-            /*if (m_rawFileFormat == pwiz::msdata::MS_ABI_WIFF_format) {
+            if (m_rawFileFormat == pwiz::msdata::MS_ABI_WIFF_format) {
 
                 int charge = 0;
                 double mz = 0.0, intensity = 0.0;
@@ -166,7 +171,18 @@ public:
 
                 sqlite3_bind_double(m_mzdbFile.stmt, 12, charge);
 
-            } else*/
+            } else
+            */
+
+            double precMz = 0.0;
+
+            // case thermo file
+            if (mRawFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
+                precMz = scan.userParam(THERMO_TRAILER).valueAs<double>();
+            } else {
+                precMz = PwizHelper::precursorMzOf(spec);
+            }
+            sqlite3_bind_double(mMzdbFile.stmt, 11, precMz);
             sqlite3_bind_double(mMzdbFile.stmt, 12, PwizHelper::precursorChargeOf(spec));
 
         } else {
@@ -177,6 +193,7 @@ public:
         //datapointscount
         sqlite3_bind_int(mMzdbFile.stmt, 13, spectrum->nbPeaks());
 
+        //spectrum paramtree
         //TODO: put a new user param to evaluate the resolution of a spectrum
         bool isInHighRes =  spectrum->isInHighRes;
         pwiz::msdata::UserParam p(IN_HIGH_RES_STR); p.type = XML_BOOLEAN;
@@ -187,24 +204,31 @@ public:
         }
         spec->userParams.push_back(p);
         string& r = ISerializer::serialize(*spec, serializer);
-        sqlite3_bind_text(mMzdbFile.stmt, 14, r.c_str(), r.length(), SQLITE_TRANSIENT);
+        sqlite3_bind_text(mMzdbFile.stmt, 14, r.c_str(), r.length(), SQLITE_STATIC);
+
         // ---Here we use directly the pwiz api for writing xml chunks
+
         //scan list
         ostringstream os_2;
         pwiz::minimxml::XMLWriter writer_2(os_2);
         pwiz::msdata::IO::write(writer_2, spec->scanList, *msdata);
         string r_2 = os_2.str();
-        sqlite3_bind_text(mMzdbFile.stmt, 15, r_2.c_str(), r_2.length(), SQLITE_TRANSIENT);
+        sqlite3_bind_text(mMzdbFile.stmt, 15, r_2.c_str(), r_2.length(), SQLITE_STATIC);
+
+        bool HCDActivation = false;
 
         //precursor list
         if (msLevel > 1) {
             ostringstream os_3;
             pwiz::minimxml::XMLWriter writer_3(os_3);
             for (auto p = spec->precursors.begin(); p != spec->precursors.end(); ++p) {
+                // fix mz 64 bits encoding for HCD ms2 spectrum
+                if (getActivationCode((*p).activation) == HCD_STR)
+                    HCDActivation = true;
                 pwiz::msdata::IO::write(writer_3, *p);
             }
             string r_3 =  os_3.str();
-            sqlite3_bind_text(mMzdbFile.stmt, 16, r_3.c_str(), r_3.length(), SQLITE_TRANSIENT);
+            sqlite3_bind_text(mMzdbFile.stmt, 16, r_3.c_str(), r_3.length(), SQLITE_STATIC);
 
             //product list
             ostringstream os_4;
@@ -213,7 +237,7 @@ public:
                 pwiz::msdata::IO::write(writer_4, *p);
             }
             string r_4 = os_4.str();
-            sqlite3_bind_text(mMzdbFile.stmt, 17, r_4.c_str(), r_4.length(), SQLITE_TRANSIENT);
+            sqlite3_bind_text(mMzdbFile.stmt, 17, r_4.c_str(), r_4.length(), SQLITE_STATIC);
         } else {
             sqlite3_bind_null(mMzdbFile.stmt, 16);
             sqlite3_bind_null(mMzdbFile.stmt, 17);
@@ -221,23 +245,34 @@ public:
 
         //shared param tree id
         sqlite3_bind_null(mMzdbFile.stmt, 18);
+
         //instrument config id
-        sqlite3_bind_int(mMzdbFile.stmt, 19, instrumentConfigurationIndex( msdata, spec->scanList.scans[0].instrumentConfigurationPtr));
+        sqlite3_bind_int(mMzdbFile.stmt, 19, instrumentConfigurationIndex(msdata, spec->scanList.scans[0].instrumentConfigurationPtr));
+
         //source file id
         sqlite3_bind_int(mMzdbFile.stmt, 20, sourceFileIndex(msdata, spec->sourceFilePtr));
+
         //run id
-        sqlite3_bind_int(mMzdbFile.stmt, 21, 1); //run id default to 1
+        //run id default to 1
+        sqlite3_bind_int(mMzdbFile.stmt, 21, 1);
+
         //data proc id
         sqlite3_bind_int(mMzdbFile.stmt, 22, dataProcessingIndex(msdata, spec->dataProcessingPtr));
+
         //data enc id
         //TODO: fix this we like before
-        sqlite3_bind_int(mMzdbFile.stmt, 23, mDataModePosition[spectrum->getEffectiveMode(mDataModeByMsLevel[msLevel])]);
+        DataMode effectiveMode = spectrum->getEffectiveMode(mDataModeByMsLevel[msLevel]);
+        if (HCDActivation && effectiveMode == CENTROID)
+            sqlite3_bind_int(mMzdbFile.stmt, 23, 4); // 4 is the corresponding id
+        else
+            sqlite3_bind_int(mMzdbFile.stmt, 23, mDataModePosition[effectiveMode]);
+
         //bb first spec id
         sqlite3_bind_int(mMzdbFile.stmt, 24, bbFirstScanId);
+
+        //finalize statement
         sqlite3_step(mMzdbFile.stmt);
         sqlite3_finalize(mMzdbFile.stmt);
-
-        //safe reinit
         mMzdbFile.stmt = 0;
     }
 
