@@ -227,7 +227,6 @@ static void findLocalMinima( const vector<mz_uint>& maxIndexes, const VEC& data,
         if ( rightVal != maxIndex )
             peakAsIndexes.rightMin = rightVal;
 
-        //printf("%d, %d, %d, %d\n", maxIndex, leftVal, rightVal, data.sie()  );
         peaks.push_back(peakAsIndexes);
     }
 }
@@ -259,7 +258,7 @@ static void optimizeCeres(const vector<double>& mzData,
             //no optimization requested, much faster with relatively good result
         } else if ( op & NO_OPTIMIZATION) {
             for (size_t k = 0; k < peaks.size(); ++k) {
-                Centroid<mz_t, int_t>* c = peaks[k]->_computeCentroid();
+                Centroid<mz_t, int_t>* c =  peaks[k]->_computeCentroid();
                 if (c)
                     centroids.push_back(c);
             }
@@ -331,10 +330,10 @@ static void cwt(const vector<type>& intensities, double& fwhm, vector<double>& r
     //make a copy of size power of 2
     vector<double> ints(intensities.begin(), intensities.end());
     makePowerOf2(ints);
-    //printf("Size of intensities:%d, %d\n", intensities.size(), ints.size());
 
     //double scale = MAGIC * fwhm;
     mz_uint N = ints.size();
+
     cwtlib::WTransform *wt;
 
     try {

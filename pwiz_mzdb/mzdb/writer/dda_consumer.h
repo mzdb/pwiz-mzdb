@@ -29,6 +29,17 @@ class mzDDAConsumer:  QueueingPolicy, mzSpectrumInserter, mzBBInserter {
 
 
 public:
+
+    /**
+
+     * @brief _consume
+     * @param msdata
+     * @param serializer
+     * @param bbMzWidthByMsLevel
+     * @param runSlices
+     * @param progressionCount
+     * @param nscans
+     */
     void _consume( pwiz::msdata::MSDataPtr& msdata,
                    ISerializer::xml_string_writer& serializer,
                    map<int, double>& bbMzWidthByMsLevel,
@@ -49,8 +60,8 @@ public:
                 //break;
             }
 
-
             this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(cycleCollection, msdata, serializer);
+
             vector<std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > > highResSpectra;
             vector<std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > > lowResSpectra;
             cycleCollection->getSpectra(highResSpectra, lowResSpectra); //no const since will be deleted in buildAndInsertData

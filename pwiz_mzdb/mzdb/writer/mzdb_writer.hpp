@@ -38,6 +38,13 @@
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/IO.hpp"
 #include "pwiz_aux/msrc/utility/vendor_api/thermo/RawFile.h"
+
+//---version
+#include "pwiz/Version.hpp"
+#include "pwiz/data/msdata/Version.hpp"
+#include "pwiz/analysis/Version.hpp"
+
+
 //#include "pwiz/analysis/spectrum_processing/SpectrumList_PrecursorRecalculator.hpp"
 //#include "pwiz/data/vendor_readers/Thermo/SpectrumList_Thermo.hpp"
 //#include "pwiz/data/vendor_readers/ABI/SpectrumList_ABI.hpp"
@@ -176,9 +183,6 @@ public:
                              pwiz::msdata::MSDataPtr msdata,
                              bool compress);
 
-
-
-
     /**
      * @brief mzDBWriter::writeMzRTreeDB
      * @param noLoss
@@ -213,7 +217,11 @@ public:
             nscans = m_msdata->run.spectrumListPtr->size();
 
         // just log sqlite version for information
+        printf("\n");
         LOG(INFO) << "SQLITE VERSION: " << SQLITE_VERSION;
+        LOG(INFO) << "ProteoWizard release: " << pwiz::Version::str() << " (" << pwiz::Version::LastModified() << ")";
+        LOG(INFO) << "ProteoWizard MSData: " << pwiz::msdata::Version::str() << " (" << pwiz::msdata::Version::LastModified() << ")\n";
+        //LOG(INFO) << "ProteoWizard Analysis: " << pwiz::analysis::Version::str() << " (" << pwiz::analysis::Version::LastModified() << ")";
 
         //create and open database
         if ( m_mzdbFile.open(filename) != SQLITE_OK) {
@@ -224,12 +232,12 @@ public:
         //create tables within a transaction
         this->createTables();
 
-        _TRY_BEGIN
+        try {
             this->insertMetaData(false);
-        _CATCH(exception& e)
+        } catch(exception& e) {
             LOG(ERROR) << "Error occured during metadata insertion.";
             LOG(ERROR) << "\t->" << e.what();
-        _CATCH_END
+        } catch(...) {}
 
         //--- always prefer vendor centroiding
         pwiz::util::IntegerSet levelsToCentroid;
@@ -285,7 +293,6 @@ public:
 
         if (m_originFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
             LOG(INFO) << "Thermo raw file format detected";
-
             auto* spectrumListThermo =
                     static_cast<pwiz::msdata::detail::SpectrumList_Thermo*>(spectrumList.get());
 
@@ -298,7 +305,6 @@ public:
                 prod.join(); cons.join();
 
             } else {
-
                 LOG(INFO) << "DDA producer/consumer";
                 auto prod = pcThreadBuilder.getDDAThermoProducerThread( levelsToCentroid, spectrumListThermo,
                                                                         nscans, bbWidthManager, m_originFileFormat, params);
@@ -306,17 +312,12 @@ public:
                                                                         runSlices, progressCount, nscans );
                 prod.join(); cons.join();
             }
-
-
         }
         else if (m_originFileFormat == pwiz::msdata::MS_ABI_WIFF_format) {
             auto* s = static_cast<pwiz::msdata::detail::SpectrumList_ABI*>(spectrumList.get());
-
-            //LOG(INFO) << "AB Sciex file format detected";
+            LOG(INFO) << "AB Sciex file format detected";
             if (m_swathMode) {
-                //LOG(INFO) << "Swath mode detected";
-
-
+                LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getSwathABIProducerThread( levelsToCentroid, s,
                                                                        nscans, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getSwathABIConsumerThread( m_msdata, m_serializer, bbHeightManager,
@@ -324,24 +325,20 @@ public:
                 prod.join(); cons.join();
 
             } else {
-                //LOG(INFO) << "Data dependant acquisition detected";
+                LOG(INFO) << "DDA producer/consumer";
 
                 auto prod = pcThreadBuilder.getDDAABIProducerThread( levelsToCentroid, s,
                                                                      nscans, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAABIConsumerThread( m_msdata, m_serializer, bbHeightManager,
                                                                      runSlices, progressCount, nscans );
-
                 prod.join(); cons.join();
             }
         }
 
         else {
-            //LOG(INFO) << "mzML / mzXML spectrumList";
-
+            LOG(INFO) << "Beta support spectrumList";
             if (m_swathMode) {
-               // LOG(INFO) << "Swath mode detected";
-
-
+               LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getSwathGenericProducerThread( levelsToCentroid, spectrumList.get(),
                                                                            nscans, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getSwathGenericConsumerThread( m_msdata, m_serializer, bbHeightManager,
@@ -349,17 +346,16 @@ public:
                 prod.join(); cons.join();
 
             } else {
-                //LOG(INFO) << "Data dependant acquisition detected";
-
+                LOG(INFO) << "DDA producer/consumer";
                 auto prod = pcThreadBuilder.getDDAGenericProducerThread( levelsToCentroid, spectrumList.get(),
                                                                          nscans, bbWidthManager, m_originFileFormat,params);
                 auto cons = pcThreadBuilder.getDDAGenericConsumerThread( m_msdata, m_serializer, bbHeightManager,
                                                                          runSlices, progressCount, nscans );
-
                 prod.join();cons.join();
             }
 
-        }
+        } // end file type
+
         //--- metadata cv terms (user param and cv param)
         m_paramsCollecter.insertCollectedCVTerms();
 
@@ -371,11 +367,11 @@ public:
         //--- set sqlite indexes
         this->createIndexes();
 
-        //finally commit
+        //---finally commit
         sqlite3_exec(m_mzdbFile.db, "COMMIT;", 0, 0, 0);
 
-        //
-        LOG(INFO) << "Precursors not found at 50ppm (using vendor peak-piking) count: "<< this->m_emptyPrecCount;
+        //--- in case of precursor calculations
+        //LOG(INFO) << "Precursors not found at 50ppm (using vendor peak-piking) count: "<< this->m_emptyPrecCount;
 
     }
 

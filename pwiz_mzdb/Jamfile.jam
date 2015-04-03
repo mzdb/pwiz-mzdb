@@ -4,20 +4,20 @@ exe raw2mzDB
   <include>..
   <library>mzdb/writer
   <library>mzdb/lib/getopt_pp
-: <toolset>msvc <link>static <variant>release #default_builds "/Ox /Gy /GA /GF /arch:SSE2"  <cxxflags>"/Ox /GLAFy /LTCG /fp:fast" 
+: <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /GAyF /EHa" <linkflags>"/LTCG" #default_builds "/Ox /Gy /GA /GF /arch:SSE2 /HEa"  <cxxflags>"/Ox /GLAFy /LTCG /fp:fast" 
 :
 ;
 
 
-exe mzDB2mzML
-: mzDB2mzML.cpp
-: 
-  <include>..
-  <library>mzdb/converter
-  <library>mzdb/lib/getopt_pp
-: <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default_builds
-: 
-;
+#exe mzDB2mzML
+#: mzDB2mzML.cpp
+#: 
+#  <include>..
+#  <library>mzdb/converter
+#  <library>mzdb/lib/getopt_pp
+#: <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default_builds
+#: 
+#;
 
 #exe md5Diff
 #: md5Diff.cpp
@@ -54,15 +54,15 @@ exe mzDB2mzML
 #: <library>raw2mzdb <include>.. <library>getopt_pp <library>../pwiz/data/msdata <library>../pwiz_tools/common
 #;
 
-exe fitted2profile
-: fittedToProfileMode.cpp
-:
- <include>..
- <library>mzdb/fitted2Profile
- <library>mzdb/lib/getopt_pp #requirements
-: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default_builds
-:
-;
+#exe fitted2profile
+#: fittedToProfileMode.cpp
+#:
+# <include>..
+# <library>mzdb/fitted2Profile
+# <library>mzdb/lib/getopt_pp #requirements
+#: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default_builds
+#:
+#;
 
 install hello_pwiz_install
 : raw2mzDB
@@ -70,10 +70,10 @@ install hello_pwiz_install
 ;
 
 
-install marco_pwiz_install
-: mzDB2mzML
-: <location>.
-;
+#install marco_pwiz_install
+#: mzDB2mzML
+#: <location>.
+#;
 
 #install marco_pwiz_2_install
 #: md5Diff
@@ -100,7 +100,7 @@ install marco_pwiz_install
 #: <location>.
 #;
 
-install marco_pwiz_7_install
-: fitted2profile
-: <location>.
-;
+#install marco_pwiz_7_install
+#: fitted2profile
+#: <location>.
+#;

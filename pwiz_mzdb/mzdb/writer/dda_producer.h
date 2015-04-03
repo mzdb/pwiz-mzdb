@@ -4,6 +4,9 @@
 #include <unordered_map>
 #include <set>
 
+#include "windows.h"
+#include "exception"
+
 #include "pwiz/data/msdata/MSDataFile.hpp"
 #include "pwiz/utility/misc/IntegerSet.hpp"
 
@@ -77,11 +80,18 @@ public:
         for (size_t i = 0; i < nscans; ++i) {
 
             pwiz::msdata::SpectrumPtr spectrum;
+
             try {
                 spectrum =  mzdb::getSpectrum<SpectrumListType>(spectrumList, i, true, levelsToCentroid);
-            }catch (exception &e) {
-                printf("Catch an exception!\n");
-                printf("%s\n", e.what());
+            } catch (exception& e) {
+                //WARNING how to know about cycle ? MS1, MS2
+                LOG(ERROR) << "\nCatch an exception: %s. Skipping scan" << e.what();
+                scanCount++;
+                continue;
+            } catch(...) {
+                LOG(ERROR) << "\nCatch an unknown exception";
+                scanCount++;
+                continue;
             }
 
             const int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();

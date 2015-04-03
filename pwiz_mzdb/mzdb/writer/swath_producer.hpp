@@ -64,7 +64,8 @@ private:
 
         for (size_t i = 0; i < nscans; ++i) {
 
-            pwiz::msdata::SpectrumPtr spectrum =  mzdb::getSpectrum<SpectrumListType>(spectrumList, i, true, levelsToCentroid);
+            pwiz::msdata::SpectrumPtr spectrum;
+            spectrum =  mzdb::getSpectrum<SpectrumListType>(spectrumList, i, true, levelsToCentroid);
             const int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
             bool isInHighRes = this->isInHighRes(spectrum);
 

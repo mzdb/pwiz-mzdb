@@ -24,6 +24,10 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& s,
                       vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids,
                       mzPeakFinderUtils::PeakPickerParams& params) {
 
+    if (!s || s == nullptr) {
+        LOG(ERROR) << "Spectrum pointer is null";
+    }
+
     const vector<double>& mzs = s->getMZArray()->data;
     const vector<double>& ints = s->getIntensityArray()->data;
 
@@ -40,7 +44,7 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& s,
 //        params.noise = c.second;
 //    }
 
-    //---copy data ! TODO: how to change this
+    //---copy data du non corresponding template parameters ! TODO: how to change this
     const vector<mz_t> nmzs(mzs.begin(), mzs.end());
     const vector<int_t> nints(ints.begin(), ints.end());
     DataPointsCollection<mz_t, int_t> spectrumData(nmzs, nints, s);

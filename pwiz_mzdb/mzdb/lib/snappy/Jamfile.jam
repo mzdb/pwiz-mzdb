@@ -9,7 +9,7 @@ lib snappy
 		#<optimization>speed
 	
 		
-	: #<toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /Gr /GF" #<optimization>speed #default-build
+	: #<toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /Gr /GF /EHa" #<optimization>speed #default-build
 	: #usage-requirments
 		<include>.
 	

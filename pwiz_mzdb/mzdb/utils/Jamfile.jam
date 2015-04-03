@@ -15,7 +15,7 @@ lib mzdb_utils
     <library>../lib/pugixml
     <library>../lib/sqlite3
 
-: <variant>release <link>static <cxxflags>"/Ox /Gy /GA" #/Gr" #/GF #default-build
+: <variant>release <link>static <cxxflags>"/Ox /Gy /GA /EHa" #/Gr" #/GF #default-build
 
 : #usage-requirments
     <include>.

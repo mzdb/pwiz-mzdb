@@ -44,11 +44,14 @@ void getCvParams(const ParamContainer& object, xml_node& doc) {
                     n_.append_attribute(PARAM_VALUE_STR).set_value(param.valueAs<int>());
 
             } catch (boost::bad_lexical_cast &) {
-
-                if (param.value ==  TRUE_STR || param.value == FALSE_STR )
-                    n_.append_attribute(PARAM_VALUE_STR).set_value(param.valueAs<bool>());
-                else
-                    n_.append_attribute(PARAM_VALUE_STR).set_value(param.value.c_str());
+                try {
+                    if (param.value ==  TRUE_STR || param.value == FALSE_STR )
+                        n_.append_attribute(PARAM_VALUE_STR).set_value(param.valueAs<bool>());
+                    else
+                        n_.append_attribute(PARAM_VALUE_STR).set_value(param.value.c_str());
+                } catch (boost::bad_lexical_cast&) {
+                    printf("Bad lexical cast raised: wrong cvparam value.\n");
+                }
             }
         }
     }
@@ -98,10 +101,14 @@ void getUserParams(const ParamContainer& object, xml_node& doc) {
                 else
                     n.append_attribute(PARAM_VALUE_STR).set_value(params[i].valueAs<int>());
             } catch (boost::bad_lexical_cast &) {
-                if (params[i].value == TRUE_STR || params[i].value == FALSE_STR)
-                    n.append_attribute(PARAM_VALUE_STR).set_value(params[i].valueAs<bool>());
-                else
-                    n.append_attribute(PARAM_VALUE_STR).set_value(params[i].value.c_str());
+                try {
+                    if (params[i].value == TRUE_STR || params[i].value == FALSE_STR)
+                        n.append_attribute(PARAM_VALUE_STR).set_value(params[i].valueAs<bool>());
+                    else
+                        n.append_attribute(PARAM_VALUE_STR).set_value(params[i].value.c_str());
+                } catch (boost::bad_lexical_cast &) {
+                    printf("Bad lexical cast raised: wrong user param value.\n");
+                }
             }
         }
     }

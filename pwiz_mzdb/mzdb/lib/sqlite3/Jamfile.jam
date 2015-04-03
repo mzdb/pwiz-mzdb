@@ -6,7 +6,7 @@ lib sqlite3
         #<optimization>speed
         <include>include
 
-: <toolset>msvc <variant>release <link>static <cxxflags>"/Ox /Gy /GA /Gr /GF" #<optimization>speed #default-build
+: <toolset>msvc <variant>release <link>static <cxxflags>"/Ox /Gy /GA /Gr /GF /EHa" #<optimization>speed #default-build
 : #usage-requirments
         <include>include
 ;

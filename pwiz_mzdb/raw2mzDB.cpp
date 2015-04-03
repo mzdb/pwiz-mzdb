@@ -24,13 +24,15 @@
 
 #ifdef _WIN32
 #include <share.h>
+#include <eh.h>
+//#include <windows.h>
 #endif
+
+#include "boost/algorithm/string.hpp"
 
 #include "mzdb/lib/getopt_pp/include/getopt_pp.h"
 #include "mzdb/writer/mzdb_writer.hpp"
 #include "mzdb/utils/MzDBFile.h"
-#include "boost/algorithm/string.hpp"
-
 #include "mzdb/utils/glog/logging.h"
 
 using namespace std;
@@ -38,18 +40,37 @@ using namespace mzdb;
 using namespace GetOpt;
 using namespace pwiz::msdata;
 
+#ifdef _WIN32
+class SEException {
+private:
+    unsigned int nSE;
+public:
+    SEException() {}
+    SEException( unsigned int n ) : nSE( n ) {}
+    ~SEException() {}
+    unsigned int getSeNumber() { return nSE; }
+};
+
+void trans_func( unsigned int u, EXCEPTION_POINTERS* pExp )
+{
+    throw SEException();
+}
+#endif
+
+
 /// Warning, calling this function will delete a previous mzdb file.
 int deleteIfExists(const string &filename) {
 
     if (std::ifstream(filename.c_str())) {
         //file exist
-        std::cout << "Found file with the same name" << std::endl;
-        std::cout << "Delete...";
+        printf("\n");
+        LOG(WARNING) << "Found file with the same name";
+        LOG(WARNING) << "Delete...";
         if (remove(filename.c_str()) != 0) {
             LOG(ERROR) << "Error trying to delete file, exiting...May the file is opened elsewhere ?";
             exit(EXIT_FAILURE);
         } else
-            std::cout << "Done" << endl;
+            LOG(INFO) << "Done";
     }
     return 0;
 }
@@ -127,6 +148,11 @@ void parseRange(string& range, DataMode mode,
 
 /// Starting point !
 int main(int argc, char* argv[]) {
+#ifdef _WIN32
+    //set se translator
+    LOG(INFO) << "Setting custom translator for SEH exception.";
+    _set_se_translator(trans_func);
+#endif
 
     string filename = "", centroid = "", profile = "", fitted = "", namefile = "", serialization = "xml";
     bool compress = false;
@@ -251,41 +277,42 @@ int main(int argc, char* argv[]) {
     ReaderPtr readers(new FullReaderList);
     vector<MSDataPtr> msdList;
 
-    _TRY_BEGIN
+    try {
         ( (FullReaderList*) readers.get() )->read(f.name, msdList);
-    _CATCH(exception& e)
+    } catch(exception& e) {
         LOG(ERROR) << e.what() << endl;
         LOG(FATAL) << "This a fatal error. Exiting..." << endl;
         exit(EXIT_FAILURE);
-    _CATCH_END
+    } catch(...) {}
 
     auto& msData = msdList[0];
     auto originFileFormat = pwiz::msdata::identifyFileFormat( readers, f.name );
 
     mzDBWriter writer(f, dataModeByMsLevel, originFileFormat, msData, compress);
 
-    //insert metadata
-    _TRY_BEGIN
+    //---insert metadata
+    try {
         writer.checkMetaData();
-    _CATCH (exception& e)
+    } catch (exception& e) {
         LOG(ERROR) << "Error checking metadata: ";
         LOG(ERROR) << "\t->" << e.what();
-    _CATCH_END
+    } catch(...) {}
 
 
     //---check swath mode
-    _TRY_BEGIN
+    try {
             writer.isSwathAcquisition();
-    _CATCH(exception& e)
+    } catch (exception& e) {
         LOG(ERROR) << "Error checking DDA/SWATH Mode: ";
         LOG(ERROR) << "\t->" << e.what();
-    _CATCH_END
+    } catch(...) {}
 
     //---create parameters for peak picking
     mzPeakFinderUtils::PeakPickerParams p;
 
     clock_t beginTime = clock();
-    _TRY_BEGIN
+
+    try {
         if (noLoss) {
             LOG(INFO) << "No-loss mode encoding: all ms Mz-64, all ms Int-64";
             writer.writeNoLossMzDB(namefile, nscans, nbCycles, p);
@@ -302,9 +329,11 @@ int main(int argc, char* argv[]) {
         LOG(INFO) << "Checking run slices numbers";
         writer.checkAndFixRunSliceNumberAnId();
 
-    _CATCH(exception& e)
+    } catch (exception& e) {
         LOG(ERROR) << e.what();
-    _CATCH_END
+    } catch(...) {
+        printf("Unknown error. Unrecoverable. Exiting...");
+    }
 
    clock_t endTime = clock();
    LOG(INFO) << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl;

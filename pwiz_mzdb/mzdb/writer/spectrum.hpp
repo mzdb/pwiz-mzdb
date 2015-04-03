@@ -48,12 +48,6 @@ struct PWIZ_API_DECL mzSpectrum {
     DataMode effectiveMode;
     bool isInHighRes, isInserted;
 
-    //double precurorMz;
-    /*
-    detail::Lazy<std::function<int ()> > precursorCharge; // = lazy(mzSpectrum::precurorCharge); //lazy<int> precursorCharge;
-    detail::Lazy<std::function<double ()> > precursorMz;
-    detail::Lazy<std::function<int ()> > msLevel;
-    */
     int _precursorCharge;
     double _precursorMz;
     int _msLevel;
@@ -71,16 +65,7 @@ struct PWIZ_API_DECL mzSpectrum {
         _precursorCharge(0),
         _precursorMz(0.0),
         _msLevel(0) {
-
-        /*precursorCharge = lazy(std::function<int ()>(
-                                   std::bind(&mzSpectrum<mz_t, int_t>::_precursorCharge, this)));
-
-        precursorMz = lazy(std::function<double ()>(
-                               std::bind(&mzSpectrum<mz_t, int_t>::_precursorMz, this)));
-
-        msLevel = lazy( std::function<int ()>(
-                            std::bind(&mzSpectrum<mz_t, int_t>::_msLevel, this)));*/
-    }
+     }
 
     ///Most used ctor
     inline mzSpectrum(int id_, int cycle_, const pwiz::msdata::SpectrumPtr& s) :
@@ -93,16 +78,6 @@ struct PWIZ_API_DECL mzSpectrum {
         _precursorCharge(0),
         _precursorMz(0.0),
         _msLevel(0) {
-
-        /*precursorCharge = lazy(std::function<int ()>(
-                                   std::bind(&mzSpectrum<mz_t, int_t>::_precursorCharge, this)));
-
-        precursorMz = lazy(std::function<double ()>(
-                               std::bind(&mzSpectrum<mz_t, int_t>::_precursorMz, this)));
-
-        msLevel = lazy( std::function<int ()>(
-                            std::bind(&mzSpectrum<mz_t, int_t>::_msLevel, this)));*/
-
     }
 
     ///copy ctor

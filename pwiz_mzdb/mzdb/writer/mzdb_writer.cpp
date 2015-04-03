@@ -946,7 +946,7 @@ void mzDBWriter::checkAndFixRunSliceNumberAnId() {
     m_mzdbFile.stmt = 0;
     //--- ---
     if ( ! std::is_sorted(runSliceIds.begin(), runSliceIds.end()) ) {
-        LOG(INFO) << "Detected problem in run slice number...fixing it";
+        //LOG(INFO) << "Detected problem in run slice number...fixing it";
         int runSliceNb = 1;
         sqlite3_prepare_v2(m_mzdbFile.db, "UPDATE run_slice set number=? WHERE id=?", -1, &(this->m_mzdbFile.stmt), 0);
         for (size_t i = 0; i < runSliceIds.size(); ++i) {

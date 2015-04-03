@@ -68,9 +68,9 @@ private:
         results.resize(pairs.size());
         float rt = static_cast<float>(s->scanList.scans[0].cvParam(pwiz::msdata::MS_scan_start_time).timeInSeconds());
         std::transform(pairs.begin(), pairs.end(), results.begin(), [&rt, s](pwiz::msdata::MZIntensityPair& p) -> std::shared_ptr<Centroid<mz_t, int_t> > {
-                mz_t mz = std::move((mz_t)p.mz);
-                int_t ints = std::move((int_t)p.intensity);
-                return std::make_shared<Centroid<mz_t, int_t> >(mz, ints, rt);
+            mz_t mz = std::move((mz_t)p.mz);
+            int_t ints = std::move((int_t)p.intensity);
+            return std::make_shared<Centroid<mz_t, int_t> >(mz, ints, rt);
         });
     }
 
@@ -102,7 +102,6 @@ public:
         } else if ((wantedMode == CENTROID && currentMode == PROFILE) || (wantedMode == FITTED && currentMode == PROFILE)) {//findPeak then centroidize}
             effectiveMode = wantedMode;
             findPeaks<mz_t, int_t>(s, results, fileType, peakPickerParams);
-
         } else {
             // current is CENTROID nothing to do
             effectiveMode = CENTROID;
@@ -117,40 +116,40 @@ public:
      */
     template<class mz_t, class int_t>
     static void findPeaks(const pwiz::msdata::SpectrumPtr &s,
-                                  vector<std::shared_ptr<Centroid<mz_t, int_t> > >& v,
-                                  pwiz::msdata::CVID fileType,
-                                  mzPeakFinderUtils::PeakPickerParams& peakPickerParams ) {
+                          vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids,
+                          pwiz::msdata::CVID fileType,
+                          mzPeakFinderUtils::PeakPickerParams& peakPickerParams ) {
 
 
         switch (fileType) {
-            case pwiz::msdata::MS_ABI_WIFF_format :{
-                //---modify test purposes
-                peakPickerParams.adaptiveBaselineAndNoise = false;
-                //peakPickerParams.optimizationOpt = 0x01;
-                peakPickerParams.noise = 0;
-                peakPickerParams.baseline = 0;
-                peakPickerParams.minSNR = 0;
-                peakPickerParams.fwhm = TOF_FWHM;
-                mzPeakFinderWavelet::findPeaks(s, v, peakPickerParams);
-                break;
-            }
-            case pwiz::msdata::MS_Thermo_RAW_format : {
-                //all default, ideal case
-                peakPickerParams.adaptiveBaselineAndNoise = false;
-                peakPickerParams.noise = 0;
-                peakPickerParams.baseline = 0;
-                peakPickerParams.minSNR = 0;
-                mzPeakFinderZeroBounded::findPeaks<mz_t, int_t>(s, v, peakPickerParams);
-                break;
-            }
+        case pwiz::msdata::MS_ABI_WIFF_format :{
+            //---modify test purposes
+            peakPickerParams.adaptiveBaselineAndNoise = false;
+            //peakPickerParams.optimizationOpt = 0x01;
+            peakPickerParams.noise = 0;
+            peakPickerParams.baseline = 0;
+            peakPickerParams.minSNR = 0;
+            peakPickerParams.fwhm = TOF_FWHM;
+            mzPeakFinderWavelet::findPeaks(s, centroids, peakPickerParams);
+            break;
+        }
+        case pwiz::msdata::MS_Thermo_RAW_format : {
+            //all default, ideal case
+            peakPickerParams.adaptiveBaselineAndNoise = false;
+            peakPickerParams.noise = 0;
+            peakPickerParams.baseline = 0;
+            peakPickerParams.minSNR = 0;
+            mzPeakFinderZeroBounded::findPeaks<mz_t, int_t>(s, centroids, peakPickerParams);
+            break;
+        }
         default: {
-             LOG(ERROR) << "Was not able to recognize original input: will launch wavelet algorithm";
-             peakPickerParams.adaptiveBaselineAndNoise = true;
-             peakPickerParams.optimizationOpt = 0x01;
-             peakPickerParams.minSNR = 0.0;
-             peakPickerParams.fwhm = TOF_FWHM;
-             mzPeakFinderWavelet::findPeaks(s, v, peakPickerParams);
-             break;
+            LOG(ERROR) << "Was not able to recognize original input: will launch wavelet algorithm";
+            peakPickerParams.adaptiveBaselineAndNoise = true;
+            peakPickerParams.optimizationOpt = 0x01;
+            peakPickerParams.minSNR = 0.0;
+            peakPickerParams.fwhm = TOF_FWHM;
+            mzPeakFinderWavelet::findPeaks(s, centroids, peakPickerParams);
+            break;
         }
         }
     }

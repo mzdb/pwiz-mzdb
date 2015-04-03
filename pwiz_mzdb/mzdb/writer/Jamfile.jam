@@ -61,6 +61,6 @@ lib mzdb_writer
             <library>../lib/snappy
             <library>../utils
 
-        : <variant>release <cxxflags>/Ox <link>static # /GF #default-build <cxxflags>"/Ox /Gy /GA"
+        : <variant>release <cxxflags>/Ox <link>static # /GF #default-build <cxxflags>"/Ox /Gy /GA /EHa"
         : #usage-requirments
 ;

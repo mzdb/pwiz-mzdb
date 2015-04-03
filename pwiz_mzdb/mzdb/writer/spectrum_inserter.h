@@ -67,12 +67,17 @@ public:
                     ISerializer::xml_string_writer& serializer) {
 
         // should never happen
-        if (! spectrum) {
-            LOG(ERROR) << "ERROR...spectrum pointer is null\n";
+        if (! spectrum || spectrum == nullptr) {
+            LOG(ERROR) << "ERROR...spectrum pointer is null";
             return;
         }
 
         const auto& spec = spectrum->spectrum;
+
+        if (! spec || spec == nullptr) {
+            LOG(ERROR) << "null pwiz spectrum. Recovering has failed";
+            return;
+        }
 
         // update spectra cv params
         mParamsCollecter.updateCVMap(*spec);
@@ -128,13 +133,28 @@ public:
         }
 
         //tic
-        sqlite3_bind_double(mMzdbFile.stmt, 8, spec->cvParam(pwiz::msdata::MS_total_ion_current).valueAs<float>());
+        try {
+            sqlite3_bind_double(mMzdbFile.stmt, 8, spec->cvParam(pwiz::msdata::MS_total_ion_current).valueAs<float>());
+        } catch (boost::bad_lexical_cast&) {
+            LOG(ERROR) << "Wrong cv value: MS_total_ion_current";
+            sqlite3_bind_double(mMzdbFile.stmt, 8, 0.0);
+        }
 
         //base peak mz
-        sqlite3_bind_double(mMzdbFile.stmt, 9, spec->cvParam(pwiz::msdata::MS_base_peak_m_z).valueAs<double>());
+        try {
+            sqlite3_bind_double(mMzdbFile.stmt, 9, spec->cvParam(pwiz::msdata::MS_base_peak_m_z).valueAs<double>());
+        } catch (boost::bad_lexical_cast&) {
+            LOG(ERROR) << "Wrong cv value: MS_base_peak_mz";
+            sqlite3_bind_double(mMzdbFile.stmt, 9, 0.0);
+        }
 
         //base peak intensity
+        try {
         sqlite3_bind_double(mMzdbFile.stmt, 10, spec->cvParam(pwiz::msdata::MS_base_peak_intensity).valueAs<float>());
+        } catch (boost::bad_lexical_cast&) {
+            LOG(ERROR) << "Wrong cv value: MS_base_peak_intensity";
+            sqlite3_bind_double(mMzdbFile.stmt, 10, 0.0);
+        }
 
         //precursor mz precursor charge
         if (msLevel > 1) {
@@ -247,7 +267,7 @@ public:
         sqlite3_bind_null(mMzdbFile.stmt, 18);
 
         //instrument config id
-        sqlite3_bind_int(mMzdbFile.stmt, 19, instrumentConfigurationIndex(msdata, spec->scanList.scans[0].instrumentConfigurationPtr));
+        sqlite3_bind_int(mMzdbFile.stmt, 19, instrumentConfigurationIndex(msdata, scan.instrumentConfigurationPtr));
 
         //source file id
         sqlite3_bind_int(mMzdbFile.stmt, 20, sourceFileIndex(msdata, spec->sourceFilePtr));

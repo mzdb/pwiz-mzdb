@@ -15,7 +15,7 @@ lib kyoto_cabinet
 		kcutil.cc
 		
 	: #requirments		
-	: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default-build
+	: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /GF /EHa" #default-build
 	: #usage-requirments
 		<include>.
 ;
