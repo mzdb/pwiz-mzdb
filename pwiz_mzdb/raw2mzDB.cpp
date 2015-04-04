@@ -25,7 +25,6 @@
 #ifdef _WIN32
 #include <share.h>
 #include <eh.h>
-//#include <windows.h>
 #endif
 
 #include "boost/algorithm/string.hpp"
@@ -33,7 +32,9 @@
 #include "mzdb/lib/getopt_pp/include/getopt_pp.h"
 #include "mzdb/writer/mzdb_writer.hpp"
 #include "mzdb/utils/MzDBFile.h"
+
 #include "mzdb/utils/glog/logging.h"
+#include <windows.h>
 
 using namespace std;
 using namespace mzdb;
