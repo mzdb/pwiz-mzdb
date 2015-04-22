@@ -14,20 +14,20 @@ Current stable version is 0.9.7.
 New features:
 - [x] AbSciex (.WIFF) files support
 - [x] Bruker (.d) files support
-- [] TODO
+- [ ] TODO
 
 Improvements
 - [x] reduced time of spectrum table loading (table records stored at the end of the file)
 
 Bug fixes:
 - [x] TODO
-- [] add missing CvTerms
+- [ ] add missing CvTerms
 
 ### Release 0.9.9
 
 New features:
-- [] [MS-Numpress](https://github.com/ms-numpress/ms-numpress) compression algorithm support
-- [] Integration of the project with existing msconvert tool
+- [ ] [MS-Numpress](https://github.com/ms-numpress/ms-numpress) compression algorithm support
+- [ ] Integration of the project with existing msconvert tool
 
 ### Next releases
 
