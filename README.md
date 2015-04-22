@@ -5,6 +5,34 @@ An extension of the ProteoWizard framework enabling the support of the mzDB form
 
 For details about mzDB concepts and specifications, have a look to the [related repository](http://github.com/mzdb/mzdb-specs).
 
+## Roadmap
+
+Current stable version is 0.9.7.
+
+### Release 0.9.8
+
+New features:
+- [x] AbSciex (.WIFF) files support
+- [x] Bruker (.d) files support
+- [] TODO
+
+Improvements
+- [x] reduced time of spectrum table loading (table records stored at the end of the file)
+
+Bug fixes:
+- [x] TODO
+- [] add missing CvTerms
+
+### Release 0.9.9
+
+New features:
+- [] [MS-Numpress](https://github.com/ms-numpress/ms-numpress) compression algorithm support
+- [] Integration of the project with existing msconvert tool
+
+### Next releases
+
+Next will releases will be number 0.9.10 then 0.9.1x until we reach the expected feature coverage of the converter and the required stability.
+
 ## Users
 
 ### Convert vendor raw files into mzDB files
