@@ -27,8 +27,8 @@ static void buildCentroidsByScanID(map<int, vector<std::shared_ptr<Centroid<mz_t
 
     for_each(spectra.begin(), spectra.end(), [&centroidsByScanId, &dataModes]( std::shared_ptr<mzSpectrum<mz_t, int_t> > spectrum) {
         const int& id = spectrum->id;
-        //move semantics to avoid copy, leads to bug ?
-        centroidsByScanId[id] = std::move(spectrum->peaks);
+        //here swapping seems to be faster than move semantics
+        centroidsByScanId[id].swap(spectrum->peaks); // = //std::move(spectrum->peaks);
         dataModes[id] = spectrum->effectiveMode;
     });
 }
@@ -44,7 +44,8 @@ static void buildCentroidsByScanID(map<int, vector<std::shared_ptr<Centroid<mz_t
 template<class mz_t, class int_t>
 static void groupByMzIndex(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& v, //correspond to the entire centroid of one spectrum,
                            map<int, unique_ptr<map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > > > >& x, //run Slice
-                           int scanIdx, double& bbheight) {
+                           int scanIdx,
+                           double& bbheight) { // in fact the inverse of bbheight
 
     typedef std::shared_ptr<Centroid<mz_t, int_t> > CentroidSPtr;
 
@@ -92,7 +93,9 @@ static void computeBoundingBox(double& bbheight,
         }
     }
 
-    vector<int> treatedRunSliceIdx;
+    //could be a set
+    set<int > treatedRunSliceIdx;
+    //vector<int> treatedRunSliceIdx;
 
     //retrieve all bounding box belonging to the same runSlice idx
     for (auto it = hrs.begin(); it != hrs.end(); ++it) {
@@ -102,11 +105,15 @@ static void computeBoundingBox(double& bbheight,
             for (auto iit = lrs[runSliceIdx]->begin(); iit != lrs[runSliceIdx]->end(); ++iit) {
                 (*lp)[iit->first] = std::move(iit->second);
             }
-            treatedRunSliceIdx.push_back(runSliceIdx);
+            //treatedRunSliceIdx.push_back(runSliceIdx);
+            treatedRunSliceIdx.insert(runSliceIdx);
         }
         auto bb = mzBoundingBoxUPtr(
                     new mzBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t>(runSliceIdx, 1.0/bbheight, it->second, lp));
+
+        //---allow to add spectrum IDs that do not have detected peaks
         bb->update(highResPeaksByScanIDs, lowResPeaksByScanIDs);
+
         if (! bb->isEmpty()) {
             //bb->computeMzBounds();
             bbs.push_back(move(bb));
@@ -115,10 +122,12 @@ static void computeBoundingBox(double& bbheight,
 
     for (auto it = lrs.begin(); it != lrs.end(); ++it) {
         const int& runSliceIdx = it->first;
-        if (find(treatedRunSliceIdx.begin(), treatedRunSliceIdx.end(), runSliceIdx) == treatedRunSliceIdx.end()) {
+        //if (find(treatedRunSliceIdx.begin(), treatedRunSliceIdx.end(), runSliceIdx) == treatedRunSliceIdx.end()) {
+        if (treatedRunSliceIdx.find(runSliceIdx) == treatedRunSliceIdx.end()) {
             auto hp = unique_ptr<map<int, vector<HighResCentroidSPtr> > >(new map<int, vector<HighResCentroidSPtr> >);
             auto bb = mzBoundingBoxUPtr(
                         new mzBoundingBox<h_mz_t, h_int_t, l_mz_t, l_int_t>(runSliceIdx, 1.0/bbheight, hp, it->second));
+
             bb->update(highResPeaksByScanIDs, lowResPeaksByScanIDs);
             if (! bb->isEmpty()) {
                 //bb->computeMzBounds();

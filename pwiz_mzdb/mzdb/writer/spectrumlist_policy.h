@@ -16,6 +16,7 @@ namespace mzdb {
     static pwiz::msdata::SpectrumPtr getSpectrum(SpectrumListType* spectrumList,
                                           size_t index,
                                           bool getBinaryData, pwiz::util::IntegerSet& levelsToCentroid) {
+
         return spectrumList->spectrum(index, getBinaryData, levelsToCentroid);
     }
 

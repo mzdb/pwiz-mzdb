@@ -116,11 +116,9 @@ namespace mzdb {
 #define MZ2PPM(mz, ppm) mz * 1e6 / ppm;
 
 
-
 /**useful typedef */
 typedef unsigned char byte;
 typedef unsigned int mz_uint;
-
 
 
 #define DELETE_IF_HAS_OWNERSHIP(ownership, vec)  \

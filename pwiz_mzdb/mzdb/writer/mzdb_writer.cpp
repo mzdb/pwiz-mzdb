@@ -54,7 +54,7 @@ void mzDBWriter::createTables() {
                          "PRAGMA ignore_check_constraints=ON;", 0, 0, 0);
     if (r != SQLITE_OK) {
         LOG(ERROR) << "SQLITE_RETURN: " << r;
-        LOG(INFO) << "Error setting database PRAGMAS: slow performance...\n";
+        LOG(WARNING) << "Error setting database PRAGMAS: slow performance...\n";
     }
     // Setting the SQLite _database page size to the same size speeds up
     //_database on systems where the cluster size is the same. The default
@@ -556,24 +556,24 @@ void mzDBWriter::insertMetaData(bool noLoss) {
 
     BinaryDataArray prof, cent, cent2;
     if (noLoss) {
-        prof.cvParams.push_back(CVParam(MS_64_bit_float, _64_BIT_MZ));
-        prof.cvParams.push_back(CVParam(MS_64_bit_float, _64_BIT_INTENSITY));
+        prof.userParams.push_back(UserParam(_64_BIT_MZ));
+        prof.userParams.push_back(UserParam(_64_BIT_INTENSITY));
         //if (_compress)
         //    prof.cvParams.push_back(CVParam(MS_zlib_compression, "snappy compression"));
         cent = prof;
     } else {
-        prof.cvParams.push_back(CVParam(MS_64_bit_float,  _64_BIT_MZ));
-        prof.cvParams.push_back(CVParam(MS_32_bit_float, _32_BIT_INTENSITY));
+        prof.userParams.push_back(UserParam(_64_BIT_MZ));
+        prof.userParams.push_back(UserParam(_32_BIT_INTENSITY));
         //if (_compress)
         //    prof.cvParams.push_back(CVParam(MS_zlib_compression, "none"));
 
-        cent.cvParams.push_back(CVParam(MS_32_bit_float, _32_BIT_MZ));
-        cent.cvParams.push_back(CVParam(MS_32_bit_float, _32_BIT_INTENSITY));
+        cent.userParams.push_back(UserParam(_32_BIT_MZ));
+        cent.userParams.push_back(UserParam(_32_BIT_INTENSITY));
         //if (_compress)
         //    cent.cvParams.push_back(CVParam(MS_zlib_compression, "none"));
 
-        cent2.cvParams.push_back(CVParam(MS_64_bit_float, _64_BIT_MZ));
-        cent2.cvParams.push_back(CVParam(MS_32_bit_float, _32_BIT_INTENSITY));
+        cent2.userParams.push_back(UserParam(_64_BIT_MZ));
+        cent2.userParams.push_back(UserParam(_32_BIT_INTENSITY));
     }
     string binaryProfString = ISerializer::serialize(prof, m_serializer);
     string binaryCentString = ISerializer::serialize(cent, m_serializer);

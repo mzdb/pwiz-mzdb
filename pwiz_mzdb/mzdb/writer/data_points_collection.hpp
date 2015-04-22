@@ -52,19 +52,25 @@ private:
         //    return this->detectedPeaks;
         //}
 
+
         //---find all local maxima
         vector<mz_uint> maxIndexes;
+
         mzPeakFinderUtils::findLocalMaxima< vector<type> >( data, maxIndexes,  -1e9);
-        //printf("maxIndexes:%d\n", maxIndexes.size());
+
+        if (maxIndexes.empty()) {
+            return detectedPeaks;
+        }
+
         //---find all surrounding minima around this maxima
         vector<mzPeakFinderUtils::PeakAsMaximaMinimaIndexes> peaksIndexes;
+
         mzPeakFinderUtils::findLocalMinima< vector<type> >( maxIndexes, data, peaksIndexes );
 
         //---generate peak corresponding to all indexes
         for (auto it = peaksIndexes.begin(); it != peaksIndexes.end(); ++it)
             this->_createPeakForIndexes( *it, params);
 
-        //printf("peaks size:%d\n", detectedPeaks.size());
         return detectedPeaks;
     }
 
@@ -150,8 +156,12 @@ private:
      */
     void _peaksToCentroids(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids) {
         std::for_each(this->detectedPeaks.begin(), this->detectedPeaks.end(), [&centroids](PeakUPtr& peak) {
-            auto c = peak->_computeCentroid();
-            centroids.push_back(c);
+            try {
+                auto c = peak->_computeCentroid();
+                centroids.push_back(c);
+            } catch (exception& e) {
+                printf(e.what());
+            }
         });
     }
 
@@ -191,7 +201,7 @@ public:
         vector<double> cwtCoeffs;
         //convert intData in double vector
         //forced to copy or need to write more code partial specialization
-        mzPeakFinderUtils::cwt<int_t>( this->intData, params.fwhm, cwtCoeffs);
+         mzPeakFinderUtils::cwt<int_t>( this->intData, params.fwhm, cwtCoeffs);
         return _detectPeaks<double> ( cwtCoeffs, params );
     }
 

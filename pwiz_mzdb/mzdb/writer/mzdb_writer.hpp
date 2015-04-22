@@ -94,7 +94,6 @@ namespace mzdb {
 #define bb_msn_mz_width_default 10000
 #define bb_msn_rt_width_default 0
 
-
 /// Base class for writing a raw to mzDBFile
 class mzDBWriter: private boost::noncopyable {
 
@@ -154,6 +153,7 @@ protected:
         }
         }
 #else
+        //---fallback
         return std::unique_ptr<mzIMetadataExtractor>(new mzEmptyMetadataExtractor(this->_mzdb.name));
 #endif
     }
@@ -169,6 +169,9 @@ public:
     /// insert metadata into the database
     PWIZ_API_DECL void insertMetaData(bool noLoss);
 
+    inline PWIZ_API_DECL void setSwathAcquisition(bool swath) {m_swathMode = swath;}
+
+    inline PWIZ_API_DECL bool getSwathAcquisition() {return m_swathMode;}
 
     /// Function fetching the first cycles to test if we have a swath acquisition
     PWIZ_API_DECL bool isSwathAcquisition();
@@ -197,39 +200,39 @@ public:
                                  int nbCycles, // primary needed for swath acquisition
                                  mzPeakFinderUtils::PeakPickerParams& params) {
 
-        //base container
+        //---base container
         typedef mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> SpectraContainer;
         typedef std::unique_ptr<SpectraContainer> SpectraContainerUPtr;
 
-        // queue definition
+        //---queue definition
         typedef folly::ProducerConsumerQueue<SpectraContainerUPtr> FollyQueue;
         typedef BlockingQueue<SpectraContainerUPtr> MzDBQueue;
 
-        // queue managing policy
+        //---queue managing policy
         typedef FollyQueueingPolicy<SpectraContainerUPtr> FollyNonBlockingQueueing;
         typedef BlockingQueueingPolicy<SpectraContainerUPtr> MzDBBlockingQueueing;
 
-        //open database
+        //---open database
         if (filename == "")
             filename = m_mzdbFile.name + ".mzDB";
 
         if (! nscans)
             nscans = m_msdata->run.spectrumListPtr->size();
 
-        // just log sqlite version for information
+        //---just log sqlite version for information
         printf("\n");
         LOG(INFO) << "SQLITE VERSION: " << SQLITE_VERSION;
         LOG(INFO) << "ProteoWizard release: " << pwiz::Version::str() << " (" << pwiz::Version::LastModified() << ")";
         LOG(INFO) << "ProteoWizard MSData: " << pwiz::msdata::Version::str() << " (" << pwiz::msdata::Version::LastModified() << ")\n";
         //LOG(INFO) << "ProteoWizard Analysis: " << pwiz::analysis::Version::str() << " (" << pwiz::analysis::Version::LastModified() << ")";
 
-        //create and open database
+        //---create and open database
         if ( m_mzdbFile.open(filename) != SQLITE_OK) {
             LOG(FATAL) << "Can not create database...Locked, space ? Exiting\n";
             exit(0);
         }
 
-        //create tables within a transaction
+        //---create tables within a transaction
         this->createTables();
 
         try {
@@ -237,7 +240,9 @@ public:
         } catch(exception& e) {
             LOG(ERROR) << "Error occured during metadata insertion.";
             LOG(ERROR) << "\t->" << e.what();
-        } catch(...) {}
+        } catch(...) {
+            LOG(ERROR) << "Unknown error during metadata insertion.";
+        }
 
         //--- always prefer vendor centroiding
         pwiz::util::IntegerSet levelsToCentroid;
@@ -255,6 +260,7 @@ public:
             LOG(INFO) << "Empty spectrum list...Exiting\n";
             return;
         }
+
         LOG(INFO) << "SpectrumList size: " << nscans;
 
         map<int, map<int, int> > runSlices;
@@ -262,7 +268,7 @@ public:
         //currentRt[1] = PwizHelper::rtOf(spectrumList->spectrum(0, false));
         bbWidthManager[1] = m_mzdbFile.bbWidth;
 
-        //it is faster to do a multiplication than a division so calculate just once the inverse
+        //faster to do a multiplication than a division so calculate just once the inverse
         double invms1 = 1.0 / m_mzdbFile.bbHeight;
         double invmsn = 1.0 / m_mzdbFile.bbHeightMsn;
 
@@ -282,10 +288,10 @@ public:
         LOG(INFO) << "#detected core(s): " << nbProc;
 
         //iterate (get spectra for example) on it
-        //increasing nbCycles leads to an increase of performance (time of conversion) but can use many more RAM
-        //FollyQueue follyQueue(100);
+        //increasing nbCycles leads to an increase of performance
+        //(time of conversion) but can use many more RAM
+        // could also use non blocking FollyQueue follyQueue(100) from facebook;
         MzDBQueue mzdbQueue(100);
-
         PCBuilder<MzDBBlockingQueueing, mzMultiThreadedPeakPicker> pcThreadBuilder(
                     mzdbQueue, m_mzdbFile, m_paramsCollecter,
                     m_originFileFormat, m_dataModeByMsLevel
@@ -358,7 +364,6 @@ public:
 
         //--- metadata cv terms (user param and cv param)
         m_paramsCollecter.insertCollectedCVTerms();
-
 
         //--- insert tmp_spectrum into permanent spectrum table
         LOG(INFO) << "Creating permanent spectrum table";

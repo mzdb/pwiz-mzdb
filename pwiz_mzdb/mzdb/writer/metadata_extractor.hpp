@@ -142,7 +142,7 @@ class mzABSciexMetadataExtractor : public mzAbstractMetadataExtractor< mzABSciex
         try {
         _wiffFilePtr = pwiz::vendor_api::ABI::WiffFile::create(f);
         } catch (...) {
-
+            LOG(ERROR) << "Unknown error";
         }
     }
 
@@ -211,7 +211,7 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
         try {
             _rawfilePtr = pwiz::vendor_api::Thermo::RawFile::create(f);
          } catch (...) {
-
+            LOG(ERROR) << "Unknown error";
         }
     }
 

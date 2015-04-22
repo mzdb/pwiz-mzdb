@@ -3,3 +3,6 @@
 --update sqlite 3.8.9
 --create temporary table tmp_spectrum, to avoid long vacuum
 --fix hcd encoding problem
+--add dia flag in command line
+--add new user params for binary data array encoding
+--add Bruker support

@@ -143,7 +143,6 @@ public:
             break;
         }
         default: {
-            LOG(ERROR) << "Was not able to recognize original input: will launch wavelet algorithm";
             peakPickerParams.adaptiveBaselineAndNoise = true;
             peakPickerParams.optimizationOpt = 0x01;
             peakPickerParams.minSNR = 0.0;

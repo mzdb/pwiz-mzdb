@@ -34,7 +34,10 @@
 #include "mzdb/utils/MzDBFile.h"
 
 #include "mzdb/utils/glog/logging.h"
+
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 using namespace std;
 using namespace mzdb;
@@ -42,19 +45,9 @@ using namespace GetOpt;
 using namespace pwiz::msdata;
 
 #ifdef _WIN32
-class SEException {
-private:
-    unsigned int nSE;
-public:
-    SEException() {}
-    SEException( unsigned int n ) : nSE( n ) {}
-    ~SEException() {}
-    unsigned int getSeNumber() { return nSE; }
-};
-
-void trans_func( unsigned int u, EXCEPTION_POINTERS* pExp )
-{
-    throw SEException();
+void trans_func( unsigned int u, EXCEPTION_POINTERS* pExp ){
+    printf("in transfunction\n");
+    throw runtime_error("SEH exception.");
 }
 #endif
 
@@ -158,12 +151,15 @@ int main(int argc, char* argv[]) {
     string filename = "", centroid = "", profile = "", fitted = "", namefile = "", serialization = "xml";
     bool compress = false;
 
-    //bounding boxes sizes defaults
+    //---bounding boxes sizes defaults
     float bbWidth = 15, bbWidthMSn = 0; //15
     float bbHeight = 5, bbHeightMSn = 10000; //5
 
-    //32 bits intensity encoding by default
+    //---32 bits intensity encoding by default
     bool noLoss = false;
+
+    //---force data storage as dia
+    bool dia=false;
 
     int peakPickingAlgo = 0, nscans = 0, nbCycles = 3, maxNbThreads = 1;
 
@@ -195,7 +191,8 @@ int main(int argc, char* argv[]) {
                   "\t-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s\n"
                   "\t-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da \n"
                   "\t-m, --bbMzWidthMSn : bounding box height for msn in Da, default: 10000Da \n"
-                  "\t--bufferSize : low value (min 2) will enforce the program to use less memory (max 50), default: 3\n"
+                  "\t--dia : will force the conversion in DIA mode\n"
+                  //"\t--bufferSize : low value (min 2) will enforce the program to use less memory (max 50), default: 3\n"
                   // "\t--max_nb_threads : maximum nb_threads to use, default: nb processors on the machine\n"
                   "\t--no_loss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
                   "\t--nscans : nb scans to convert into the mzDB file (max: number of scans in the rawfile)\n"
@@ -215,8 +212,9 @@ int main(int argc, char* argv[]) {
     ops >> Option('o', "output", namefile);
     ops >> Option('n', "nscans", nscans);
     ops >> Option("no_loss", noLoss);
-    ops >> Option("bufferSize", nbCycles);
-    ops >> Option("max_nb_threads", maxNbThreads);
+    ops >> Option("dia", dia);
+    //ops >> Option("bufferSize", nbCycles);
+    //ops >> Option("max_nb_threads", maxNbThreads);
 
     if (ops >> OptionPresent('h', "help")) {
         std::cout << help << std::endl;
@@ -260,7 +258,7 @@ int main(int argc, char* argv[]) {
     parseRange(fitted, FITTED, dataModeByMsLevel, modifiedIndex, help);
     parseRange(centroid, CENTROID, dataModeByMsLevel, modifiedIndex, help);
 
-    //check stuffs
+    //---print gathered informations
     std::cout << "\nWhat I understood :\n";
     std::cout << "Treating: " << filename << "\n";
     for (auto it = dataModeByMsLevel.begin(); it != dataModeByMsLevel.end(); ++it) {
@@ -274,7 +272,7 @@ int main(int argc, char* argv[]) {
     //create a mzDBFile
     MzDBFile f(filename, bbHeight, bbHeightMSn, bbWidth, bbWidthMSn);
 
-    // pwiz file detection
+    //---pwiz file detection
     ReaderPtr readers(new FullReaderList);
     vector<MSDataPtr> msdList;
 
@@ -284,7 +282,10 @@ int main(int argc, char* argv[]) {
         LOG(ERROR) << e.what() << endl;
         LOG(FATAL) << "This a fatal error. Exiting..." << endl;
         exit(EXIT_FAILURE);
-    } catch(...) {}
+    } catch(...) {
+        LOG(FATAL) << "Unknown fatal exception. Exiting...";
+        exit(EXIT_FAILURE);
+    }
 
     auto& msData = msdList[0];
     auto originFileFormat = pwiz::msdata::identifyFileFormat( readers, f.name );
@@ -297,8 +298,9 @@ int main(int argc, char* argv[]) {
     } catch (exception& e) {
         LOG(ERROR) << "Error checking metadata: ";
         LOG(ERROR) << "\t->" << e.what();
-    } catch(...) {}
-
+    } catch(...) {
+        LOG(ERROR) << "unknown fatal exception. Exiting...";
+    }
 
     //---check swath mode
     try {
@@ -306,7 +308,17 @@ int main(int argc, char* argv[]) {
     } catch (exception& e) {
         LOG(ERROR) << "Error checking DDA/SWATH Mode: ";
         LOG(ERROR) << "\t->" << e.what();
-    } catch(...) {}
+    } catch(...) {
+        LOG(ERROR) << "Unknown error checking DDA/SWATH Mode. Default to DDA...";
+    }
+
+    //---overwrite swath mode if needed
+    if (dia) {
+        if (! writer.getSwathAcquisition()) {
+            LOG(INFO) << "Overwriting acquisition to swath mode...";
+            writer.setSwathAcquisition(true);
+        }
+    }
 
     //---create parameters for peak picking
     mzPeakFinderUtils::PeakPickerParams p;
@@ -333,11 +345,11 @@ int main(int argc, char* argv[]) {
     } catch (exception& e) {
         LOG(ERROR) << e.what();
     } catch(...) {
-        printf("Unknown error. Unrecoverable. Exiting...");
+        LOG(ERROR) << "Unknown error. Unrecoverable. Exiting...";
+        exit(EXIT_FAILURE);
     }
 
    clock_t endTime = clock();
    LOG(INFO) << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl;
-
     return 0;
 }

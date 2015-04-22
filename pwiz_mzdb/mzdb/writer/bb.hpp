@@ -26,13 +26,16 @@ use to store minmz, maxmz, minrt, maxrt
 
 #include <algorithm>
 #include <unordered_map>
+#include <set>
 #include "pwiz/data/msdata/MSData.hpp"
 
 #include "../../utils/mzUtils.hpp"
 #include "peak.hpp"
 
-namespace mzdb {
+
 using namespace std;
+
+namespace mzdb {
 
 template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
 class PWIZ_API_DECL mzBoundingBox {
@@ -165,9 +168,24 @@ public:
     void asByteArray(vector<byte>& v, map<int, DataMode>& dataModes) const {
         vector<pair<int, int> > o;
         this->iterationOrder(o);
+        //auto indexes = set<int>();
         for (size_t i = 0; i < o.size(); ++i) {
             const auto& p = o[i];
             const int& idx = p.second;
+
+            /*------------------------------
+             //TEST CODE
+            if (i > 0) {
+                if (indexes.find(idx) != indexes.end()) {
+                    printf("Duplicated indexes...\n");
+                }
+                indexes.insert(idx);
+            } else {
+                indexes.insert(idx);
+            }
+
+            -------------------------------*/
+
             auto& dm = dataModes[idx];
             if (p.first == 1) {
                 // high res mode
@@ -221,13 +239,15 @@ public:
         for (auto it = h.begin(); it != h.end(); ++it) {
             const int& p = it->first;
             if (_highResPeaksByScanIDs->find(p) == _highResPeaksByScanIDs->end()) {
-                (*_highResPeaksByScanIDs)[p]; //call the default ctor
+                //call the default ctor
+                (*_highResPeaksByScanIDs)[p] = vector<HighResCentroidSPtr>();
             }
         }
         for (auto it = l.begin(); it != l.end(); ++it) {
             const int& p = it->first;
             if (_lowResPeaksByScanIDs->find(p) == _lowResPeaksByScanIDs->end()) {
-                (*_lowResPeaksByScanIDs)[p]; //call the default ctor
+                //call the default ctor
+                (*_lowResPeaksByScanIDs)[p] = vector<LowResCentroidSPtr>();
             }
         }
     }

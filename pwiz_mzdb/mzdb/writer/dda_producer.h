@@ -27,8 +27,8 @@ class mzDDAProducer:  QueueingPolicy, MetadataExtractionPolicy {
 
 
     //several useful typedefs
-    typedef typename QueueingPolicy::Obj SpectraContainer;//typedef mzSpectraContainer<> SpectraContainer;//typedef mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> SpectraContainer;
-    typedef typename QueueingPolicy::UPtr SpectraContainerUPtr; //typedef unique_ptr<SpectraContainer> SpectraContainerUPtr;
+    typedef typename QueueingPolicy::Obj SpectraContainer;
+    typedef typename QueueingPolicy::UPtr SpectraContainerUPtr;
 
     typedef typename SpectraContainer::h_mz_t h_mz_t;
     typedef typename SpectraContainer::h_int_t h_int_t;
@@ -89,7 +89,7 @@ public:
                 scanCount++;
                 continue;
             } catch(...) {
-                LOG(ERROR) << "\nCatch an unknown exception";
+                LOG(ERROR) << "\nCatch an unknown exception. Trying to recover...";
                 scanCount++;
                 continue;
             }
@@ -181,30 +181,7 @@ public:
         MetadataExtractionPolicy(mzdbPath),
         m_peakPicker(dataModeByMsLevel) {}
 
-    /** launch the thread reading the spectrumList and fill the queue */
-    /*void startAndJoin( pwiz::util::IntegerSet& levelsToCentroid,
-                       SpectrumListType* spectrumList,
-                       int nscans,
-                       map<int, double>& bbWidthManager,
-                       pwiz::msdata::CVID filetype,
-                       mzPeakFinderUtils::PeakPickerParams& params) {
-
-        auto producer = boost::thread(boost::bind(&mzDDAProducer<
-                                                  QueueingPolicy,
-                                                  MetadataExtractionPolicy, // TODO: create a policy which claims isInHighRes always true
-                                                  PeakPickerPolicy, // ability to launch peak picking process
-                                                  SpectrumListType>::_produce,
-                                                  this,
-                                                  std::ref(levelsToCentroid),
-                                                  spectrumList,
-                                                  nscans,
-                                                  std::ref(bbWidthManager),
-                                                  filetype,
-                                                  std::ref(params)));
-        producer.join();
-    }*/
-
-
+    /// return thread
     boost::thread getProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                     SpectrumListType* spectrumList,
                                     int nscans,
