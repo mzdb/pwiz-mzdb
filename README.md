@@ -14,13 +14,18 @@ Current stable version is 0.9.7.
 New features:
 - [x] AbSciex (.WIFF) files support
 - [x] Bruker (.d) files support
-- [ ] TODO
+- [x] --dia option in the command line to force DIA file creation
+- [ ] --ignore-error option to force conversion even if error occured
 
 Improvements
 - [x] reduced time of spectrum table loading (table records stored at the end of the file)
+- [x] improvements in exception catching
+- [x] new columns 'mz_precision' ansd 'intensity_precision' in data-encoding table (instead of param-tree)
+- [ ] insert only used data-encoding
+- [x] update proteowizard to the latest
 
 Bug fixes:
-- [x] TODO
+- [x] Wrong encoding for HCD spectra (32 instead of 64 bits)
 - [ ] add missing CvTerms
 
 ### Release 0.9.9
@@ -78,7 +83,13 @@ TODO
 
 #### Project dependencies
 
+* [Ceres](http://ceres-solver.org/)
+* [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page)
+
 #### IDE setup
+
+Visual Studio
+QtCreator
 
 ### HOW TO ?
 

@@ -227,28 +227,6 @@ public:
         m_isolationWindowStarts.push_back(this->swathStart);
     }
 
-    /*void startAndJoin(
-            pwiz::msdata::MSDataPtr msdata,
-            ISerializer::xml_string_writer& serializer,
-            map<int, double>& bbMzWidthByMsLevel,
-            map<int, map<int, int> >& runSlices,
-            int& progressionCount,
-            int nscans ) {
-        auto consumer = boost::thread(boost::bind(&mzSwathConsumer<
-                                                  QueueingPolicy,
-                                                  SpectrumListType>::_consume,
-                                                  this,
-                                                  std::ref(msdata),
-                                                  std::ref(serializer),
-                                                  std::ref(bbMzWidthByMsLevel),
-                                                  std::ref(runSlices),
-                                                  std::ref(progressionCount),
-                                                  nscans));
-        consumer.join();
-
-
-    }*/
-
     boost::thread getConsumerThread(pwiz::msdata::MSDataPtr msdata,
                                     ISerializer::xml_string_writer& serializer,
                                     map<int, double>& bbMzWidthByMsLevel,

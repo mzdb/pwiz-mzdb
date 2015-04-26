@@ -116,34 +116,6 @@ public:
 
     }
 
-    /** launch the thread reading the spectrumList and fill the queue */
-    /*void startAndJoin(
-            pwiz::util::IntegerSet& levelsToCentroid,
-            SpectrumListType* spectrumList,
-            int nscans,
-            pwiz::msdata::CVID filetype,
-            mzPeakFinderUtils::PeakPickerParams& params) {
-
-        auto producer = boost::thread(
-                    boost::bind(
-                        &mzSwathProducer<//h_mz_t, h_int_t, //high resolution data points encoding
-                        //l_mz_t, l_int_t, //low resolution data points encoding
-                        QueueingPolicy,
-                        MetadataExtractionPolicy, // TODO: create a policy which claims isInHighRes always true
-                        PeakPickerPolicy, // ability to launch peak picking process
-                        SpectrumListType>::_produce,
-                        this,
-                        //arguments
-                        std::ref(levelsToCentroid),
-                        spectrumList,
-                        nscans,
-                        filetype,
-                        std::ref(params)
-                        )
-                    );
-        producer.join();
-    }*/
-
     boost::thread getProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                     SpectrumListType* spectrumList,
                                     int nscans,

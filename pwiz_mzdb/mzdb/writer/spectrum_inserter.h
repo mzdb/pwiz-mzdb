@@ -144,7 +144,7 @@ public:
         try {
             sqlite3_bind_double(mMzdbFile.stmt, 9, spec->cvParam(pwiz::msdata::MS_base_peak_m_z).valueAs<double>());
         } catch (boost::bad_lexical_cast&) {
-            LOG(ERROR) << "Wrong cv value: MS_base_peak_mz";
+            LOG(ERROR) << "Wrong cv value MS_base_peak_mz: " << spec->cvParam(pwiz::msdata::MS_base_peak_m_z);
             sqlite3_bind_double(mMzdbFile.stmt, 9, 0.0);
         }
 

@@ -167,10 +167,9 @@ public:
             LOG(WARNING) << "Did not see any msLevel 1 !";
         }
 
-        //signify that we finished producing
+        //signify that we finished producing sending a poison pill
         SpectraContainerUPtr nullContainer(nullptr);
         this->put(nullContainer);
-        //LOG(INFO) << "Producer finished...\n";
     }
 
     /// constructor

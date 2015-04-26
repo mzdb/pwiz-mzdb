@@ -90,13 +90,13 @@ namespace mzdb {
 
 #define THERMO_TRAILER "[Thermo Trailer Extra]Monoisotopic M/Z:"
 
-#define THERMO_DATA_PROC "mzdb_thermo_conversion"
+#define THERMO_DATA_PROC "pwiz_mzdb_thermo_conversion"
 
-#define ABI_DATA_PROC "mzdb_abi_conversion"
+#define ABI_DATA_PROC "pwiz_mzdb_abi_conversion"
 
-#define ABI_SWATH_DATA_PROC "mzdb_abi_swath_conversion"
+#define ABI_SWATH_DATA_PROC "pwiz_mzdb_abi_swath_conversion"
 
-#define XML_DATA_PROC "mzdb_xml_conversion"
+#define XML_DATA_PROC "pwiz_mzdb_xml_conversion"
 
 
 #define _64_BIT_MZ "64_bit_float_mz"

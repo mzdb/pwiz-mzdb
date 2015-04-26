@@ -38,17 +38,15 @@ using namespace pwiz::msdata;
 void mzDBWriter::createTables() {
 
     LOG(INFO) << "Settings SQLite pragmas...";
-    // "PRAGMA mmap_size=268435456;"
-
     int r = sqlite3_exec(m_mzdbFile.db,
-                         // "PRAGMA mmap_size=268435456;"
+                         //"PRAGMA mmap_size=268435456;"
                          "PRAGMA encoding = 'UTF-8';"
                          "PRAGMA page_size=4096;"
                          "PRAGMA synchronous=OFF;"
                          "PRAGMA journal_mode=OFF;"
                          "PRAGMA temp_store=3;"
                          "PRAGMA cache_size=2000;"
-                         "PRAGMA foreign_keys=OFF;"
+                         "PRAGMA foreign_keys=ON;"
                          "PRAGMA automatic_index=OFF;"
                          "PRAGMA locking_mode=EXCLUSIVE;"
                          "PRAGMA ignore_check_constraints=ON;", 0, 0, 0);
@@ -79,7 +77,10 @@ void mzDBWriter::createTables() {
                      "CREATE TABLE data_encoding (\n"
                      "id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT(10) NOT NULL,\n"
                      "compression TEXT, byte_order TEXT(13) NOT NULL, \n"
-                     "param_tree TEXT NOT NULL);"
+                     "mz_precision INTEGER NOT NULL, \n"
+                     "intensity_precision INTEGER NOT NULL);"
+
+                     // "param_tree TEXT NOT NULL);"
 
                      "CREATE TABLE software (\n"
                      "id INTEGER PRIMARY KEY AUTOINCREMENT, \n"
@@ -339,7 +340,7 @@ void mzDBWriter::createIndexes() {
 void mzDBWriter::checkMetaData() {
 
     vector<SoftwarePtr>& softwares = m_msdata->softwarePtrs;
-    SoftwarePtr mzdbSoftPtr(new Software("mzDB", CVParam(MS_Progenesis_LC_MS, ""), SOFT_VERSION_STR));
+    SoftwarePtr mzdbSoftPtr(new Software("raw2mzDB"));  //mzDB", CVParam(MS_Progenesis_LC_MS, ""), SOFT_VERSION_STR));
     softwares.push_back(mzdbSoftPtr);
 
     if (m_msdata->dataProcessingPtrs.empty() ) {
@@ -362,7 +363,7 @@ void mzDBWriter::checkMetaData() {
             ProcessingMethod method;
             method.softwarePtr = mzdbSoftPtr;
             method.order = dataProc->processingMethods.size();
-            method.cvParams.push_back(CVParam(MS_Progenesis_LC_MS, "conversion to mzdb"));
+            method.cvParams.push_back(CVParam(MS_file_format_conversion, "Conversion to mzdb"));
             dataProc->processingMethods.push_back(method);
             m_msdata->dataProcessingPtrs.push_back(dataProc);
 
@@ -579,19 +580,24 @@ void mzDBWriter::insertMetaData(bool noLoss) {
     string binaryCentString = ISerializer::serialize(cent, m_serializer);
     string binaryCent2Str = ISerializer::serialize(cent2, m_serializer);
 
-    string profileMode = "INSERT INTO data_encoding VALUES (NULL, 'profile', 'none', 'little_endian', '" + binaryProfString + "')";
+
+    //string profileMode = "INSERT INTO data_encoding VALUES (NULL, 'profile', 'none', 'little_endian', '" + binaryProfString + "')";
+    string profileMode = "INSERT INTO data_encoding VALUES (NULL, 'profile', 'none', 'little_endian', 64, 64)";
     sqlite3_exec(m_mzdbFile.db, profileMode.c_str(), 0, 0, 0);
     m_mzdbFile.stmt = 0;
 
-    string fittedMode = "INSERT INTO data_encoding VALUES (NULL, 'fitted', 'none', 'little_endian', '" + binaryProfString + "')";
+    //string fittedMode = "INSERT INTO data_encoding VALUES (NULL, 'fitted', 'none', 'little_endian', '" + binaryProfString + "')";
+    string fittedMode = "INSERT INTO data_encoding VALUES (NULL, 'fitted', 'none', 'little_endian', 64, 32)";
     sqlite3_exec(m_mzdbFile.db, fittedMode.c_str(), 0, 0, 0);
     m_mzdbFile.stmt = 0;
 
-    string centMode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', '" + binaryCentString + "')";
+    //string centMode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', '" + binaryCentString + "')";
+    string centMode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', 32, 32)";
     sqlite3_exec(m_mzdbFile.db, centMode.c_str(), 0, 0, 0);
     m_mzdbFile.stmt = 0;
 
-    string cent2Mode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', '" + binaryCent2Str + "')";
+    //string cent2Mode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', '" + binaryCent2Str + "')";
+    string cent2Mode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', 64, 32)";
     sqlite3_exec(m_mzdbFile.db, cent2Mode.c_str(), 0, 0, 0);
     m_mzdbFile.stmt = 0;
 
@@ -859,7 +865,7 @@ void mzDBWriter::insertMetaData(bool noLoss) {
         string& id = chrom->id;
         sqlite3_bind_text(m_mzdbFile.stmt, 1, id.c_str(), id.length(), SQLITE_STATIC);
 
-        bool precursorEmpty =chrom->precursor.empty();
+        bool precursorEmpty = chrom->precursor.empty();
 
         auto activationCode = std::string(UNKNOWN_STR);
         if (! precursorEmpty)
@@ -922,8 +928,8 @@ void mzDBWriter::insertMetaData(bool noLoss) {
         sqlite3_bind_int(m_mzdbFile.stmt, 7, 1);
 
         //data proc id
-        int pos = find(dataProcessings.begin(), dataProcessings.end(), chrom->dataProcessingPtr) - dataProcessings.begin();
-        sqlite3_bind_int(m_mzdbFile.stmt, 8, pos + 1);
+        //int pos = find(dataProcessings.begin(), dataProcessings.end(), chrom->dataProcessingPtr) - dataProcessings.begin();
+        sqlite3_bind_int(m_mzdbFile.stmt, 8, 1); //pos + 1);
 
         //data encoding id
         sqlite3_bind_int(m_mzdbFile.stmt, 9, 1);

@@ -26,12 +26,9 @@ class mzDDAConsumer:  QueueingPolicy, mzSpectrumInserter, mzBBInserter {
     typedef  std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > HighResSpectrumSPtr;
     typedef  std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > LowResSpectrumSPtr;
 
-
-
 public:
 
     /**
-
      * @brief _consume
      * @param msdata
      * @param serializer
@@ -96,28 +93,7 @@ public:
         mzSpectrumInserter(mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel),
         mzBBInserter(mzdbFile) {}
 
-
-
-    /*void startAndJoin(
-            pwiz::msdata::MSDataPtr msdata,
-            ISerializer::xml_string_writer& serializer,
-            map<int, double>& bbMzWidthByMsLevel,
-            map<int, map<int, int> >& runSlices,
-            int& progressionCount,
-            int nscans ) {
-
-        auto consumer = boost::thread(boost::bind(&mzDDAConsumer<QueueingPolicy,
-                                                  SpectrumListType>::_consume,
-                                                  this,
-                                                  std::ref(msdata),
-                                                  std::ref(serializer),
-                                                  std::ref(bbMzWidthByMsLevel),
-                                                  std::ref(runSlices),
-                                                  std::ref(progressionCount),
-                                                  nscans));
-        consumer.join();
-    }*/
-
+    /// return thread, need call join
     boost::thread getConsumerThread(pwiz::msdata::MSDataPtr msdata,
                                     ISerializer::xml_string_writer& serializer,
                                     map<int, double>& bbMzWidthByMsLevel,
