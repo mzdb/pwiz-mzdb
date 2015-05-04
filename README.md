@@ -123,6 +123,7 @@ Warning: this is not suitable for accessing only one random spectrum. User may u
 #### Iterate through run slices
 
 Not yet implemented. You can only extract one runSlice at a time for the moment:
+
 	MzDBFile mzdb(filename);
 	
 	mzDBReader reader(mzdb); //build a mzdbreader object
@@ -138,6 +139,7 @@ This feature is already implemented in the java reader mzDBAccess
 #### Query LC-MS DDA/DIA data using R*Tree queries
 
 To extract region using R*Tree:
+
 	MzDBFile mzdb(filename);
 	
 	mzDBReader reader(mzdb); //build a mzdbreader object
