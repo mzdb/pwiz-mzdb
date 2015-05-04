@@ -1,0 +1,15 @@
+lib mzdb_reader
+: #sources
+    [ glob *.cpp ]
+
+: #requirments
+    <include>.
+    <library>../lib/kyoto_cabinet
+    <library>../utils
+
+: <variant>release <link>static <cxxflags>"/Ox /Gy /GA" # /GF #default-build
+: #usage-requirments
+    <include>.
+    <library>../lib/kyoto_cabinet
+    <library>../utils
+;

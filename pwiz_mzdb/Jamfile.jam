@@ -47,12 +47,25 @@ exe raw2mzDB
 #: <library>raw2mzdb <include>.. <library>getopt_pp <library>../pwiz/data/msdata <library>../pwiz_tools/common
 #;
 
-#exe iterationBench
-#: iterationBench.cpp
-#: <library>raw2mzdb <include>.. <library>getopt_pp <library>../pwiz/data/msdata <library>../pwiz_tools/common #requirements
-#: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default_builds
-#: <library>raw2mzdb <include>.. <library>getopt_pp <library>../pwiz/data/msdata <library>../pwiz_tools/common
-#;
+exe iterationBench
+: iterationBench.cpp
+: 
+	<include>..
+	<library>mzdb/reader  
+	<library>mzdb/lib/getopt_pp
+: <toolset>msvc <variant>release <cxxflags>"/Ox /GAyF"
+: 
+;
+
+exe regionExtractorBench
+: regionExtractorBench.cpp
+: 
+	<include>..
+	<library>mzdb/reader  
+	<library>mzdb/lib/getopt_pp
+: <toolset>msvc <variant>release <cxxflags>"/Ox /GAyF"
+: 
+;
 
 #exe fitted2profile
 #: fittedToProfileMode.cpp
@@ -95,12 +108,12 @@ install hello_pwiz_install
 #: <location>.
 #;
 
-#install marco_pwiz_6_install
-#: iterationBench
-#: <location>.
-#;
+install marco_pwiz_6_install
+: iterationBench
+: <location>.
+;
 
-#install marco_pwiz_7_install
-#: fitted2profile
-#: <location>.
-#;
+install marco_pwiz_7_install
+: regionExtractorBench
+: <location>.
+;
