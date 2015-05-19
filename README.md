@@ -15,7 +15,7 @@ New features:
 - [x] AbSciex (.WIFF) files support
 - [x] Bruker (.d) files support
 - [x] --dia option in the command line to force DIA file creation
-- [ ] --ignore-error option to force conversion even if error occured
+- [ ] ~~--ignore-error option to force conversion even if error occured~~ (CRT translation to C++ exceptions makes the converter very slow)
 
 Improvements
 - [x] reduced time of spectrum table loading (table records stored at the end of the file)
