@@ -48,6 +48,10 @@ enum PeakPickingAlgorithm{
     PeakPickingAlgorithm peakPickingMode;
 };*/
 
+/**
+ * @brief The mzPeakFinderProxy class
+ * Class that manage the launch of the good algorithm for peak picking each spectrum.
+ */
 class PWIZ_API_DECL mzPeakFinderProxy {
 
 private:

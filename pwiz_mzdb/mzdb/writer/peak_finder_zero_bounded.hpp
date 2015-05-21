@@ -17,7 +17,10 @@ using namespace std;
 
 namespace mzPeakFinderZeroBounded {
 
-
+/**
+ * @brief findPeaks
+ * Algorithm adapted to Thermo data
+ */
 template<class mz_t, class int_t>
 static void findPeaks(const pwiz::msdata::SpectrumPtr& s,
                       vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids,

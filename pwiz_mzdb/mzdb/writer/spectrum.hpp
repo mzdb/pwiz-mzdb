@@ -40,19 +40,33 @@ struct ISpectrum {
 
 };
 
+/**
+ * @brief The mzSpectrum class
+ *
+ */
 template<typename mz_t=double, typename int_t=float>
 struct PWIZ_API_DECL mzSpectrum {
 
+    /// database ID, and cycle number
     int id, cycle;
+
+    /// retention time in seconds
     float retentionTime;
+
+    /// efftive storage mode
     DataMode effectiveMode;
+
+    /// isInHighRes true if ms1 or HCD ms2 scan false otherwise
     bool isInHighRes, isInserted;
 
     int _precursorCharge;
     double _precursorMz;
     int _msLevel;
 
+    /// vector containing the result of the fitting i.e. centroids
     vector<std::shared_ptr<Centroid<mz_t, int_t> > > peaks;
+
+    /// pointer to the original pwiz spectrum
     pwiz::msdata::SpectrumPtr spectrum;
 
 
@@ -65,7 +79,7 @@ struct PWIZ_API_DECL mzSpectrum {
         _precursorCharge(0),
         _precursorMz(0.0),
         _msLevel(0) {
-     }
+    }
 
     ///Most used ctor
     inline mzSpectrum(int id_, int cycle_, const pwiz::msdata::SpectrumPtr& s) :
@@ -124,7 +138,12 @@ struct PWIZ_API_DECL mzSpectrum {
         //mzSpectrum::deleteCount ++;
     }*/
 
-
+    /**
+     * @brief getEffectiveMode
+     * return the effective dataMode roughly equivalent to the wanted mode
+     * @param wantedMode
+     * @return
+     */
     inline DataMode getEffectiveMode(DataMode wantedMode) {
         const pwiz::msdata::CVParam& isCentroided = spectrum->cvParam(pwiz::msdata::MS_centroid_spectrum);
         DataMode currentMode = ( isCentroided.empty() ) ? PROFILE: CENTROID;
@@ -142,7 +161,7 @@ struct PWIZ_API_DECL mzSpectrum {
 
 
     /**
-      * @brief doPeakPicking : perform peak picking, fill peaks attribute
+      * @brief doPeakPicking : perform peak picking, fill peaks member
       * @param m
       * @param ppa
       * @param threshold
@@ -156,6 +175,11 @@ struct PWIZ_API_DECL mzSpectrum {
 
     inline int initialPointsCount() const throw() {return spectrum->defaultArrayLength;}
 
+    /**
+     * @brief nbPeaks
+     * return #mass peaks after fitting process
+     * @return
+     */
     inline int nbPeaks() const throw(){
         if (effectiveMode != FITTED)
             return initialPointsCount();
@@ -177,7 +201,7 @@ struct PWIZ_API_DECL mzSpectrum {
 
     inline double precursorMz()  {
         if (! _precursorMz) {
-        //if (msLevel() > 1) {
+            //if (msLevel() > 1) {
             const pwiz::msdata::SelectedIon& si = spectrum->precursors.front().selectedIons.front();
             _precursorMz = si.cvParam(pwiz::msdata::MS_selected_ion_m_z).valueAs<double>();
         }
@@ -196,13 +220,13 @@ struct PWIZ_API_DECL mzSpectrum {
 
     inline int precursorCharge()  {
         if (! _precursorCharge) {
-        //if (msLevel() > 1) {
+            //if (msLevel() > 1) {
             const pwiz::msdata::SelectedIon& si = spectrum->precursors.front().selectedIons.front();
             _precursorCharge = si.cvParam(pwiz::msdata::MS_charge_state).valueAs<int>();
         }
         return _precursorCharge
-        //}
-        //return -1;
+                //}
+                //return -1;
     }
 
     //------------------------------------------------------------------------------------------------

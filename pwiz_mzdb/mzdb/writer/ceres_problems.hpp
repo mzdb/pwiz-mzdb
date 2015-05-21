@@ -201,9 +201,6 @@ public:
 			ceres::Solve(options, &problem, &summary);
 
 
-			/*if (summary.termination_type == ceres::NO_CONVERGENCE) {
-				printf("That's sucks\n");
-			}*/
 			/** fill the result values*/
 			for (size_t i = 0; i < centroids.size(); ++i) {
                 auto c = centroids[i];
