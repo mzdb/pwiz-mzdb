@@ -21,12 +21,12 @@ Improvements
 - [x] reduced time of spectrum table loading (table records stored at the end of the file)
 - [x] improvements in exception catching
 - [x] new columns 'mz_precision' ansd 'intensity_precision' in data-encoding table (instead of param-tree)
-- [ ] insert only used data-encoding
+- [x] insert only used data-encoding
 - [x] update proteowizard to the latest
 
 Bug fixes:
 - [x] Wrong encoding for HCD spectra (32 instead of 64 bits)
-- [ ] add missing CvTerms
+- [ ] ~~add missing CvTerms~~ (not present in Pwiz Msdata object, neither in converted mzML files)
 
 ### Release 0.9.9
 
