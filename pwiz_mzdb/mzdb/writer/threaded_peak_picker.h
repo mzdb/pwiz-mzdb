@@ -11,10 +11,6 @@ using namespace std;
 
 namespace mzdb {
 
-/**
- * @brief The mzMultiThreadedPeakPicker class
- * performs peak-picking of several spectra using several threads
- */
 class mzMultiThreadedPeakPicker {
 
 private:
@@ -41,9 +37,9 @@ private:
     }
 
 
-    /**
-     * @brief _peakPicks
-     * launch peakPicking using a thread group
+    /*
+     *  launch peakPicking using a thread group
+     *
      */
     template<class h_mz_t, class h_int_t,
              class l_mz_t, class l_int_t>

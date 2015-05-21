@@ -28,10 +28,10 @@ public:
     inline int initialPointsCount() const throw() {return spectrum->defaultArrayLength;}
 
     inline int nbPeaks() const throw(){
-        if (effectiveMode != FITTED)
-            return initialPointsCount();
-        return peaks.size();
-    }
+       if (effectiveMode != FITTED)
+           return initialPointsCount();
+       return peaks.size();
+   }
 
     inline int msLevel() const {
         return msLevel;
@@ -40,7 +40,7 @@ public:
     //kind of lazy attribute
     inline const float& rt() {
         if (! retentionTime)
-            retentionTime =  (float)spectrum->scanList.scans.front().cvParam(pwiz::msdata::MS_scan_start_time).timeInSeconds();
+           retentionTime =  (float)spectrum->scanList.scans.front().cvParam(pwiz::msdata::MS_scan_start_time).timeInSeconds();
         return retentionTime;
     }
 
@@ -81,8 +81,8 @@ class mzCentroidSpectrum : public mzISpectrum<mz_t, int_t, msLevel, 1> {
 };
 
 
-    template<class mz_t, class int_t, int msLevel>
-    class mzProfileSpectrum : public mzISpectrum<mz_t, int_t, msLevel, 0> {
+template<class mz_t, class int_t, int msLevel>
+class mzProfileSpectrum : public mzISpectrum<mz_t, int_t, msLevel, 0> {
     vector<Centroid<mz_t, int_t>*> centroids;
 
 };

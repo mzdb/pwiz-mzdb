@@ -15,13 +15,10 @@ namespace BBComputer {
 
 //---------------------------- BOUNDING BOX INSERTIONS ---------------------
 /**
- * @brief buildCentroidsByScanID
  * build Map key scanID value vector of centroids
- *
- * @param centroidsByScanId: output map scanID, detected centroids
- * @param spectra: input spectra with centroids vector filled
- * @param dataModes: map msLevel dataMode
- * @see DataMode
+ * @param pt
+ * @param vt
+ * @param dataModes
  */
 template<typename mz_t, typename int_t>
 static void buildCentroidsByScanID(map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& centroidsByScanId,
@@ -38,13 +35,11 @@ static void buildCentroidsByScanID(map<int, vector<std::shared_ptr<Centroid<mz_t
 
 
 /**
- * @brief groupByMzIndex
  * Caculation of the runSlice index for each peak it belongs to
- *
  * @param v
- * @param x Map <runSliceIdx, Map<scanID, corresponding detected centroids>
- * @param scanIdx scanID
- * @param bbheight inverse of the requested bbHeigh (mz dimension)
+ * @param x
+ * @param scanIdx
+ * @param bbheight
  */
 template<class mz_t, class int_t>
 static void groupByMzIndex(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& v, //correspond to the entire centroid of one spectrum,
@@ -65,18 +60,13 @@ static void groupByMzIndex(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& v, 
     });
 }
 
+
 /**
- * @brief computeBoundingBox
- * Compute and create bounding box objects
- *
- * @param bbheight inverse of the bounding box height (mz dimension)
- * @param highResPeaksByScanIDs
- * @param lowResPeaksByScanIDs
- * @param bbs output vector containing bounding box
- * @param hrs Map <runSliceIdx, Map<scanID, corresponding high resolution detected centroids>
- * @param lrs Map <runSliceIdx, Map<scanID, corresponding low resolution detected centroids>
- *
- * @see groupByMzIndex
+ * compute BBs given a MapHolder
+ * @param bbheight
+ * @param bbs: bbs output
+ * @param hrs: map<int, map<int, vector<mzPeak> > > runSliceidx / scanidx, peaks(hr) contained in this scan
+ * @see MapHolder
  */
 template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
 static void computeBoundingBox(double& bbheight,

@@ -35,20 +35,11 @@
 namespace mzdb {
 using namespace std;
 
-/**
- * @brief Centroid class
- */
 template<class mz_t, class int_t>
 struct PWIZ_API_DECL Centroid {
 
-    ///mz value
     mz_t mz;
-
-    /// intensity value
     int_t intensity;
-
-    /// left/right width at half maxmimum result from peak data points fitting against gaussian.
-    /// rt retention time in seconds
     float lwhm, rwhm, rt; //, background;
 
 
@@ -68,10 +59,7 @@ struct PWIZ_API_DECL Centroid {
 };
 
 
-/**
- * @brief the mzPeak
- * represents a mass peak
- */
+
 template<class mz_t, class int_t>
 class PWIZ_API_DECL mzPeak {
 
@@ -79,49 +67,24 @@ class PWIZ_API_DECL mzPeak {
 
 protected:
 
-    /// mz data points constituting the peak
-    vector<mz_t> _mzData;
-
-    /// intensities data points stored float/double
-    vector<int_t> _intData;
-
-    /// Pointer to the pwiz spectrum object it belongs
-    pwiz::msdata::SpectrumPtr _spectrum;
-
-    /// index of its apex on Spectrum
-    int _index;
-
-    /// signal noise ratio of the peak
+    vector<mz_t> _mzData; //mz data points constituting the peak
+    vector<int_t> _intData; //intensities data points stored float/double
+    pwiz::msdata::SpectrumPtr _spectrum; //ref to the spectrum it belongs
+    int _index; //index of its apex on Spectrum
     double snr;
 
 public:
 
-    /**
-     * @brief apexIndex
-     * @return index of the apex
-     */
     inline int apexIndex() const throw() {
         if (_intData.empty())
             return -1;
         return max_element(_intData.begin(), _intData.end()) - _intData.begin();
     }
 
-    /**
-     * @brief apexMz
-     * @return apexMz mz at the peak apex
-     */
     inline mz_t apexMz() const throw() {return _mzData[apexIndex()];}
-
-    /**
-     * @brief apexIntensity
-     * @return apex intensity intensity at the peak apex
-     */
     inline int_t apexIntensity() const throw() {return _intData[apexIndex()];}
 
-    /**
-     * @brief sumIntensities
-     * @return sum all intensities of data points
-     */
+
     inline float sumIntensities() const throw(){
         float sum = 0.0;
         for_each(_intData.begin(), _intData.end(), [&sum](int_t& v) { sum += v;});
@@ -141,21 +104,12 @@ public:
     inline void setIntData(vector<int_t>& _intDat) {_intData = _intDat;}
     inline void setIndex(int _inde) {_index = _inde;}
 
-    /**
-     * @brief mzPeak
-     * @param s Pointer to pwiz Spectrum it belongs
-     */
+    
     inline mzPeak(const pwiz::msdata::SpectrumPtr &s) : _spectrum(s), _index(0){}
 
-    /**
-     * @brief mzPeak
-     * @param mz mz values of data points
-     * @param ints intensities values of data points
-     * @param s Pointer to pwiz Spectrum it belongs
-     */
     inline mzPeak(const vector<mz_t>& mz,
-                  const vector<int_t>& ints,
-                  const pwiz::msdata::SpectrumPtr& s):
+                         const vector<int_t>& ints,
+                         const pwiz::msdata::SpectrumPtr& s):
         _mzData(mz), _intData(ints), _spectrum(s), _index(0) {
 
     }
@@ -167,10 +121,7 @@ public:
         return currentMode;
     }
 
-    /**
-     * @brief rt
-     * @return retention time of the peak (spectrum retention time) in seconds
-     */
+
     inline float rt() const {
         pwiz::msdata::Scan* scan =  &_spectrum->scanList.scans[0];
         pwiz::msdata::CVParam& scanTimeParam = scan->cvParam(pwiz::msdata::MS_scan_start_time);
@@ -181,11 +132,6 @@ public:
     //-----------------------------------------------------------------------------------------------------------
     //                             CENTROID FUNCTIONS
 
-    /**
-     * @brief _computeCentroid
-     * Computes centroid from data points. The first centroid mz and intensity approximation
-     * are estimated using a Parabola fitting (mathematical formula taken from MaxQuant paper)
-     */
     PWIZ_API_DECL CentroidSPtr _computeCentroid() const{
 
         if (_mzData.empty() || _intData.empty()) {
@@ -298,24 +244,13 @@ public:
         if (! mzMath::isFiniteNumber<mz_t>(_centroid->mz))
             _centroid->mz = _mzData[apexPos];
 
-        //if (! mzMath::isFiniteNumber<mz_t>(_centroid->mz))
-        //   printf("ERROR mz centroid is not a finite number: %f\n", _centroid->mz);
+         //if (! mzMath::isFiniteNumber<mz_t>(_centroid->mz))
+         //   printf("ERROR mz centroid is not a finite number: %f\n", _centroid->mz);
 
         return _centroid;
     }
 
     /**return is an implicit conversion*/
-    /**
-     * @brief interpolateXAtY
-     * Simple linear interpolation
-     *
-     * @param xData
-     * @param yData
-     * @param startIdx
-     * @param idxStep
-     * @param y
-     * @return
-     */
     inline static double interpolateXAtY(const vector<mz_t>& xData, const vector<int_t>& yData, int startIdx, int idxStep, double y)  {
         vector<pair<mz_t, int_t> >& twoPoints = getInterpolationPointsForY(xData, yData, startIdx, idxStep, y);
         pair<mz_t, int_t>& pointA = twoPoints[0];

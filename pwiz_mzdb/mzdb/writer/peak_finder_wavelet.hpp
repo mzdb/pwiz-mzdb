@@ -17,9 +17,7 @@ namespace mzPeakFinderWavelet {
 
 
 /**
- * @brief findPeaks
- * find mass peaks using continuous wavelet transform at a specified scale
- * Algorihtm adapted to ABI, Bruker instruments (TOF instruments)
+ *
  */
 template<class mz_t, class int_t>
 static void findPeaks(const pwiz::msdata::SpectrumPtr& s,
@@ -40,11 +38,11 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& s,
         return;
     }
 
-    //    if (params.adaptiveBaselineAndNoise) {
-    //        const pair<double, double> c = mzPeakFinderUtils::getBaselineAndNoise(ints);
-    //        params.baseline = c.first;
-    //        params.noise = c.second;
-    //    }
+//    if (params.adaptiveBaselineAndNoise) {
+//        const pair<double, double> c = mzPeakFinderUtils::getBaselineAndNoise(ints);
+//        params.baseline = c.first;
+//        params.noise = c.second;
+//    }
 
     //---copy data du non corresponding template parameters ! TODO: how to change this
     const vector<mz_t> nmzs(mzs.begin(), mzs.end());

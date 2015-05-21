@@ -8,36 +8,25 @@
 
 namespace mzdb {
 
-/**
- * @brief The mzBBInserter class
- * Insertion of runslices, bounding boxes in mzDB file
- */
 class mzBBInserter {
 
 private:
 
-    ///currently converted mzDB file
     MzDBFile& m_mzdbFile;
-
-    ///Several helping counter
     int m_bbCount, m_lastMinRunSliceIdx, m_lastMaxRunSliceIdx, m_runSliceCount;
-
-    ///map mslevel runSliceidx for keeping traces of each run slice index
     map<int, int> m_runSliceIndexByMsLevel;
 
-    /**
-     * @brief _insertData
-     * Insert the runslices and bounding boxes in sqlite file
-     */
-    template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
+    /// Insert data into sqlite file
+    template<class h_mz_t, class h_int_t,
+                 class l_mz_t, class l_int_t>
     void _insertData(int msLevel,
-                     double& bbheight,
-                     map<int, int>& runSlices,
-                     map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> > > >& highResPeaks,
-                     map<int, vector<std::shared_ptr<Centroid<l_mz_t, l_int_t> > > >& lowResPeaks,
-                     map<int, DataMode>& dataModes,
-                     double parentMinMz=0,
-                     double parentMaxMz = 0) {
+                            double& bbheight,
+                            map<int, int>& runSlices,
+                            map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> > > >& highResPeaks,
+                            map<int, vector<std::shared_ptr<Centroid<l_mz_t, l_int_t> > > >& lowResPeaks,
+                            map<int, DataMode>& dataModes,
+                            double parentMinMz=0,
+                            double parentMaxMz = 0) {
 
         //useful typedef
         typedef std::shared_ptr<Centroid<h_mz_t, h_int_t> > HighResCentroidSPtr;
@@ -196,26 +185,19 @@ private:
 
 
 public:
-
-    /**
-     * @brief mzBBInserter
-     * @param mzdbFile
-     */
     inline mzBBInserter(MzDBFile& mzdbFile):
         m_mzdbFile(mzdbFile), m_bbCount(1), m_lastMinRunSliceIdx(0), m_lastMaxRunSliceIdx(0), m_runSliceCount(1){}
 
-    /**
-     * @brief buildAndInsertData
-     * Build bounding box then insert it into the mzDB file
-     */
-    template<class h_mz_t, class h_int_t,class l_mz_t, class l_int_t>
+
+    template<class h_mz_t, class h_int_t,
+                 class l_mz_t, class l_int_t>
     void buildAndInsertData(int msLevel,
-                            double& bbheight,
-                            vector<std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > >& highResBuffer,
-                            vector<std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > >& lowResBuffer,
-                            map<int, int>& runSlices,
-                            double parentMinMz=0,
-                            double parentMaxMz=0) {
+                                    double& bbheight,
+                                    vector<std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > >& highResBuffer,
+                                    vector<std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > >& lowResBuffer,
+                                    map<int, int>& runSlices,
+                                    double parentMinMz=0,
+                                    double parentMaxMz=0) {
 
         map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> > > >p1;
         map<int, vector<std::shared_ptr<Centroid<l_mz_t, l_int_t> > > >p2;
