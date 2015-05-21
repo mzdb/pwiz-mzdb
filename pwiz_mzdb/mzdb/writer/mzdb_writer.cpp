@@ -28,10 +28,34 @@
 #include "pwiz_aux/msrc/utility/vendor_api/thermo/RawFile.h" //to test purpose
 #endif
 
-namespace mzdb {
-
 using namespace std;
 using namespace pwiz::msdata;
+
+namespace mzdb {
+
+void mzDBWriter::buildDataEncodingRowByID() {
+    int id = 1;
+    bool hasProfileMode = hasDataMode(PROFILE);
+    if (hasProfileMode && m_mzdbFile.noLoss) {
+        m_dataEncodingByID[id] = DataEncoding(-1, PROFILE, NO_LOSS_PEAK);
+        ++id;
+    } else if (hasProfileMode && ! m_mzdbFile.noLoss) {
+        m_dataEncodingByID[id] = DataEncoding(-1, PROFILE, HIGH_RES_PEAK);
+        ++id;
+    }
+
+    if (hasDataMode(FITTED)) {
+        m_dataEncodingByID[id] = DataEncoding(-1, FITTED, HIGH_RES_PEAK);
+        ++id;
+    }
+
+    if (hasDataMode(CENTROID)) {
+        m_dataEncodingByID[id] = DataEncoding(-1, CENTROID, HIGH_RES_PEAK);
+        ++id;
+        m_dataEncodingByID[id] = DataEncoding(-1, CENTROID, LOW_RES_PEAK);
+    }
+}
+
 
 ///Setup pragmas and tables
 ///@brief mzDBWriter::createTables
@@ -46,7 +70,7 @@ void mzDBWriter::createTables() {
                          "PRAGMA journal_mode=OFF;"
                          "PRAGMA temp_store=3;"
                          "PRAGMA cache_size=2000;"
-                         "PRAGMA foreign_keys=ON;"
+                         //"PRAGMA foreign_keys=ON;"
                          "PRAGMA automatic_index=OFF;"
                          "PRAGMA locking_mode=EXCLUSIVE;"
                          "PRAGMA ignore_check_constraints=ON;", 0, 0, 0);
@@ -126,12 +150,13 @@ void mzDBWriter::createTables() {
                      "full_name TEXT NOT NULL,\n"
                      "version TEXT(10),\n"
                      "uri TEXT NOT NULL,\n"
-                     "PRIMARY KEY (id));\n"
+                     "PRIMARY KEY (id));"
 
                      "CREATE TABLE param_tree_schema (\n"
                      "name TEXT NOT NULL,\n"
                      "type TEXT(10) NOT NULL,\n"
                      "schema TEXT NOT NULL,PRIMARY KEY (name));"
+
                      "CREATE TABLE table_param_tree_schema (\n"
                      "table_name TEXT NOT NULL,\n"
                      "schema_name TEXT NOT NULL,\n"
@@ -196,6 +221,7 @@ void mzDBWriter::createTables() {
                      "FOREIGN KEY (run_id) REFERENCES run (id),\n"
                      "FOREIGN KEY (data_processing_id) REFERENCES data_processing (id),\n"
                      "FOREIGN KEY (data_encoding_id) REFERENCES data_encoding (id));"
+
                      "CREATE TABLE run_slice ( \n"
                      "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                      "ms_level INTEGER NOT NULL,\n"
@@ -206,7 +232,7 @@ void mzDBWriter::createTables() {
                      "run_id INTEGER NOT NULL,\n"
                      "FOREIGN KEY (run_id) REFERENCES run (id) );"
 
-                     "CREATE TEMP TABLE tmp_spectrum (\n"
+                     "CREATE TEMPORARY TABLE tmp_spectrum (\n"
                      "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                      "initial_id INTEGER NOT NULL,\n"
                      "title TEXT NOT NULL,\n"
@@ -237,7 +263,7 @@ void mzDBWriter::createTables() {
                      "FOREIGN KEY (run_id) REFERENCES run (id),\n"
                      "FOREIGN KEY (data_processing_id) REFERENCES data_processing (id),\n"
                      "FOREIGN KEY (data_encoding_id) REFERENCES data_encoding (id),\n"
-                     "FOREIGN KEY (bb_first_spectrum_id) REFERENCES spectrum (id));"
+                     "FOREIGN KEY (bb_first_spectrum_id) REFERENCES tmp_spectrum (id));"
 
                      "CREATE TABLE bounding_box (\n"
                      "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
@@ -246,8 +272,8 @@ void mzDBWriter::createTables() {
                      "first_spectrum_id INTEGER NOT NULL,\n"
                      "last_spectrum_id INTEGER NOT NULL,\n "
                      "FOREIGN KEY (run_slice_id) REFERENCES run_slice (id),\n"
-                     "FOREIGN KEY (first_spectrum_id) REFERENCES spectrum (id),\n"
-                     "FOREIGN KEY (last_spectrum_id) REFERENCES spectrum (id));"
+                     "FOREIGN KEY (first_spectrum_id) REFERENCES tmp_spectrum (id),\n"
+                     "FOREIGN KEY (last_spectrum_id) REFERENCES tmp_spectrum (id));"
 
                      "CREATE TABLE cv_term (\n"
                      "accession TEXT NOT NULL,\n"
@@ -340,7 +366,7 @@ void mzDBWriter::createIndexes() {
 void mzDBWriter::checkMetaData() {
 
     vector<SoftwarePtr>& softwares = m_msdata->softwarePtrs;
-    SoftwarePtr mzdbSoftPtr(new Software("raw2mzDB"));  //mzDB", CVParam(MS_Progenesis_LC_MS, ""), SOFT_VERSION_STR));
+    SoftwarePtr mzdbSoftPtr(new Software("raw2mzDB", CVParam(), SOFT_VERSION_STR));
     softwares.push_back(mzdbSoftPtr);
 
     if (m_msdata->dataProcessingPtrs.empty() ) {
@@ -410,16 +436,12 @@ void mzDBWriter::checkMetaData() {
 
 }
 
-///@brief mzDBWriter::mzDBWriter
-///@param f: mzdb file
-///@param m: data mode (fitted, centroid, profile) by mslevel
-///@param compress or not
-///@return new instance
+
 PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
-                                     map<int, DataMode>& dataModeByMsLevel,
-                                     CVID originFileFormat,
                                      MSDataPtr msdata,
-                                     bool compress) :
+                                     CVID originFileFormat,
+                                     map<int, DataMode>& dataModeByMsLevel,
+                                     bool compress):
     m_mzdbFile(f),
     m_dataModeByMsLevel(dataModeByMsLevel),
     m_originFileFormat(originFileFormat),
@@ -435,14 +457,15 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
     m_progressionCounter(0),
     m_emptyPrecCount(0) {
 
-    //implem goes here
+    //implementation goes here
     m_metadataExtractor = std::move(this->getMetadataExtractor());
+
+    //populate dataencoding that will be inserted in the mzdb
+    this->buildDataEncodingRowByID();
 }
 
 
-///@brief mzDBWriter::insertMetaData
-///@param noLoss: boolean, if true encoding both mz and intensity in 64 bits
-void mzDBWriter::insertMetaData(bool noLoss) {
+void mzDBWriter::insertMetaData() {
 
     Run& run = m_msdata->run;
 
@@ -473,7 +496,7 @@ void mzDBWriter::insertMetaData(bool noLoss) {
                 UserParam(MS1_BB_TIME_WIDTH_STR, boost::lexical_cast<string>(m_mzdbFile.bbWidth), XML_FLOAT));
     m_mzdbFile.userParams.push_back(
                 UserParam(MSN_BB_TIME_WIDTH_STR, boost::lexical_cast<string>(m_mzdbFile.bbWidthMsn), XML_FLOAT));
-    string b = noLoss ? TRUE_STR : FALSE_STR;
+    string b = m_mzdbFile.noLoss ? TRUE_STR : FALSE_STR;
     m_mzdbFile.userParams.push_back(
                 UserParam(IS_LOSSLESS_STR, b, XML_BOOLEAN));
     m_mzdbFile.userParams.push_back(
@@ -553,53 +576,30 @@ void mzDBWriter::insertMetaData(bool noLoss) {
     m_mzdbFile.stmt = 0;
 
     //-----------------------------------------------------------------------------------------------------------
-    //DATAENCODING TODO check this WARNING MS2 64 bit mz Encoding not yet inserted
-
-    BinaryDataArray prof, cent, cent2;
-    if (noLoss) {
-        prof.userParams.push_back(UserParam(_64_BIT_MZ));
-        prof.userParams.push_back(UserParam(_64_BIT_INTENSITY));
-        //if (_compress)
-        //    prof.cvParams.push_back(CVParam(MS_zlib_compression, "snappy compression"));
-        cent = prof;
-    } else {
-        prof.userParams.push_back(UserParam(_64_BIT_MZ));
-        prof.userParams.push_back(UserParam(_32_BIT_INTENSITY));
-        //if (_compress)
-        //    prof.cvParams.push_back(CVParam(MS_zlib_compression, "none"));
-
-        cent.userParams.push_back(UserParam(_32_BIT_MZ));
-        cent.userParams.push_back(UserParam(_32_BIT_INTENSITY));
-        //if (_compress)
-        //    cent.cvParams.push_back(CVParam(MS_zlib_compression, "none"));
-
-        cent2.userParams.push_back(UserParam(_64_BIT_MZ));
-        cent2.userParams.push_back(UserParam(_32_BIT_INTENSITY));
+    //DATAENCODING
+    for (auto it = m_dataEncodingByID.begin(); it != m_dataEncodingByID .end(); ++it) {
+        auto dataEncodingRow = it->second;
+        int r = sqlite3_exec(m_mzdbFile.db, dataEncodingRow.buildSQL().c_str(), 0, 0, 0);
+        if (r != SQLITE_OK)
+            LOG(ERROR) << "Error inserting dataencoding row";
+        m_mzdbFile.stmt = 0;
     }
-    string binaryProfString = ISerializer::serialize(prof, m_serializer);
-    string binaryCentString = ISerializer::serialize(cent, m_serializer);
-    string binaryCent2Str = ISerializer::serialize(cent2, m_serializer);
 
+    //    string profileMode = "INSERT INTO data_encoding VALUES (NULL, 'profile', 'none', 'little_endian', 64, 64)";
+    //    sqlite3_exec(m_mzdbFile.db, profileMode.c_str(), 0, 0, 0);
+    //    m_mzdbFile.stmt = 0;
 
-    //string profileMode = "INSERT INTO data_encoding VALUES (NULL, 'profile', 'none', 'little_endian', '" + binaryProfString + "')";
-    string profileMode = "INSERT INTO data_encoding VALUES (NULL, 'profile', 'none', 'little_endian', 64, 64)";
-    sqlite3_exec(m_mzdbFile.db, profileMode.c_str(), 0, 0, 0);
-    m_mzdbFile.stmt = 0;
+    //    string fittedMode = "INSERT INTO data_encoding VALUES (NULL, 'fitted', 'none', 'little_endian', 64, 32)";
+    //    sqlite3_exec(m_mzdbFile.db, fittedMode.c_str(), 0, 0, 0);
+    //    m_mzdbFile.stmt = 0;
 
-    //string fittedMode = "INSERT INTO data_encoding VALUES (NULL, 'fitted', 'none', 'little_endian', '" + binaryProfString + "')";
-    string fittedMode = "INSERT INTO data_encoding VALUES (NULL, 'fitted', 'none', 'little_endian', 64, 32)";
-    sqlite3_exec(m_mzdbFile.db, fittedMode.c_str(), 0, 0, 0);
-    m_mzdbFile.stmt = 0;
+    //    string centMode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', 32, 32)";
+    //    sqlite3_exec(m_mzdbFile.db, centMode.c_str(), 0, 0, 0);
+    //    m_mzdbFile.stmt = 0;
 
-    //string centMode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', '" + binaryCentString + "')";
-    string centMode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', 32, 32)";
-    sqlite3_exec(m_mzdbFile.db, centMode.c_str(), 0, 0, 0);
-    m_mzdbFile.stmt = 0;
-
-    //string cent2Mode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', '" + binaryCent2Str + "')";
-    string cent2Mode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', 64, 32)";
-    sqlite3_exec(m_mzdbFile.db, cent2Mode.c_str(), 0, 0, 0);
-    m_mzdbFile.stmt = 0;
+    //    string cent2Mode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', 64, 32)";
+    //    sqlite3_exec(m_mzdbFile.db, cent2Mode.c_str(), 0, 0, 0);
+    //    m_mzdbFile.stmt = 0;
 
     //-----------------------------------------------------------------------------------------------------------
     //SOFTWARE
@@ -772,7 +772,7 @@ void mzDBWriter::insertMetaData(bool noLoss) {
     //-----------------------------------------------------------------------------------------------------------
     //INSTRUMENT CONFIGURATION TODO shared param tree
 
-    const char* sql_27 = "INSERT INTO instrument_configuration VALUES(NULL, ?, ?, ?, 1, ?)";
+    const char* sql_27 = "INSERT INTO instrument_configuration VALUES(NULL, ?, ?, ?, NULL, ?)";
     sqlite3_prepare_v2(m_mzdbFile.db, sql_27, -1, &(m_mzdbFile.stmt), 0);
     for( auto insconf = insconfs.begin(); insconf != insconfs.end(); ++insconf) {
         m_paramsCollecter.updateCVMap(**insconf);
@@ -797,8 +797,12 @@ void mzDBWriter::insertMetaData(bool noLoss) {
 
         int pos = find(softwares.begin(), softwares.end(), (*insconf)->softwarePtr) - softwares.begin();
         sqlite3_bind_int(m_mzdbFile.stmt, 4, pos + 1);
-        //sqlite3_bind_int(_mzdb.stmt, 4, 1);
-        sqlite3_step(m_mzdbFile.stmt);
+        //sqlite3_bind_int(m_mzdbFile.stmt, 4, 1);
+        int rc = sqlite3_step(m_mzdbFile.stmt);
+        if (rc != SQLITE_DONE) {
+            LOG(ERROR) << "Error inserting instrument config metadata.";
+            LOG(ERROR) << "SQLITE ERROR CODE: " << rc <<":" << sqlite3_errmsg(m_mzdbFile.db) ;
+        }
         sqlite3_reset(m_mzdbFile.stmt);
     }
     sqlite3_finalize(m_mzdbFile.stmt);
@@ -840,12 +844,13 @@ void mzDBWriter::insertMetaData(bool noLoss) {
     sqlite3_bind_int(m_mzdbFile.stmt, 7, 1);
 
     //default chromatogram processing
-    sqlite3_bind_int(m_mzdbFile.stmt, 8, 2);
+    sqlite3_bind_int(m_mzdbFile.stmt, 8, 1);
 
     int rc = sqlite3_step(m_mzdbFile.stmt);
-    //    if (rc != SQLITE_DONE)
-    //        LOG(ERROR) << "Error inserting run metadata.";
-    //        LOG(ERROR) << "SQLITE ERROR CODE: " << (int)rc;
+    if (rc != SQLITE_DONE) {
+        LOG(ERROR) << "Error inserting run metadata.";
+        LOG(ERROR) << "SQLITE ERROR CODE: " << (int)rc << ": " << sqlite3_errmsg(m_mzdbFile.db);
+    }
 
     sqlite3_finalize(m_mzdbFile.stmt);
     m_mzdbFile.stmt = 0;
@@ -867,10 +872,10 @@ void mzDBWriter::insertMetaData(bool noLoss) {
 
         bool precursorEmpty = chrom->precursor.empty();
 
-        auto activationCode = std::string(UNKNOWN_STR);
+        string activationCode = std::string(UNKNOWN_STR);
         if (! precursorEmpty)
-            activationCode = getActivationCode( chrom->precursor.activation );
-        sqlite3_bind_text(m_mzdbFile.stmt, 2, activationCode.c_str(), 19, SQLITE_STATIC);
+            activationCode = getActivationCode(chrom->precursor.activation);
+        sqlite3_bind_text(m_mzdbFile.stmt, 2, activationCode.c_str(), 19, SQLITE_TRANSIENT);
 
 
         // Populate blob data
@@ -933,6 +938,7 @@ void mzDBWriter::insertMetaData(bool noLoss) {
 
         //data encoding id
         sqlite3_bind_int(m_mzdbFile.stmt, 9, 1);
+
         sqlite3_step(m_mzdbFile.stmt);
         sqlite3_reset(m_mzdbFile.stmt);
     }

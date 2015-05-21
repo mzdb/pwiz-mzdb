@@ -31,7 +31,7 @@ class  mzSwathConsumer:  QueueingPolicy, mzSpectrumInserter, mzBBInserter {
 
 private:
 
-    /// TODO get the value from MetadataExtractor
+    /// TODO get the value from MetadataExtractor if possible
     //static const double swathStart; // = 400.0;
 
     /// Contains predefined numbers of cycles, TODO: parametrize cycles number
@@ -219,9 +219,10 @@ public:
                      MzDBFile& mzdbFile,
                      mzParamsCollecter& paramsCollecter,
                      pwiz::msdata::CVID rawFileFormat,
-                     map<int, DataMode>& dataModeByMsLevel):
+                     map<int, DataMode>& dataModeByMsLevel,
+                     map<int, DataEncoding>& dataEncodingByID):
         QueueingPolicy(queue),
-        mzSpectrumInserter(mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel),
+        mzSpectrumInserter(mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID),
         mzBBInserter(mzdbFile), m_swathIsolationWindow(0.0), m_isSwathIsolationWindowComputed(false), swathStart(400.0) {
 
         m_isolationWindowStarts.push_back(this->swathStart);

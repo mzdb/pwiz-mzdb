@@ -88,9 +88,10 @@ public:
                   MzDBFile& mzdbFile,
                   mzParamsCollecter& paramsCollecter,
                   pwiz::msdata::CVID rawFileFormat,
-                  map<int, DataMode>& dataModeByMsLevel):
+                  map<int, DataMode>& dataModeByMsLevel,
+                  map<int, DataEncoding>& dataEncodingByID):
         QueueingPolicy(queue),
-        mzSpectrumInserter(mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel),
+        mzSpectrumInserter(mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID),
         mzBBInserter(mzdbFile) {}
 
     /// return thread, need call join

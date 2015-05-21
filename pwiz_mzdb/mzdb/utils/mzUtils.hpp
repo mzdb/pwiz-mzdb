@@ -157,9 +157,33 @@ struct DataEncoding {
     int id;
     DataMode mode;
     PeakEncoding peakEncoding;
+    string compression;
 
-    DataEncoding(int id_, DataMode mode_, PeakEncoding pe_) : id(id), mode(mode_), peakEncoding(pe_) {}
+    DataEncoding(int id_, DataMode mode_, PeakEncoding pe_) : id(id), mode(mode_), peakEncoding(pe_), compression("none") {}
     DataEncoding(){}
+
+    string buildSQL() {
+        string mzPrec, intPrec;
+        if (peakEncoding == NO_LOSS_PEAK) {
+            mzPrec = "64"; intPrec = "64";
+        } else if (peakEncoding = HIGH_RES_PEAK) {
+            mzPrec = "64"; intPrec = "32";
+        } else if (peakEncoding == LOW_RES_PEAK) {
+            mzPrec = "32"; intPrec = "32";
+        }
+
+        string mode_str;
+        if (mode == PROFILE)
+            mode_str = "profile";
+        else if (mode == FITTED)
+            mode_str = "fitted";
+        else if (mode == CENTROID)
+            mode_str = "centroid";
+
+        return "INSERT INTO data_encoding VALUES (NULL, '" + mode_str + "', '"+ compression + "', 'little_endian', "+ mzPrec + ", " + intPrec + ");";
+
+
+    }
 };
 
 
@@ -219,30 +243,40 @@ inline static int precursorChargeOf(const pwiz::msdata::SpectrumPtr &s) {
 
 inline static int precursorMzOf(const pwiz::msdata::SpectrumPtr &s) {
     const pwiz::msdata::SelectedIon& si = s->precursors.front().selectedIons.front();
-    return si.cvParam(pwiz::msdata::MS_selected_ion_m_z).valueAs<int>();
+    return si.cvParam(pwiz::msdata::MS_selected_ion_m_z).valueAs<double>();
 }
 
 } // end namespace PWIZ HELPER
 
-
+/**
+ * @brief getActivationCode
+ *
+ * @param a: pwiz activation object contained in precursor object
+ * @return string: to be inserted in the database
+ */
 static inline string getActivationCode(const pwiz::msdata::Activation& a) {
     if (a.empty())
-        return EMPTY_STR;
+        return string(EMPTY_STR);
     if (a.hasCVParam(pwiz::msdata::MS_CID) && ! a.hasCVParam(pwiz::msdata::MS_ETD))
-        return CID_STR;
+        return string(CID_STR);
     else if (a.hasCVParam(pwiz::msdata::MS_ETD)) //electron_transfer_dissociation))
-        return ETD_STR;
+        return string(ETD_STR);
     else if (a.hasCVParam(pwiz::msdata::MS_HCD)) //MS_high_energy_collision_induced_dissociation))
-        return HCD_STR;
+        return string(HCD_STR);
      else
-        return UNKNOWN_STR;
+        return string(UNKNOWN_STR);
 }
 
 
 /**
- * return the dataMode given a pwiz spectrum
  * @brief getDataMode
- * @param ptr
+ * return the effective dataMode given a pwiz spectrum
+ * Most of the time it corresponds to the wantedMode except for
+ * this kind of cases:
+ * wanted mode: `profile` and the spectrum was acquired in centroid.
+ *
+ * @param s:pwiz::msdata::SpectrumPtr
+ * @param wantedMode: DataMode dataMode wanted by the user for this msLevel
  * @return
  */
 static DataMode getDataMode( const pwiz::msdata::SpectrumPtr s, DataMode wantedMode)  {

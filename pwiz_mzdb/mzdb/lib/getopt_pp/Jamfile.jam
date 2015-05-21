@@ -3,7 +3,7 @@ lib getopt_pp
 		getopt_pp.cpp
 	: #requirments
 		<include>include
-	: <cxxflags>"/EHa" #default-build
+	: #default-build
 	: #usage-requirments
 		<include>include
 ;

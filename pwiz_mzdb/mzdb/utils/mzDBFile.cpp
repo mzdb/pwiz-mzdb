@@ -4,30 +4,29 @@ using namespace std;
 
 namespace mzdb {
 
-/**constructors*/
 MzDBFile::MzDBFile(string& _name) : bbHeight(0), bbHeightMsn(0), bbWidth(0),
     bbWidthMsn(0), name(_name),  db(0), stmt(0){}
 
 MzDBFile::MzDBFile(string& _name, float _bbHeight, float _bbHeightMsn,
-                   float _bbWidth, float _bbWidthMsn) :
+                   float _bbWidth, float _bbWidthMsn, bool _noLoss) :
     name(_name),
     bbHeight(_bbHeight),
     bbHeightMsn(_bbHeightMsn),
     bbWidth(_bbWidth),
-    bbWidthMsn(_bbWidthMsn) {}
+    bbWidthMsn(_bbWidthMsn),
+    noLoss(_noLoss){}
 
 MzDBFile::~MzDBFile() {
     //handles the closing of the sqlite file
     sqlite3_finalize(stmt);
     sqlite3_close_v2(db);
-    LOG(INFO) <<  "Database automatically closed";
 }
 
 bool MzDBFile::isNoLoss() {
 
     if (this->userParams.empty()) {
 
-        printf("loads mzdb param tree...");
+        LOG(INFO) << "Loading mzdb param tree...";
         int sqlCode = sqlite3_prepare_v2(db, "SELECT param_tree FROM mzdb", -1, &stmt, 0);
         if (sqlCode != SQLITE_OK) {
             printf("[MZDBFILE: is no loss]: can not request param tree, this a fatal error... Exiting");
@@ -42,20 +41,11 @@ bool MzDBFile::isNoLoss() {
 
         pugi::xml_document doc;
         pugi::xml_parse_result r = doc.load(result.c_str());
-        printf("parse status:%s\n", r.description());
         if ( r.status )
-            printf("[MZDBFILE: is no loss] There was an error ! pugi_xml exit code:%d\n", r);
-
-
+            LOG(ERROR) << "[MZDBFILE: is no loss] There was an error ! pugi_xml exit code:%d\n", r;
         IDeserializer::setUserParams(*this, doc);
-        /*pugi::xml_node& node = doc.child("params").child("userParams");
-        for (pugi::xml_node_iterator it = node.children().begin(); it != node.children().end(); ++it ) {
 
-            this->userParams.push_back(pwiz::msdata::UserParam(it->attribute("name").value(),
-                                                               it->attribute("value").value(),
-                                                               it->attribute("type").value() ));
-        }*/
-        printf("mzdb userparams set !\n");
+        LOG(INFO) << "mzDB userparams set !";
     }
     string isNoLossStr = this->userParam("is_lossless").value;
     if (strcmp(isNoLossStr.c_str(), "false") == 0)
@@ -87,7 +77,6 @@ pair<double, double> MzDBFile::getBBSize(int msLevel) {
     const string& bbWidth = userParam(userParam__).value;
 
     return make_pair(boost::lexical_cast<double>(bbHeight),  boost::lexical_cast<double>(bbWidth));
-
 }
 
 } // end namespace

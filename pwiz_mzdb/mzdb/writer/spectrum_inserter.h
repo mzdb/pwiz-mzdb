@@ -30,10 +30,11 @@ private:
     /* pointer to the raw wiff file */
     pwiz::vendor_api::ABI::WiffFilePtr mWiffFile;
 
-    /* warning if HCD wrong dataMode */
     map<int, DataMode>& mDataModeByMsLevel;
 
-    map<DataMode, int> mDataModePosition;
+    map<int, DataEncoding>& mDataEncodingByID;
+
+    //map<DataMode, int> mDataModePosition;
 
 
 public:
@@ -42,21 +43,19 @@ public:
     mzSpectrumInserter(MzDBFile& mzdb,
                        mzParamsCollecter& pc,
                        pwiz::msdata::CVID rawFileFormat,
-                       map<int, DataMode>& dataModeByMsLevel) :
+                       map<int, DataMode>& dataModeByMsLevel,
+                       map<int, DataEncoding>& dataEncodingByID) :
 
         mMzdbFile(mzdb),
         mParamsCollecter(pc),
         mRawFileFormat(rawFileFormat),
-        mDataModeByMsLevel(dataModeByMsLevel) {
-
-        mDataModePosition[PROFILE] = 1;
-        mDataModePosition[FITTED] = 2 ;
-        mDataModePosition[CENTROID] = 3;
-
+        mDataModeByMsLevel(dataModeByMsLevel),
+        mDataEncodingByID(dataEncodingByID) {
 
         if (mRawFileFormat == pwiz::msdata::MS_ABI_WIFF_format)
             mWiffFile = pwiz::vendor_api::ABI::WiffFile::create(mMzdbFile.name);
-    }
+    } // end ctor
+
 
     template<typename mz_t, typename int_t, typename h_mz_t, typename h_int_t>
     void insertScan(std::shared_ptr<mzSpectrum<mz_t, int_t> >& spectrum,
@@ -126,7 +125,7 @@ public:
         //activation_type
         if (msLevel > 1) {
             const string activationCode = mzdb::getActivationCode(spec->precursors.front().activation);
-            sqlite3_bind_text(mMzdbFile.stmt, 7, activationCode.c_str(), activationCode.length(), SQLITE_STATIC);
+            sqlite3_bind_text(mMzdbFile.stmt, 7, activationCode.c_str(), activationCode.length(), SQLITE_TRANSIENT);
         } else {
             // in the sql model shoud not be null -> use an empty string
             sqlite3_bind_text(mMzdbFile.stmt, 7, "", 0, SQLITE_STATIC);
@@ -199,6 +198,8 @@ public:
             // case thermo file
             if (mRawFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
                 precMz = scan.userParam(THERMO_TRAILER).valueAs<double>();
+                if (! precMz)
+                    precMz = PwizHelper::precursorMzOf(spec);
             } else {
                 precMz = PwizHelper::precursorMzOf(spec);
             }
@@ -226,7 +227,7 @@ public:
         string& r = ISerializer::serialize(*spec, serializer);
         sqlite3_bind_text(mMzdbFile.stmt, 14, r.c_str(), r.length(), SQLITE_STATIC);
 
-        // ---Here we use directly the pwiz api for writing xml chunks
+        //---Here we use directly the pwiz api for writing xml chunks
 
         //scan list
         ostringstream os_2;
@@ -235,20 +236,16 @@ public:
         string r_2 = os_2.str();
         sqlite3_bind_text(mMzdbFile.stmt, 15, r_2.c_str(), r_2.length(), SQLITE_STATIC);
 
-        bool HCDActivation = false;
-
         //precursor list
         if (msLevel > 1) {
             ostringstream os_3;
             pwiz::minimxml::XMLWriter writer_3(os_3);
             for (auto p = spec->precursors.begin(); p != spec->precursors.end(); ++p) {
-                // fix mz 64 bits encoding for HCD ms2 spectrum
-                if (getActivationCode((*p).activation) == HCD_STR)
-                    HCDActivation = true;
                 pwiz::msdata::IO::write(writer_3, *p);
             }
             string r_3 =  os_3.str();
-            sqlite3_bind_text(mMzdbFile.stmt, 16, r_3.c_str(), r_3.length(), SQLITE_STATIC);
+            // weird error encoding when using SQLITE_STATIC
+            sqlite3_bind_text(mMzdbFile.stmt, 16, r_3.c_str(), r_3.length(), SQLITE_TRANSIENT);
 
             //product list
             ostringstream os_4;
@@ -257,7 +254,9 @@ public:
                 pwiz::msdata::IO::write(writer_4, *p);
             }
             string r_4 = os_4.str();
-            sqlite3_bind_text(mMzdbFile.stmt, 17, r_4.c_str(), r_4.length(), SQLITE_STATIC);
+            if (r_4.empty()) sqlite3_bind_null(mMzdbFile.stmt, 17);
+            else
+                sqlite3_bind_text(mMzdbFile.stmt, 17, r_4.c_str(), r_4.length(), SQLITE_TRANSIENT);
         } else {
             sqlite3_bind_null(mMzdbFile.stmt, 16);
             sqlite3_bind_null(mMzdbFile.stmt, 17);
@@ -267,25 +266,23 @@ public:
         sqlite3_bind_null(mMzdbFile.stmt, 18);
 
         //instrument config id
-        sqlite3_bind_int(mMzdbFile.stmt, 19, instrumentConfigurationIndex(msdata, scan.instrumentConfigurationPtr));
+        sqlite3_bind_int(mMzdbFile.stmt, 19, 1); //instrumentConfigurationIndex(msdata, scan.instrumentConfigurationPtr));
 
         //source file id
-        sqlite3_bind_int(mMzdbFile.stmt, 20, sourceFileIndex(msdata, spec->sourceFilePtr));
+        //previous source file was leading to an error when FOREIGN KEY constraint enable
+        //force it to 1 as one sourcefile is mandatory for mzML validation
+        sqlite3_bind_int(mMzdbFile.stmt, 20, 1); //sourceFileIndex(msdata, spec->sourceFilePtr));
 
         //run id
         //run id default to 1
         sqlite3_bind_int(mMzdbFile.stmt, 21, 1);
 
         //data proc id
-        sqlite3_bind_int(mMzdbFile.stmt, 22, dataProcessingIndex(msdata, spec->dataProcessingPtr));
+        sqlite3_bind_int(mMzdbFile.stmt, 22, 1); //dataProcessingIndex(msdata, spec->dataProcessingPtr));
 
         //data enc id
-        //TODO: fix this we like before
         DataMode effectiveMode = spectrum->getEffectiveMode(mDataModeByMsLevel[msLevel]);
-        if (HCDActivation && effectiveMode == CENTROID)
-            sqlite3_bind_int(mMzdbFile.stmt, 23, 4); // 4 is the corresponding id
-        else
-            sqlite3_bind_int(mMzdbFile.stmt, 23, mDataModePosition[effectiveMode]);
+        sqlite3_bind_int(mMzdbFile.stmt, 23, this->findDataEncodingID(effectiveMode, isInHighRes, mMzdbFile.noLoss));
 
         //bb first spec id
         sqlite3_bind_int(mMzdbFile.stmt, 24, bbFirstScanId);
@@ -323,26 +320,47 @@ public:
             }
             ++i;
         }
+    } //end insertScan
+
+
+    int findDataEncodingID(DataMode mode, bool inHighRes, bool noLoss=false) {
+        PeakEncoding pe = inHighRes ? HIGH_RES_PEAK : LOW_RES_PEAK;
+        if (inHighRes && noLoss)
+            pe = NO_LOSS_PEAK;
+
+        for (auto it = mDataEncodingByID.begin(); it != mDataEncodingByID.end(); ++it) {
+            DataEncoding de = it->second;
+            if (de.mode == mode && pe == de.peakEncoding)
+                return it->first;
+        }
+        throw exception("Can not determine the good data encoding ID");
     }
 
-//----------------------------------------------
-    int instrumentConfigurationIndex(pwiz::msdata::MSDataPtr msdata,
-                                                    const pwiz::msdata::InstrumentConfigurationPtr & ic) const {
-        const vector<pwiz::msdata::InstrumentConfigurationPtr>& insconfs = msdata->instrumentConfigurationPtrs;
-        int pos = std::find(insconfs.begin(), insconfs.end(), ic) - insconfs.begin();
-        return pos + 1;
-    }
+
+//    int instrumentConfigurationIndex(pwiz::msdata::MSDataPtr msdata,
+//                                     const pwiz::msdata::InstrumentConfigurationPtr & ic) const {
+//        const vector<pwiz::msdata::InstrumentConfigurationPtr>& insconfs = msdata->instrumentConfigurationPtrs;
+//        int pos = std::find(insconfs.begin(), insconfs.end(), ic) - insconfs.begin();
+//        return pos;
+//    }
 
 
-    int dataProcessingIndex(pwiz::msdata::MSDataPtr msdata,
-                                        const pwiz::msdata::DataProcessingPtr & dp) const {
-        if (!dp)
-            return 1; //by default pointer to scanProcess;
-        const vector<pwiz::msdata::DataProcessingPtr>& dataProcessings = msdata->allDataProcessingPtrs();
-        int pos = std::find(dataProcessings.begin(), dataProcessings.end(), dp) - dataProcessings.begin();
-        return pos + 1;
-    }
+//    int dataProcessingIndex(pwiz::msdata::MSDataPtr msdata,
+//                                        const pwiz::msdata::DataProcessingPtr & dp) const {
+//        if (!dp)
+//            return 1; //by default pointer to scanProcess;
+//        const vector<pwiz::msdata::DataProcessingPtr>& dataProcessings = msdata->allDataProcessingPtrs();
+//        int pos = std::find(dataProcessings.begin(), dataProcessings.end(), dp) - dataProcessings.begin();
+//        return pos + 1;
+//    }
 
+    /**
+     * @brief sourceFileIndex
+     * Warning this is not working
+     * @param msdata
+     * @param sf
+     * @return
+     */
     int sourceFileIndex(pwiz::msdata::MSDataPtr msdata, const pwiz::msdata::SourceFilePtr & sf) const {
         const vector<pwiz::msdata::ScanSettingsPtr>& scanSettings = msdata->scanSettingsPtrs;
         int sourceFileCounter = 1;
@@ -357,6 +375,7 @@ public:
         }
         return 1; //by default one sourcefile exist ;
     }
+
 }; //end class
 
 

@@ -262,20 +262,7 @@ void mzDBReader::enumerateSpectra()  {
 }
 
 
-void mzDBReader::extractMSRegion(double mzmin, double mzmax, double rtmin, double rtmax, int msLevel, vector<mzScan*> results) {
-    mzRegionExtractor regionExtractor(this->mMzdb);
-
-    //providing a vector for storing results
-    try {
-        regionExtractor.rTreeExtraction(mzmin, mzmax, rtmin, rtmax, msLevel, results);
-    } catch(exception& e) {
-        LOG(ERROR) << "Error: " << e.what();
-    } catch(...) {
-        LOG(ERROR) << "unknown error, failed.";
-    }
-}
-
-void mzDBReader::extractMSnRegion(double mzmin, double mzmax, double rtmin, double rtmax, int msLevel, vector<mzScan*> results) {
+void mzDBReader::extractRegion(double mzmin, double mzmax, double rtmin, double rtmax, int msLevel, vector<mzScan*> results) {
     mzRegionExtractor regionExtractor(this->mMzdb);
 
     //providing a vector for storing results
@@ -300,7 +287,6 @@ void mzDBReader::extractRunSlice(double mzmin, double mzmax, int msLevel, vector
     } catch(...) {
         LOG(ERROR) << "unknown error, failed.";
     }
-}
 }
 
 

@@ -4,7 +4,7 @@ exe raw2mzDB
   <include>..
   <library>mzdb/writer
   <library>mzdb/lib/getopt_pp
-: <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /GAyF /EHa" <linkflags>"/LTCG" #default_builds "/Ox /Gy /GA /GF /arch:SSE2 /HEa"  <cxxflags>"/Ox /GLAFy /LTCG /fp:fast" 
+: <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /GAyF" <linkflags>"/LTCG" #default_builds "/Ox /Gy /GA /GF /arch:SSE2 /HEa"  <cxxflags>"/Ox /GLAFy /LTCG /fp:fast" 
 :
 ;
 

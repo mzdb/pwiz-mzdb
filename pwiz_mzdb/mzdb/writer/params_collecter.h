@@ -31,7 +31,6 @@ public:
        for (auto userparam = pc.userParams.begin(); userparam != pc.userParams.end(); ++userparam) {
            m_userParamsByName[(*userparam).name] = *userparam;
        }
-
     }
 
     void insertCollectedCVTerms();

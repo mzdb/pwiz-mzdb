@@ -57,7 +57,6 @@ private:
         } else {
             auto s = std::make_shared<mzSpectrum<l_mz_t, l_int_t> >(scanCount, cycleCount, spec);
             s->isInHighRes = isInHighRes;
-            printf("%s\n", s->spectrum->id.c_str());
             cycle->addLowResSpectrum(s);
         }
     }

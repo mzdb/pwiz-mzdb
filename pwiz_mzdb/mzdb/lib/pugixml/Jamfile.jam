@@ -7,7 +7,7 @@ lib pugixml
 		<include>include
 	
 		
-	: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /Gr /GF /EHa" #default-build
+	: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /Gr /GF"          #default-build
 	: #usage-requirments
 		<include>include
 	

@@ -46,7 +46,6 @@ using namespace pwiz::msdata;
 
 #ifdef _WIN32
 void trans_func( unsigned int u, EXCEPTION_POINTERS* pExp ){
-    printf("in transfunction\n");
     throw runtime_error("SEH exception.");
 }
 #endif
@@ -142,11 +141,11 @@ void parseRange(string& range, DataMode mode,
 
 /// Starting point !
 int main(int argc, char* argv[]) {
-#ifdef _WIN32
-    //set se translator
-    LOG(INFO) << "Setting custom translator for SEH exception.";
-    _set_se_translator(trans_func);
-#endif
+    //#ifdef _WIN32
+    //    //set se translator
+    //    LOG(INFO) << "Setting custom translator for SEH exception.";
+    //    _set_se_translator(trans_func);
+    //#endif
 
     string filename = "", centroid = "", profile = "", fitted = "", namefile = "", serialization = "xml";
     bool compress = false;
@@ -270,7 +269,7 @@ int main(int argc, char* argv[]) {
 
     //--- Sarting launching code
     //create a mzDBFile
-    MzDBFile f(filename, bbHeight, bbHeightMSn, bbWidth, bbWidthMSn);
+    MzDBFile f(filename, bbHeight, bbHeightMSn, bbWidth, bbWidthMSn, noLoss);
 
     //---pwiz file detection
     ReaderPtr readers(new FullReaderList);
@@ -290,7 +289,7 @@ int main(int argc, char* argv[]) {
     auto& msData = msdList[0];
     auto originFileFormat = pwiz::msdata::identifyFileFormat( readers, f.name );
 
-    mzDBWriter writer(f, dataModeByMsLevel, originFileFormat, msData, compress);
+    mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, compress);
 
     //---insert metadata
     try {
@@ -304,7 +303,7 @@ int main(int argc, char* argv[]) {
 
     //---check swath mode
     try {
-            writer.isSwathAcquisition();
+        writer.isSwathAcquisition();
     } catch (exception& e) {
         LOG(ERROR) << "Error checking DDA/SWATH Mode: ";
         LOG(ERROR) << "\t->" << e.what();
@@ -327,14 +326,14 @@ int main(int argc, char* argv[]) {
 
     try {
         if (noLoss) {
-            LOG(INFO) << "No-loss mode encoding: all ms Mz-64, all ms Int-64";
+            //LOG(INFO) << "No-loss mode encoding: all ms Mz-64, all ms Int-64";
             writer.writeNoLossMzDB(namefile, nscans, nbCycles, p);
         } else {
             if (false) { // If msInstrument only good at ms1
-                LOG(INFO) << "ms1 Mz-64, all ms Int-32 encoding";
+                //LOG(INFO) << "ms1 Mz-64, all ms Int-32 encoding";
                 writer.writeMzDBMzMs1Hi(namefile, nscans, nbCycles, p);
             } else {
-                LOG(INFO) << "all ms Mz-64, all ms Int-32 encoding";
+                //LOG(INFO) << "all ms Mz-64, all ms Int-32 encoding";
                 writer.writeMzDBMzHi(namefile, nscans, nbCycles, p);
             }
         }

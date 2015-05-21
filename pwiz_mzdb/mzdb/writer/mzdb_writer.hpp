@@ -94,7 +94,9 @@ namespace mzdb {
 #define bb_msn_mz_width_default 10000
 #define bb_msn_rt_width_default 0
 
-/// Base class for writing a raw to mzDBFile
+/**
+ * @brief The mzDBWriter class
+ */
 class mzDBWriter: private boost::noncopyable {
 
 protected:
@@ -121,12 +123,23 @@ protected:
     /// to convert each mslevel
     map<int, DataMode>& m_dataModeByMsLevel;
 
-    /// Two counters in order to know about the conversion progression and, if enabled, the number
-    /// of precursor not found at  50ppm in the provided isolation window
-    int m_progressionCounter, m_emptyPrecCount;
+    /// map containing data encoding ID (ID which will be registered in the DB) as key and
+    /// the corresponding `DataEncoding` object
+    /// @see DataEncoding
+    map<int, DataEncoding> m_dataEncodingByID;
 
-    /// Boolean enbling or not the compression of each bounding box. Swath mode
-    bool m_compress, m_swathMode;
+    /// counter in order to know about the conversion progression
+    int m_progressionCounter;
+
+    /// number of precursor not found at  50ppm in the provided isolation window
+    /// when refining precursor enabled
+    int m_emptyPrecCount;
+
+    /// Boolean enbling or not the compression of each bounding box.
+    bool m_compress;
+
+    /// Swath mode enabled or not
+    bool m_swathMode;
 
     /// xml serializer using pugi:xml
     ISerializer::xml_string_writer m_serializer;
@@ -134,13 +147,48 @@ protected:
 
     //------------------ UTILITY FUNCTIONS -------------------------------------
 
-    /// Create sqlite tables, abort if it fails
+    /**
+     * @brief hasDataMode
+     * Test if a dataMode exists in the requested datamodes by the user
+     * only useful to compute member `m_dataEncodingByID`.
+     *
+     * @param mode: DataMode tested
+     * @return bool if the datamode exists or not in the map
+     * @see buildDataEncodingRowByID
+     */
+    inline bool hasDataMode(DataMode mode) {
+        for (auto it = m_dataModeByMsLevel.begin(); it != m_dataModeByMsLevel.end(); ++it) {
+            if (it->second == mode) return true;
+        }
+        return false;
+    }
+
+    /**
+     * @brief buildDataEncodingRowByID
+     * Function that computes the dataEncoding ID from the DataMode wanted by msLevel
+     */
+    void buildDataEncodingRowByID();
+
+    /**
+     * @brief createTables
+     * Create sqlite tables, abort if it fails
+     */
     void createTables();
 
-    /// Create indexes
+    /**
+     * @brief createIndexes
+     * Create indexes, if fails lead to very poor performance
+     */
     void createIndexes();
 
-    /// get the good data extractor
+    /**
+     * @brief getMetadataExtractor
+     * Create the appropriate metadata extractor given input file format
+     * @see m_originFileFormat
+     *
+     * @return unique_ptr subclass of mzIMetadataExtractor
+     * @see mzIMetadataExtractor
+     */
     inline std::unique_ptr<mzIMetadataExtractor> getMetadataExtractor() {
 #ifdef _WIN32
         switch ( (int) m_originFileFormat ) {
@@ -158,40 +206,70 @@ protected:
 #endif
     }
 
-    /// Insert controlled vocabulary terms and cv units in the database
+    /**
+     * @brief insertCollectedCVTerms
+     * Insert controlled vocabulary terms and cv units in the database
+     */
     void insertCollectedCVTerms();
 
 public:
 
-    /// build empty needed DataProessing... not const because we modify _msdata
+    /**
+     * @brief checkMetaData
+     *  build and modify missing metadata
+     *  Note: not const because we modify _msdata
+     */
     PWIZ_API_DECL void checkMetaData();
 
-    /// insert metadata into the database
-    PWIZ_API_DECL void insertMetaData(bool noLoss);
+    /**
+     * @brief insertMetaData
+     * insert metadata bundle into the database
+     */
+    PWIZ_API_DECL void insertMetaData();
 
+    /**
+     */
     inline PWIZ_API_DECL void setSwathAcquisition(bool swath) {m_swathMode = swath;}
 
+    /**
+     */
     inline PWIZ_API_DECL bool getSwathAcquisition() {return m_swathMode;}
 
-    /// Function fetching the first cycles to test if we have a swath acquisition
+    /**
+     * @brief isSwathAcquisition()
+     * Function fetching the first cycles to test if we have a swath acquisition
+     */
     PWIZ_API_DECL bool isSwathAcquisition();
 
-    /// checkAndFixRunSliceNumber
+    /**
+     * @brief checkAndFixRunSliceNumberAnId
+     */
     PWIZ_API_DECL void checkAndFixRunSliceNumberAnId();
 
-    /// Ctor, receives premiminary tests and structures provided by Pwiz FullListReader
+    /**
+     * @brief mzDBWriter
+     * Primary ctor, receive import parameters for performing the conversion
+     *
+     * @param f: MzDBFile
+     * @param msdata: MSDataPtr pwiz object resulting of the pwiz reading of the raw file
+     * @param originFileFormat
+     * @param m: map containing msLevel vs DataMode
+     * @param compress: using compression performed by Numpress algorithm
+     * @return
+     */
     PWIZ_API_DECL mzDBWriter(MzDBFile& f,
-                             std::map<int, DataMode>& m,
-                             pwiz::msdata::CVID originFileFormat,
                              pwiz::msdata::MSDataPtr msdata,
+                             pwiz::msdata::CVID originFileFormat,
+                             std::map<int, DataMode>& m,
                              bool compress);
 
     /**
-     * @brief mzDBWriter::writeMzRTreeDB
-     * @param noLoss
-     * @param ppm
-     * @param filename
-     * @param nscans
+     * @brief mzDBWriter::writeMzDB
+     *
+     * @param filenam: path of raw file to convert, could be also mzML, mzXML
+     * @param nscans: #scans to convert into the mzdb file form the beginning
+     * @param nbCycles
+     * @param params: specify the algorithm and parameters used for peak picking to perform profile to fitted mode
      */
     template<typename h_mz_t, typename h_int_t,
              typename l_mz_t, typename l_int_t>
@@ -236,7 +314,7 @@ public:
         this->createTables();
 
         try {
-            this->insertMetaData(false);
+            this->insertMetaData();
         } catch(exception& e) {
             LOG(ERROR) << "Error occured during metadata insertion.";
             LOG(ERROR) << "\t->" << e.what();
@@ -265,21 +343,19 @@ public:
 
         map<int, map<int, int> > runSlices;
         map<int, double> bbHeightManager, bbWidthManager; //currentRt
-        //currentRt[1] = PwizHelper::rtOf(spectrumList->spectrum(0, false));
         bbWidthManager[1] = m_mzdbFile.bbWidth;
 
-        //faster to do a multiplication than a division so calculate just once the inverse
+        //---faster to do a multiplication than a division so calculate just once the inverse
         double invms1 = 1.0 / m_mzdbFile.bbHeight;
         double invmsn = 1.0 / m_mzdbFile.bbHeightMsn;
 
         bbHeightManager[1] = invms1;
         for (int msnb = 2; msnb <= MAX_MS; ++msnb) {
-            //currentRt[msnb] = 0;
             bbHeightManager[msnb] = invmsn;
             bbWidthManager[msnb] = m_mzdbFile.bbWidthMsn;
         }
 
-        //begin a new transaction
+        //---begin a new transaction
         sqlite3_exec(m_mzdbFile.db, "BEGIN;", 0, 0, 0);
 
         int progressCount = 0;
@@ -287,15 +363,13 @@ public:
         size_t nbProc = boost::thread::hardware_concurrency();
         LOG(INFO) << "#detected core(s): " << nbProc;
 
-        //iterate (get spectra for example) on it
-        //increasing nbCycles leads to an increase of performance
-        //(time of conversion) but can use many more RAM
-        // could also use non blocking FollyQueue follyQueue(100) from facebook;
+        // iterate (get spectra for example) on it. Increasing nbCycles leads to an increase of performance
+        // (time of conversion) but can use many more RAM. Could also use non blocking FollyQueue follyQueue(100)
+        // from facebook;
         MzDBQueue mzdbQueue(100);
         PCBuilder<MzDBBlockingQueueing, mzMultiThreadedPeakPicker> pcThreadBuilder(
                     mzdbQueue, m_mzdbFile, m_paramsCollecter,
-                    m_originFileFormat, m_dataModeByMsLevel
-        );
+                    m_originFileFormat, m_dataModeByMsLevel, m_dataEncodingByID);
 
         if (m_originFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
             LOG(INFO) << "Thermo raw file format detected";
@@ -344,7 +418,7 @@ public:
         else {
             LOG(INFO) << "Beta support spectrumList";
             if (m_swathMode) {
-               LOG(INFO) << "Swath producer/consumer";
+                LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getSwathGenericProducerThread( levelsToCentroid, spectrumList.get(),
                                                                            nscans, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getSwathGenericConsumerThread( m_msdata, m_serializer, bbHeightManager,
@@ -380,8 +454,6 @@ public:
 
     }
 
-     /// TODO: Make this clearer: no mslevel intervention, but instead the notion of HighResMode
-     /// LowResMode
     /// All informations are encoded as 64-bits double.
     void PWIZ_API_DECL writeNoLossMzDB(string& filename,
                                        int nscans,

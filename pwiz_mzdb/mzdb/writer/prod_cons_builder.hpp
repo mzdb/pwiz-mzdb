@@ -95,7 +95,8 @@ public:
               MzDBFile& mzdbFile,
               mzParamsCollecter& paramsCollecter,
               pwiz::msdata::CVID rawFileFormat,
-              map<int, DataMode>& dataModeByMsLevel):
+              map<int, DataMode>& dataModeByMsLevel,
+              map<int, DataEncoding>& dataEncodingByID):
         mDiaThermoProducer(nullptr),
         mDdaThermoProducer(nullptr),
         mSwathABIProducer(nullptr),
@@ -112,19 +113,19 @@ public:
         if (rawFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
             mDiaThermoProducer = unique_ptr<DIAThermoProducer>(new DIAThermoProducer(queue, mzdbFile.name, dataModeByMsLevel));
             mDdaThermoProducer = unique_ptr<DDAThermoProducer>(new DDAThermoProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mDiaThermoConsumer = unique_ptr<DIAThermoConsumer>(new DIAThermoConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel));
-            mDdaThermoConsumer = unique_ptr<DDAThermoConsumer>(new DDAThermoConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel));
+            mDiaThermoConsumer = unique_ptr<DIAThermoConsumer>(new DIAThermoConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
+            mDdaThermoConsumer = unique_ptr<DDAThermoConsumer>(new DDAThermoConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
 
         } else if (rawFileFormat == pwiz::msdata::MS_ABI_WIFF_format) {
             mSwathABIProducer = unique_ptr<SwathABIProducer>(new SwathABIProducer(queue, mzdbFile.name, dataModeByMsLevel));
             mDdaABIProducer = unique_ptr<DDAABIProducer>(new DDAABIProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mSwathABIConsumer = unique_ptr<SwathABIConsumer>(new SwathABIConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel));
-            mDdaABIConsumer = unique_ptr<DDAABIConsumer>(new DDAABIConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel));
+            mSwathABIConsumer = unique_ptr<SwathABIConsumer>(new SwathABIConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
+            mDdaABIConsumer = unique_ptr<DDAABIConsumer>(new DDAABIConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
         } else {
             mSwathGenericProducer = unique_ptr<SwathGenericProducer>(new SwathGenericProducer(queue, mzdbFile.name, dataModeByMsLevel));
             mDdaGenericProducer = unique_ptr<DDAGenericProducer>(new DDAGenericProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mSwathGenericConsumer = unique_ptr<SwathGenericConsumer>(new SwathGenericConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel));
-            mDdaGenericConsumer = unique_ptr<DDAGenericConsumer>(new DDAGenericConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel));
+            mSwathGenericConsumer = unique_ptr<SwathGenericConsumer>(new SwathGenericConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
+            mDdaGenericConsumer = unique_ptr<DDAGenericConsumer>(new DDAGenericConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
         }
 
     }
