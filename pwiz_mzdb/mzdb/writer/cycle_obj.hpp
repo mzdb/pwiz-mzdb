@@ -35,8 +35,7 @@ namespace mzdb {
 /**
  *
  */
-template< class h_mz_t, class h_int_t,
-                class l_mz_t, class l_int_t>
+template< class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
 struct mzSpectraContainer {
 
 

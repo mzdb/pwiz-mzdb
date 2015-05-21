@@ -19,6 +19,11 @@ using namespace std;
 
 namespace mzdb {
 
+/**
+ * @brief The mzDDAProducer class
+ * Reads spectrum, aggregates it in cycle object, perform peak-picking (fitting) then send it
+ * to a queue for being inserted in the sqlite database.
+ */
 template< class QueueingPolicy,
           class MetadataExtractionPolicy,
           class PeakPickerPolicy,            // ability to launch peak picking process
@@ -39,9 +44,20 @@ class mzDDAProducer:  QueueingPolicy, MetadataExtractionPolicy {
 
 private:
 
+    /// peakpicker object
     PeakPickerPolicy m_peakPicker;
+
+    ///ms levels encountered
     set<int> m_msLevels;
 
+    /**
+     * @brief _peakPickAndPush
+     * performs peak-picking then push it to the queue
+     *
+     * @param cycle, cycle number
+     * @param filetype origin file type
+     * @param params for peak picking algorithm
+     */
     void _peakPickAndPush(SpectraContainerUPtr& cycle, pwiz::msdata::CVID filetype,
                           mzPeakFinderUtils::PeakPickerParams& params) {
 
@@ -49,6 +65,16 @@ private:
         this->put(std::move(cycle));
     }
 
+    /**
+     * @brief _addSpectrum
+     * Add spectrum to the current cycle object
+     *
+     * @param cycle
+     * @param scanCount
+     * @param cycleCount
+     * @param isInHighRes
+     * @param spec
+     */
     void _addSpectrum(SpectraContainerUPtr& cycle, int scanCount, int cycleCount, bool isInHighRes, pwiz::msdata::SpectrumPtr spec) {
         if (isInHighRes) {
             auto s = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spec);
@@ -63,6 +89,19 @@ private:
 
 
 public:
+
+    /**
+     * @brief _produce
+     * Read all spectra from data file, performs peak-picking and push cycle objects
+     * into the queue
+     *
+     * @param levelsToCentroid
+     * @param spectrumList
+     * @param nscans
+     * @param bbRtWidth
+     * @param filetype
+     * @param params
+     */
     void _produce(  pwiz::util::IntegerSet& levelsToCentroid,
                     SpectrumListType* spectrumList,
                     int nscans,
@@ -171,7 +210,12 @@ public:
         this->put(nullContainer);
     }
 
-    /// constructor
+    /**
+     * @brief mzDDAProducer
+     * @param queue
+     * @param mzdbPath
+     * @param dataModeByMsLevel
+     */
     mzDDAProducer( typename QueueingPolicy::QueueType& queue,
                    std::string& mzdbPath,
                    map<int, DataMode>& dataModeByMsLevel):
@@ -179,7 +223,16 @@ public:
         MetadataExtractionPolicy(mzdbPath),
         m_peakPicker(dataModeByMsLevel) {}
 
-    /// return thread
+    /**
+     * @brief getProducerThread
+     * @param levelsToCentroid
+     * @param spectrumList
+     * @param nscans
+     * @param bbWidthManager
+     * @param filetype
+     * @param params
+     * @return thread to join
+     */
     boost::thread getProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                     SpectrumListType* spectrumList,
                                     int nscans,

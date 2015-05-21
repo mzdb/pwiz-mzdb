@@ -15,31 +15,72 @@
 
 namespace mzdb {
 
+/**
+ * @brief The mzSpectrumInserter class
+ *
+ * Insert spectrum into mzDB file
+ */
 class mzSpectrumInserter {
 
 private:
 
     /* can have different way to collect cv and user params */
+    /// object that collect cv params and use params from spectrum objects
+    /// and spectrum child objects
     mzParamsCollecter& mParamsCollecter;
 
+    /// mzDBFile provding sqlite objects statement and database
     MzDBFile& mMzdbFile;
 
-    /* raw file format currently treated */
+    /// raw file format currently treated
     pwiz::msdata::CVID mRawFileFormat;
 
-    /* pointer to the raw wiff file */
+    /// pointer to the raw wiff file
+    /// null if not a wiff file
     pwiz::vendor_api::ABI::WiffFilePtr mWiffFile;
 
+    /// map mslevel dataMode
+    /// @see DataMode
     map<int, DataMode>& mDataModeByMsLevel;
 
+    /// map db id, DataEncoding, useful to retrieve db data encoding id
+    /// @see DataEncoding
     map<int, DataEncoding>& mDataEncodingByID;
 
-    //map<DataMode, int> mDataModePosition;
+    /**
+     * @brief findDataEncodingID
+     * Helping function to retrieve good data encoding id for a given
+     * DataMode
+     *
+     * @param mode
+     * @param inHighRes
+     * @param noLoss
+     * @return
+     */
+    inline int findDataEncodingID(DataMode mode, bool inHighRes, bool noLoss=false) {
+        PeakEncoding pe = inHighRes ? HIGH_RES_PEAK : LOW_RES_PEAK;
+        if (inHighRes && noLoss)
+            pe = NO_LOSS_PEAK;
 
+        for (auto it = mDataEncodingByID.begin(); it != mDataEncodingByID.end(); ++it) {
+            DataEncoding de = it->second;
+            if (de.mode == mode && pe == de.peakEncoding)
+                return it->first;
+        }
+        throw exception("Can not determine the good data encoding ID");
+    }
 
 public:
 
-    /* constructor, object will hold a reference to the unique paramsCollecter */
+    /**
+     * @brief mzSpectrumInserter
+     *
+     * @param mzdb
+     * @param pc
+     * @param rawFileFormat
+     * @param dataModeByMsLevel
+     * @param dataEncodingByID
+     */
     mzSpectrumInserter(MzDBFile& mzdb,
                        mzParamsCollecter& pc,
                        pwiz::msdata::CVID rawFileFormat,
@@ -56,7 +97,10 @@ public:
             mWiffFile = pwiz::vendor_api::ABI::WiffFile::create(mMzdbFile.name);
     } // end ctor
 
-
+    /**
+     * @brief insertScan
+     * Insert spectrum object into the mzDB file
+     */
     template<typename mz_t, typename int_t, typename h_mz_t, typename h_int_t>
     void insertScan(std::shared_ptr<mzSpectrum<mz_t, int_t> >& spectrum,
                     int idxInCycle,  //needed by ABI low level API
@@ -149,7 +193,7 @@ public:
 
         //base peak intensity
         try {
-        sqlite3_bind_double(mMzdbFile.stmt, 10, spec->cvParam(pwiz::msdata::MS_base_peak_intensity).valueAs<float>());
+            sqlite3_bind_double(mMzdbFile.stmt, 10, spec->cvParam(pwiz::msdata::MS_base_peak_intensity).valueAs<float>());
         } catch (boost::bad_lexical_cast&) {
             LOG(ERROR) << "Wrong cv value: MS_base_peak_intensity";
             sqlite3_bind_double(mMzdbFile.stmt, 10, 0.0);
@@ -294,6 +338,10 @@ public:
     }
 
     //insert several scans
+    /**
+     * @brief insertScans
+     * Insert all scans of a cycle (represented as mzSpectraContainer)
+     */
     template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t >
     void insertScans(unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> >& cycleObject,
                      pwiz::msdata::MSDataPtr msdata,
@@ -311,48 +359,34 @@ public:
         for (auto it = spectra.begin(); it != spectra.end(); ++it) {
             if (it->first != nullptr) {
                 this->insertScan<h_mz_t, h_int_t, h_mz_t, h_int_t>
-                    (it->first, i, cycleObject->getBeginId(),
-                     cycleObject->parentSpectrum, msdata, serializer);
+                        (it->first, i, cycleObject->getBeginId(),
+                         cycleObject->parentSpectrum, msdata, serializer);
             } else {
                 this->insertScan<l_mz_t, l_int_t, h_mz_t, h_int_t>
-                    (it->second, i, cycleObject->getBeginId(),
-                     cycleObject->parentSpectrum, msdata, serializer);
+                        (it->second, i, cycleObject->getBeginId(),
+                         cycleObject->parentSpectrum, msdata, serializer);
             }
             ++i;
         }
     } //end insertScan
 
 
-    int findDataEncodingID(DataMode mode, bool inHighRes, bool noLoss=false) {
-        PeakEncoding pe = inHighRes ? HIGH_RES_PEAK : LOW_RES_PEAK;
-        if (inHighRes && noLoss)
-            pe = NO_LOSS_PEAK;
-
-        for (auto it = mDataEncodingByID.begin(); it != mDataEncodingByID.end(); ++it) {
-            DataEncoding de = it->second;
-            if (de.mode == mode && pe == de.peakEncoding)
-                return it->first;
-        }
-        throw exception("Can not determine the good data encoding ID");
-    }
+    //    int instrumentConfigurationIndex(pwiz::msdata::MSDataPtr msdata,
+    //                                     const pwiz::msdata::InstrumentConfigurationPtr & ic) const {
+    //        const vector<pwiz::msdata::InstrumentConfigurationPtr>& insconfs = msdata->instrumentConfigurationPtrs;
+    //        int pos = std::find(insconfs.begin(), insconfs.end(), ic) - insconfs.begin();
+    //        return pos;
+    //    }
 
 
-//    int instrumentConfigurationIndex(pwiz::msdata::MSDataPtr msdata,
-//                                     const pwiz::msdata::InstrumentConfigurationPtr & ic) const {
-//        const vector<pwiz::msdata::InstrumentConfigurationPtr>& insconfs = msdata->instrumentConfigurationPtrs;
-//        int pos = std::find(insconfs.begin(), insconfs.end(), ic) - insconfs.begin();
-//        return pos;
-//    }
-
-
-//    int dataProcessingIndex(pwiz::msdata::MSDataPtr msdata,
-//                                        const pwiz::msdata::DataProcessingPtr & dp) const {
-//        if (!dp)
-//            return 1; //by default pointer to scanProcess;
-//        const vector<pwiz::msdata::DataProcessingPtr>& dataProcessings = msdata->allDataProcessingPtrs();
-//        int pos = std::find(dataProcessings.begin(), dataProcessings.end(), dp) - dataProcessings.begin();
-//        return pos + 1;
-//    }
+    //    int dataProcessingIndex(pwiz::msdata::MSDataPtr msdata,
+    //                                        const pwiz::msdata::DataProcessingPtr & dp) const {
+    //        if (!dp)
+    //            return 1; //by default pointer to scanProcess;
+    //        const vector<pwiz::msdata::DataProcessingPtr>& dataProcessings = msdata->allDataProcessingPtrs();
+    //        int pos = std::find(dataProcessings.begin(), dataProcessings.end(), dp) - dataProcessings.begin();
+    //        return pos + 1;
+    //    }
 
     /**
      * @brief sourceFileIndex

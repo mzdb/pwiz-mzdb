@@ -42,7 +42,7 @@ public:
 
 template<class T>
 class FollyQueueingPolicy: public mzAbstractQueueingPolicy<FollyQueueingPolicy<T>,
-                                                                                        folly::ProducerConsumerQueue<T> >{
+        folly::ProducerConsumerQueue<T> >{
 public:
 
     typedef folly::ProducerConsumerQueue<T> QueueType;
@@ -50,7 +50,7 @@ public:
 
     FollyQueueingPolicy( folly::ProducerConsumerQueue<T>& queue):
         mzAbstractQueueingPolicy<FollyQueueingPolicy<T>,
-                                                folly::ProducerConsumerQueue<T> >(queue) {}
+        folly::ProducerConsumerQueue<T> >(queue) {}
 
 
     void put(T& element) {
@@ -71,7 +71,7 @@ public:
 
 template<class T>
 class BlockingQueueingPolicy: public mzAbstractQueueingPolicy<BlockingQueueingPolicy<T>,
-                                                                                             BlockingQueue<T> >{
+        BlockingQueue<T> >{
 public:
 
     typedef BlockingQueue<T> QueueType;
@@ -85,7 +85,7 @@ public:
     }
 
     void get(T& element) {
-       m_queue.get(element);
+        m_queue.get(element);
     }
 
     size_t size() {
