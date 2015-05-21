@@ -121,30 +121,37 @@ typedef unsigned char byte;
 typedef unsigned int mz_uint;
 
 
-#define DELETE_IF_HAS_OWNERSHIP(ownership, vec)  \
-    if ( ownership == TAKE_OWNERSHIP) { \
-    for (auto it= vec.begin(); it != vec.end(); ++it) { \
-    delete *it; \
-} \
-}
-
-
-/// Simulating ownership of naked pointer
-enum Ownership {
-    TAKE_OWNERSHIP,
-    DO_NOT_TAKE_OWNERSHIP
-};
-
-
-/// Enumeration which value equals to the number of bytes
-/// in the encoding mode
+///A spectrum can be stored in different ways:
+///
+/// -`Profile`: the spectrum has been acquired in profile and the user want to keep
+/// it in profile (all data points)
+///
+/// -`Fitted`: the spectrum has been acquired in profile and the user want to perform a
+/// peak picking on it. The `Fitted` mode is an intermediary mode between profile and
+/// centroid. Each mass peak is modelized to keep most of the information: its width at half
+/// maximum and m/z value plus intensity value at the apex. This mode is a good trade-off between
+/// file data size and peak informations.
+///
+/// -`Centroid`: the spectrum could already be acquired in centroid mode. In case, it is in profile,
+/// a peak picking method is performed usually preferring `vendor` algorithm
 enum DataMode {
     PROFILE = 1,
     CENTROID = 12,
     FITTED = 20
 };
 
-
+/// a mass peak can be encoded in three different ways:
+///
+/// -if this a low resolution spectrum (i.e. a MS2 spectrum for exmaple), it is preferred
+/// to store it with m/z and intensity values encoded in 32 bits in order to save space: enum value of
+/// 8 (4 bytes + 4 bytes)
+///
+/// -if this a high resolution spectrum (i.e. MS1 spectrum most of the time) a high precision in
+/// m/z dimension is required: it will be stored using a 64 bits (double in moder desktop architecture):
+/// enum value of 12 (4 bytes +  8 bytes)
+///
+/// -For some reasons, you may want to encode both m/z and intensities in 64 bits: enum value of 16
+/// (8 bytes + 8 bytes)
 enum PeakEncoding {
     LOW_RES_PEAK = 8,
     HIGH_RES_PEAK = 12,
@@ -152,16 +159,36 @@ enum PeakEncoding {
 };
 
 
-/// Wrapper of PeakEncoding and DataMode
+/// A DataEncoding is the combination of the DataMode @see DataMode, the PeakEncoding @see PeakEncoding
+/// and a string which indicates if data are compressed or not. This strucure is used both in reading
+/// and writing tasks; so its usage can vary slightly through cases.
 struct DataEncoding {
+
+    /// sqlite DB row id of `data_encoding` table
     int id;
+
+    ///mode @see DataMode
     DataMode mode;
+
+    ///peakEncoding @see PeakEncoding
     PeakEncoding peakEncoding;
+
+    ///compression
     string compression;
 
+    /**
+     * DataEncoding of one or several spectrum(a)
+     * @param id_
+     * @param mode_ @see DataMode
+     * @param pe_ @see PeakEncoding
+     * @param compression default to `none`, no compression applied
+     */
     DataEncoding(int id_, DataMode mode_, PeakEncoding pe_) : id(id), mode(mode_), peakEncoding(pe_), compression("none") {}
+
+    ///Default constructor
     DataEncoding(){}
 
+    ///Create `SQL` for inserting a row in `data_encoding` table with current member values
     string buildSQL() {
         string mzPrec, intPrec;
         if (peakEncoding == NO_LOSS_PEAK) {
@@ -181,8 +208,6 @@ struct DataEncoding {
             mode_str = "centroid";
 
         return "INSERT INTO data_encoding VALUES (NULL, '" + mode_str + "', '"+ compression + "', 'little_endian', "+ mzPrec + ", " + intPrec + ");";
-
-
     }
 };
 
@@ -204,7 +229,7 @@ inline static T get(unsigned int index, vector<byte> &buffer) {
     return *((T*) & buffer[index]);
 }
 
-
+///Utility function to find if a value already exists in the map
 template<typename T>
 inline static bool isInMapKeys(int value, map<int, T>& m) {
     typename map<int, T>::iterator it;
@@ -224,6 +249,8 @@ template <typename T> static bool isInMapKeys(typename T::key_type value, T& m) 
 }
 
 
+/// regroups functions taking in parameters pwiz::msdata::SpectrumPtr
+/// gather some metadata on it
 namespace PwizHelper {
 
 inline static float rtOf(const pwiz::msdata::SpectrumPtr& s) {
@@ -248,11 +275,13 @@ inline static int precursorMzOf(const pwiz::msdata::SpectrumPtr &s) {
 
 } // end namespace PWIZ HELPER
 
+
 /**
- * @brief getActivationCode
+ * Get simple activation code as string for pwiz ``Activation`` object.
+ * -HCD, CID, ETD
  *
- * @param a: pwiz activation object contained in precursor object
- * @return string: to be inserted in the database
+ * @param a pwiz activation object contained in precursor object
+ * @return string representing activation to be inserted in the database
  */
 static inline string getActivationCode(const pwiz::msdata::Activation& a) {
     if (a.empty())
@@ -269,7 +298,6 @@ static inline string getActivationCode(const pwiz::msdata::Activation& a) {
 
 
 /**
- * @brief getDataMode
  * return the effective dataMode given a pwiz spectrum
  * Most of the time it corresponds to the wantedMode except for
  * this kind of cases:
@@ -296,22 +324,25 @@ static DataMode getDataMode( const pwiz::msdata::SpectrumPtr s, DataMode wantedM
     return effectiveMode;
 }
 
+/// some useful functions to get first approximation of centroid
 namespace mzMath {
 
 
 #define SIGMA_FACTOR 2.354820045
 
-
+/// getting ``ymax`` with in a gaussian model
 inline static double yMax( double xZero, double sigmaSquared, double x, double y) {
     double nx = x - xZero;
     return y / exp( - ( nx*nx ) /( 2 * sigmaSquared) );
 }
 
+/// compute y value given gaussian model parameters
 inline static double y( double x, double xZero, double yMax, double sigmaSquared ) {
     double nx = x - xZero;
     return yMax * exp( - ( nx * nx ) / ( 2 * sigmaSquared) );
 }
 
+///compute sigma given gaussian parameters
 inline static double sigma( double width, double relativeHeight ) {
     /* actually if width is null there is no problem */
     if ( width < 0 ) {
@@ -324,6 +355,7 @@ inline static double sigma( double width, double relativeHeight ) {
     return width /  sqrt(- 2 * log(relativeHeight) ) ;
 }
 
+///compute width of peak in Da from gaussian parameters
 inline static double width( double sigma, double relativeHeight) {
     if (! (sigma > 0) )
         throw std::exception("sigma must be > 0");
@@ -332,6 +364,7 @@ inline static double width( double sigma, double relativeHeight) {
     return sigma * ( 2 * sqrt(- 2 * log(relativeHeight) ) );
 }
 
+///compute the FWHM (Full Width at HALF Maximum)
 inline static double fwhm( double sigma) {
     return sigma * SIGMA_FACTOR;
 }
@@ -341,11 +374,15 @@ inline static double mzToDeltaMz(double mz) {
     return 2E-07 * pow(mz, 1.5);
 }
 
+
 template< typename T>
 inline bool static isFiniteNumber(T& x) {
    return (x <= DBL_MAX && x >= -DBL_MAX);
 }
 
+/// MaxQuant formula (parabola) to compute m/z centroid from mass peak data points
+/// @param xData m/z values
+/// @param yData intensities values
 template<class mz_t, class int_t>
 static double gaussianCentroidApex(const std::vector<mz_t>& xData, const std::vector<int_t>& yData) {
     int nb_values = xData.size();
@@ -370,6 +407,8 @@ static double gaussianCentroidApex(const std::vector<mz_t>& xData, const std::ve
     return x;
 }
 
+/// Extension of the MaxQuant formula (parabola) to compute intensity maximum from mass peak data points
+/// (Does not perform very well)
 template<typename mz_t, typename int_t>
 static double gaussianCentroidIntensityMax(const std::vector<mz_t>& xData, const std::vector<int_t>& yData) {
     double x1 = xData[0];
@@ -386,6 +425,8 @@ static double gaussianCentroidIntensityMax(const std::vector<mz_t>& xData, const
     return exp( (gamma/D) - pow( beta/D , 2) / (4 * alpha/D) );
 }
 
+/// Extension of the MaxQuant formula (parabola) to compute sigma maximum from mass peak data points
+/// (not rigorous since gaussian is a parabola only around the apex)
 template<typename mz_t, typename int_t>
 static double gaussianSigma(const std::vector<mz_t>& xData, const std::vector<int_t>& yData) {
     double x1 = xData[0];
@@ -403,6 +444,7 @@ static double gaussianSigma(const std::vector<mz_t>& xData, const std::vector<in
 }//end mzmath
 
 
+///utility function to print a nice progression bar
 inline static void printProgBar(int percent) {
     string bar;
 

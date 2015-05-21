@@ -14,17 +14,38 @@
 namespace mzdb {
 
 /**
- * @brief The MzDBFile struct
- * Contains sqlite3 db and statement pointers plus some metadata about the conversion
- * Can also read user_params of the mzdb table when used in `reading mode`.
- * @see ParamContainer
+ * Contains `sqlite3 db and statement` pointers plus some helping metadata about the current conversion.
+ * Can also read user_params XML chunk of the `mzdb table` when used in `reading mode`.
+ *
+ * @see pwiz::msdata::ParamContainer
  */
 struct MzDBFile : public pwiz::msdata::ParamContainer {
 
-    /// Dimensions of ``bounding box``
-    /// `Width` corresponds to th rt dimension and `height` to the mz dimension.
-    /// There are two kinds of bouning box, one for MS1 and one for MSn
-    float bbHeight, bbHeightMsn, bbWidth, bbWidthMsn;
+    /// ``Height`` (m/z dimension) for bounding box with a MS level = 1
+    float bbHeight;
+
+    /// ``Height`` (m/z dimension) for bounding box with a MS level > 1
+    float bbHeightMsn;
+
+    ///``Width`` (retention dimension) for bounding box with MS level = 1
+    float bbWidth;
+
+    ///``Width`` (retention dimension) for bounding box with MS level > 1
+    float bbWidthMsn;
+
+    /// last row ID of corresponding table in sqlite file.
+
+    /// ID of last inserted `SourceFile` object in the `sqlitedb`
+    /// Primary to avoid foreign keys constraint problems
+    int sourceFileID;
+
+    /// ID of last inserted `DataProcessing` object in the `sqlitedb`
+    /// Primary to avoid foreign keys constraint problems
+    int dataProcessingID;
+
+    /// ID of last inserted `InstrumentConfiguration` object in the `sqlitedb`
+    /// Primary to avoid foreign keys constraint problems
+    int instrumentConfigurationID;
 
     /// Boolean set to true if the user wants to perform a no loss conversion
     /// i.e. m/z encoded 64 bits and intensity 64 bits
@@ -40,60 +61,53 @@ struct MzDBFile : public pwiz::msdata::ParamContainer {
     struct sqlite3_stmt* stmt;
 
     /**
-     * @brief MzDBFile
      * Short constructor
      *
-     * @param name: string raw filename
+     * @param name raw filename
      */
     MzDBFile(string& name);
 
     /**
-     * @brief MzDBFile
      * Full constructor
      *
-     * @param _name: string raw file name
-     * @param _bbHeight: m/z dimension in Da for msLevel=1
-     * @param _bbHeightMsn: m/z dimension in Da for msLevel > 1
-     * @param _bbWidth: rt dimension in seconds for msLevel=1
-     * @param _bbWidthMsn: rt dimension in seconds for msLevel > 1
-     * @param noLoss: bool if true noLoss conversion, by default is set to false
+     * @param _name raw file name
+     * @param _bbHeight m/z dimension in Da for msLevel=1
+     * @param _bbHeightMsn m/z dimension in Da for msLevel > 1
+     * @param _bbWidth retention time dimension in seconds for msLevel=1
+     * @param _bbWidthMsn retention time dimension in seconds for msLevel > 1
+     * @param noLoss if true noLoss conversion, by default is set to false
      */
     MzDBFile(string& _name, float _bbHeight, float _bbHeightMsn, float _bbWidth, float _bbWidthMsn, bool noLoss=false);
 
     /**
-     * @brief MzDBFile destructor
      * Close properly sqlite db connection and statement
      */
     ~MzDBFile();
 
     /**
-     * @brief open
      * Create a new database with the specified filename.
      *
-     *
-     * @param filename: string mzDB filename
-     * @return int: sqlite code of opening/creating the DB
+     * @param filename mzDB filename
+     * @return ``sqlite code`` of opening/creating the sqlite DB
      */
     inline int open(std::string& filename) {
         return sqlite3_open_v2(filename.c_str(), &db, SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE, 0);
     }
 
     /**
-     * @brief isNoLoss
-     * load user_params mzdb table to find the `noLoss user param`
-     * @see ParamContainer
-     * Useful when reading file
+     * load `user_params` mzdb table to find the `noLoss user param`
+     * this method is useful if we are in ``reading mode``.
      *
-     * @return bool true if the file is in noLoss mode else false
+     * @see ParamContainer
+     * @return true if the file is in noLoss mode else false
      */
     bool isNoLoss();
 
     /**
-     * @brief getBBSize
-     * load user_params of mzdb table to get the size of the bounding boxes
+     * load `user_params` of mzdb table to get the size of the bounding boxes for a specified MS level.
      *
      * @param msLevel: fetch bounding boxes sizes for the specified msLevel
-     * @return pair<double, double>: m/z dimension, rt dimension
+     * @return pair<double, double> bounding box height (m/z dimension), bounding box width (retention time dimension)
      */
     pair<double, double> getBBSize(int msLevel);
 
