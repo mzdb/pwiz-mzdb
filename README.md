@@ -7,7 +7,7 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 
 ## Roadmap
 
-Current stable version is 0.9.7.
+Current stable version is 0.9.8 (jerkos++).
 
 ### Release 0.9.8
 
@@ -92,8 +92,6 @@ TODO
 * QtCreator: importing project with existing sources (from the menu), will provide decent code completion.
 
 ### HOW TO ?
-
-TODO
 
 #### Iterate through spectra
 
