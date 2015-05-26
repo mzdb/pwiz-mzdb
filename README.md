@@ -16,6 +16,7 @@ TODO (0.9.8.1):
 - [ ] fix chromatogram.activation_type (weird "unknown" string)
 - [ ] fix default Bounding Boxes dimensions for DIA data
 - [ ] remove empty record in user_term table or fix this record
+- [ ] remove messages related to DIA detection if --dia switch is used
 - [ ] increase mzdb.version to 0.7 (data_encoding table changed, other schema changes ???)
 
 New features:
