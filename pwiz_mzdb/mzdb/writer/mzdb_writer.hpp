@@ -443,11 +443,20 @@ public:
         LOG(INFO) << "Creating permanent spectrum table";
         sqlite3_exec(m_mzdbFile.db, "CREATE TABLE spectrum AS SELECT * from tmp_spectrum;", 0, 0, 0);
 
+
         //--- set sqlite indexes
         this->createIndexes();
 
         //---finally commit
         sqlite3_exec(m_mzdbFile.db, "COMMIT;", 0, 0, 0);
+
+        const char* query = "INSERT INTO main.sqlite_sequence(name, seq) VALUES ('spectrum', ?);";
+        sqlite3_prepare_v2(m_mzdbFile.db, query, -1, &(m_mzdbFile.stmt), 0);
+        sqlite3_bind_int(m_mzdbFile.stmt, 1, nscans);
+        sqlite3_step(m_mzdbFile.stmt);
+
+        //finalize statement
+        sqlite3_finalize(m_mzdbFile.stmt);
 
         //--- in case of precursor calculations
         //LOG(INFO) << "Precursors not found at 50ppm (using vendor peak-piking) count: "<< this->m_emptyPrecCount;

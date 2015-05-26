@@ -29,13 +29,15 @@ void mzParamsCollecter::insertCollectedCVTerms() {
         string& accession = termInfo.id;
         string& name = termInfo.name;
         string unitAccession = cvparam.unitsName();
-        sqlite3_bind_text(m_mzdbFile.stmt, 1, accession.c_str(), accession.length(), SQLITE_STATIC);
-        sqlite3_bind_text(m_mzdbFile.stmt, 2, name.c_str(), name.length(), SQLITE_STATIC);
-        sqlite3_bind_text(m_mzdbFile.stmt, 3, unitAccession.c_str(), unitAccession.length(), SQLITE_STATIC);
-        sqlite3_bind_text(m_mzdbFile.stmt, 4, "psi_ms", 6, SQLITE_STATIC);
-        //step then reset
-        sqlite3_step(m_mzdbFile.stmt);
-        sqlite3_reset(m_mzdbFile.stmt);
+        if (! accession.empty() && ! name.empty()) {
+            sqlite3_bind_text(m_mzdbFile.stmt, 1, accession.c_str(), accession.length(), SQLITE_STATIC);
+            sqlite3_bind_text(m_mzdbFile.stmt, 2, name.c_str(), name.length(), SQLITE_STATIC);
+            sqlite3_bind_text(m_mzdbFile.stmt, 3, unitAccession.c_str(), unitAccession.length(), SQLITE_STATIC);
+            sqlite3_bind_text(m_mzdbFile.stmt, 4, "psi_ms", 6, SQLITE_STATIC);
+            //step then reset
+            sqlite3_step(m_mzdbFile.stmt);
+            sqlite3_reset(m_mzdbFile.stmt);
+        }
     }
     sqlite3_finalize(m_mzdbFile.stmt);
     m_mzdbFile.stmt = 0;
@@ -52,12 +54,14 @@ void mzParamsCollecter::insertCollectedCVTerms() {
 
         const string& name = pair->first;
         const string& type = userparam.type;
-        sqlite3_bind_text(m_mzdbFile.stmt, 1, name.c_str(), name.length(), SQLITE_STATIC);
-        sqlite3_bind_text(m_mzdbFile.stmt, 2, type.c_str(), type.length(), SQLITE_STATIC);
-        sqlite3_bind_text(m_mzdbFile.stmt, 3, "", 0, SQLITE_STATIC);
-        //step then reset
-        sqlite3_step(m_mzdbFile.stmt);
-        sqlite3_reset(m_mzdbFile.stmt);
+        if (!name.empty()) {
+            sqlite3_bind_text(m_mzdbFile.stmt, 1, name.c_str(), name.length(), SQLITE_STATIC);
+            sqlite3_bind_text(m_mzdbFile.stmt, 2, type.c_str(), type.length(), SQLITE_STATIC);
+            sqlite3_bind_text(m_mzdbFile.stmt, 3, "", 0, SQLITE_STATIC);
+            //step then reset
+            sqlite3_step(m_mzdbFile.stmt);
+            sqlite3_reset(m_mzdbFile.stmt);
+        }
     }
     sqlite3_finalize(m_mzdbFile.stmt);
     m_mzdbFile.stmt = 0;

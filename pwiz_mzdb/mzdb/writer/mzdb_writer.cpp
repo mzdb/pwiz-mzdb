@@ -581,8 +581,7 @@ void mzDBWriter::insertMetaData() {
         auto dataEncodingRow = it->second;
         int r = sqlite3_exec(m_mzdbFile.db, dataEncodingRow.buildSQL().c_str(), 0, 0, 0);
         if (r != SQLITE_OK)
-            LOG(ERROR) << "Error inserting dataencoding row";
-        m_mzdbFile.stmt = 0;
+            LOG(ERROR) << "Error inserting dataEncoding row";
     }
 
     //    string profileMode = "INSERT INTO data_encoding VALUES (NULL, 'profile', 'none', 'little_endian', 64, 64)";
@@ -867,7 +866,7 @@ void mzDBWriter::insertMetaData() {
         m_paramsCollecter.updateCVMap(*chrom);
         m_paramsCollecter.updateUserMap(*chrom);
 
-        string& id = chrom->id;
+        const string& id = chrom->id;
         sqlite3_bind_text(m_mzdbFile.stmt, 1, id.c_str(), id.length(), SQLITE_STATIC);
 
         bool precursorEmpty = chrom->precursor.empty();
@@ -875,7 +874,7 @@ void mzDBWriter::insertMetaData() {
         string activationCode = std::string(UNKNOWN_STR);
         if (! precursorEmpty)
             activationCode = getActivationCode(chrom->precursor.activation);
-        sqlite3_bind_text(m_mzdbFile.stmt, 2, activationCode.c_str(), 19, SQLITE_TRANSIENT);
+        sqlite3_bind_text(m_mzdbFile.stmt, 2, activationCode.c_str(), activationCode.length(), SQLITE_STATIC);
 
 
         // Populate blob data

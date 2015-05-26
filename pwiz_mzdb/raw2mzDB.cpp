@@ -302,22 +302,26 @@ int main(int argc, char* argv[]) {
     }
 
     //---check swath mode
-    try {
-        writer.isSwathAcquisition();
-    } catch (exception& e) {
-        LOG(ERROR) << "Error checking DDA/SWATH Mode: ";
-        LOG(ERROR) << "\t->" << e.what();
-    } catch(...) {
-        LOG(ERROR) << "Unknown error checking DDA/SWATH Mode. Default to DDA...";
+    if (dia)
+        writer.setSwathAcquisition(true);
+    else {
+        try {
+            writer.isSwathAcquisition();
+        } catch (exception& e) {
+            LOG(ERROR) << "Error checking DDA/SWATH Mode: ";
+            LOG(ERROR) << "\t->" << e.what();
+        } catch(...) {
+            LOG(ERROR) << "Unknown error checking DDA/SWATH Mode. Default to DDA...";
+        }
     }
 
     //---overwrite swath mode if needed
-    if (dia) {
-        if (! writer.getSwathAcquisition()) {
-            LOG(INFO) << "Overwriting acquisition to swath mode...";
-            writer.setSwathAcquisition(true);
-        }
-    }
+//    if (dia) {
+//        if (! writer.getSwathAcquisition()) {
+//            LOG(INFO) << "Overwriting acquisition to swath mode...";
+//            writer.setSwathAcquisition(true);
+//        }
+//    }
 
     //---create parameters for peak picking
     mzPeakFinderUtils::PeakPickerParams p;

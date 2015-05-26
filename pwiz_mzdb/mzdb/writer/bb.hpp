@@ -38,11 +38,10 @@ using namespace std;
 namespace mzdb {
 
 /**
- * @brief mzBoundingBox class
- * Represents a bounding box
- * A bounding box can mix low res peaks (encoded mz32) and high res peaks
- * The 2 unique_ptr are destroyed when mzBoundingBox destructor is called
+ * Represents a ``bounding box``. It can mix low res peaks (encoded m/z 32 bits) and
+ * high res peaks (encoded m/z 64 bits)
  *
+ * Note: The 2 unique_ptr are destroyed when mzBoundingBox destructor is called.
  */
 template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
 class PWIZ_API_DECL mzBoundingBox {
@@ -53,7 +52,6 @@ class PWIZ_API_DECL mzBoundingBox {
 protected:
 
     //both map can be null
-
     /// unique pointer, map containing scanID and vector peaks with HIGH_RES_PEAK peak encoding
     /// may be null
     unique_ptr<map<int, vector<HighResCentroidSPtr> > > _highResPeaksByScanIDs;
@@ -63,7 +61,10 @@ protected:
     unique_ptr<map<int, vector<LowResCentroidSPtr> > > _lowResPeaksByScanIDs;
 
     /// minima and maxima values in both mz and rt dimensions
-    float _mzmin, _mzmax, _rtmin, _rtmax; //use for descriptive field no precision needed
+    float _mzmin;
+    float _mzmax;
+    float _rtmin;
+    float _rtmax; //use for descriptive field no precision needed
 
     /// the run slice index this bounding box belongs to
     int _runSliceIdx;
@@ -88,7 +89,6 @@ public:
     }
 
     /**
-     * @brief mzBoundingBox
      * Ctor only providing maps containing data
      *
      * @param h: pointer to map scanId, high res peaks
@@ -102,7 +102,7 @@ public:
     }
 
     /**
-     * @brief mzBoundingBox
+     * More complete Ctor
      *
      * @param idx: run slice index of the bounding box
      * @param height: height of the bounding box i.e. it's size in mz dimension
@@ -160,7 +160,6 @@ public:
     }*/
 
     /**
-     * @brief getByteLength
      * Compute bytes length for HIGH_RES_PEAK/LOW_RES_PEAK peaks
      */
     template<class mz_t, class int_t>
@@ -180,7 +179,6 @@ public:
     }
 
     /**
-     * @brief getBytesVectorLength
      * Compute the total size in bytes of the bounding box
      *
      * @param dataModes map msLevel dataMode
@@ -196,7 +194,6 @@ public:
     }
 
     /**
-     * @brief asByteArray
      * Encode bounding box into byte array given mzDB convention
      *
      * @param v: output vector of byte
@@ -229,12 +226,11 @@ public:
     }
 
     /**
-     * @brief insertCentroidToBinaryVector
      * encode centroid data to output byte vector
      *
      * @param v: output byte vector
      * @param idx: scanID
-     * @param map scanID, peaks
+     * @param w scanID, peaks
      */
     template<typename mz_t, typename int_t>
     inline static void insertCentroidToBinaryVector(vector<byte>& v, int idx,
@@ -250,12 +246,11 @@ public:
     }
 
     /**
-     * @brief insertFittedToBinaryVector
      * encode fitted data to output byte vector
      *
      * @param v: output byte vector
-     * @param idx: scanID
-     * @param map scanID, peaks
+     * @param idx  scanID
+     * @param w scanID, peaks
      */
     template<typename mz_t, typename int_t>
     inline static void insertFittedToBinaryVector(vector<byte>& v, int idx,
@@ -273,7 +268,6 @@ public:
     }
 
     /**
-     * @brief update
      * Fill the bounding box of empty scan (even if a scanSlice has no peaks it will appears)
      *
      * @param h: map scanID, high res peaks
@@ -298,8 +292,7 @@ public:
     }
 
     /**
-     * @brief setRtBoundaries
-     * Find rt boundaries scanning maxima and minima rt values in all scans
+     * Find rt boundaries scanning maxima and minima retention time values in all scans
      */
     inline void setRtBoundaries() {
         _rtmin = 1e9;
@@ -356,13 +349,12 @@ public:
     };
 
     /**
-     * @brief iterationOrder
      * Allow iteration over scanSlice in scanID ascendant.
      *
+     * @param v: output vector containing:
      *
-     * @param v: output vector containing
-     *      first value: 1 if highResPeak, 2 if low res peak
-     *      second value: scanID
+     * -first value: 1 if highResPeak, 2 if low res peak
+     * -second value: scanID
      */
     inline void iterationOrder(vector<pair<int, int> >& v) const {
 

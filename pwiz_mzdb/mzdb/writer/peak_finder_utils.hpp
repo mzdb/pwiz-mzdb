@@ -354,56 +354,56 @@ namespace mzPeakFinderUtils {
 
 
 
-    /**
- * force to be a vector in template parameter
- * should be private
- */
-    template<class mz_t, class int_t, class type>
-    static Ownership detectPeaks( const vector<type>& intData,
-                                  vector<mzPeak<mz_t, int_t>* > peaks,
-                                  const PeakPickerParams& p) {
+//    /**
+// * force to be a vector in template parameter
+// * should be private
+// */
+//    template<class mz_t, class int_t, class type>
+//    static Ownership detectPeaks( const vector<type>& intData,
+//                                  vector<mzPeak<mz_t, int_t>* > peaks,
+//                                  const PeakPickerParams& p) {
 
-        DCHECK( peaks.empty() );
+//        DCHECK( peaks.empty() );
 
-        // ---perform  not detection if max_element < threshold ---
-        // ---assume peaks vector is empty
-        if ( (*std::max_element( intData.begin(), intData.end()) - p.baseline) / p.noise < p.minSNR ) {
-            return TAKE_OWNERSHIP;
-        }
+//        // ---perform  not detection if max_element < threshold ---
+//        // ---assume peaks vector is empty
+//        if ( (*std::max_element( intData.begin(), intData.end()) - p.baseline) / p.noise < p.minSNR ) {
+//            return TAKE_OWNERSHIP;
+//        }
 
-        //---find all local maxima
-        vector<mz_uint> maxIndexes;
-        mzPeakFinderUtils::findLocalMaxima< vector<type> >( intData, maxIndexes, p.baseline );
+//        //---find all local maxima
+//        vector<mz_uint> maxIndexes;
+//        mzPeakFinderUtils::findLocalMaxima< vector<type> >( intData, maxIndexes, p.baseline );
 
-        //---find all surrounding minima around this maxima
-        vector<mzPeakFinderUtils::PeakAsMaximaMinimaIndexes> peakIndexes;
-        try {
-            mzPeakFinderUtils::findLocalMinima< vector<type> >( maxIndexes, intData, peakIndexes );
-        } catch (exception& e) {
-            LOG(FATAL) << e.what();
-        }
+//        //---find all surrounding minima around this maxima
+//        vector<mzPeakFinderUtils::PeakAsMaximaMinimaIndexes> peakIndexes;
+//        try {
+//            mzPeakFinderUtils::findLocalMinima< vector<type> >( maxIndexes, intData, peakIndexes );
+//        } catch (exception& e) {
+//            LOG(FATAL) << e.what();
+//        }
 
-        //---generate peak corresponding to all indexes
-        for (auto it = peakIndexes.begin(); it != peakIndexes.end(); ++it ) {
-            createPeakForIndex(*it, peaks);
-        }
-
-
-        return TAKE_OWNERSHIP;
-    }
+//        //---generate peak corresponding to all indexes
+//        for (auto it = peakIndexes.begin(); it != peakIndexes.end(); ++it ) {
+//            createPeakForIndex(*it, peaks);
+//        }
 
 
+//        return TAKE_OWNERSHIP;
+//    }
 
-    /**
- * @brief detectPeaks
- * @return
- */
-    template<class mz_t, class int_t>
-    static Ownership detectPeaksCLASSIC(const vector<double>& intData,
-                                        vector<mzPeak<mz_t, int_t>*>& peaks,
-                                        const PeakPickerParams& p ) {
-        return detectPeaks<mz_t, int_t, double>( intData, peaks, p );
-    }
+
+
+//    /**
+// * @brief detectPeaks
+// * @return
+// */
+//    template<class mz_t, class int_t>
+//    static Ownership detectPeaksCLASSIC(const vector<double>& intData,
+//                                        vector<mzPeak<mz_t, int_t>*>& peaks,
+//                                        const PeakPickerParams& p ) {
+//        return detectPeaks<mz_t, int_t, double>( intData, peaks, p );
+//    }
 
 
     /**

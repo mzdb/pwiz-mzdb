@@ -193,7 +193,7 @@ struct DataEncoding {
         string mzPrec, intPrec;
         if (peakEncoding == NO_LOSS_PEAK) {
             mzPrec = "64"; intPrec = "64";
-        } else if (peakEncoding = HIGH_RES_PEAK) {
+        } else if (peakEncoding == HIGH_RES_PEAK) {
             mzPrec = "64"; intPrec = "32";
         } else if (peakEncoding == LOW_RES_PEAK) {
             mzPrec = "32"; intPrec = "32";
