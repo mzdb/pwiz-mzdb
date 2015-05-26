@@ -47,6 +47,10 @@ struct MzDBFile : public pwiz::msdata::ParamContainer {
     /// Primary to avoid foreign keys constraint problems
     int instrumentConfigurationID;
 
+    /// ID of last inserted `sharedParamTree` object in the `sqlitedb`
+    /// Primary to avoid foreign keys constraint problems
+    int sharedParamTreeID;
+
     /// Boolean set to true if the user wants to perform a no loss conversion
     /// i.e. m/z encoded 64 bits and intensity 64 bits
     bool noLoss;

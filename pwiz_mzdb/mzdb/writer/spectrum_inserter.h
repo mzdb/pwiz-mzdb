@@ -167,9 +167,10 @@ public:
         sqlite3_bind_int(mMzdbFile.stmt, 6, msLevel);
 
         //activation_type
+        string activationCode;
         if (msLevel > 1) {
-            const string activationCode = mzdb::getActivationCode(spec->precursors.front().activation);
-            sqlite3_bind_text(mMzdbFile.stmt, 7, activationCode.c_str(), activationCode.length(), SQLITE_TRANSIENT);
+            mzdb::getActivationCode(spec->precursors.front().activation, activationCode);
+            sqlite3_bind_text(mMzdbFile.stmt, 7, activationCode.c_str(), activationCode.length(), SQLITE_STATIC);
         } else {
             // in the sql model shoud not be null -> use an empty string
             sqlite3_bind_text(mMzdbFile.stmt, 7, "", 0, SQLITE_STATIC);
@@ -281,15 +282,17 @@ public:
         sqlite3_bind_text(mMzdbFile.stmt, 15, r_2.c_str(), r_2.length(), SQLITE_STATIC);
 
         //precursor list
+        string r_3, r_4;
+
         if (msLevel > 1) {
             ostringstream os_3;
             pwiz::minimxml::XMLWriter writer_3(os_3);
             for (auto p = spec->precursors.begin(); p != spec->precursors.end(); ++p) {
                 pwiz::msdata::IO::write(writer_3, *p);
             }
-            string r_3 =  os_3.str();
+            r_3 =  os_3.str();
             // weird error encoding when using SQLITE_STATIC
-            sqlite3_bind_text(mMzdbFile.stmt, 16, r_3.c_str(), r_3.length(), SQLITE_TRANSIENT);
+            sqlite3_bind_text(mMzdbFile.stmt, 16, r_3.c_str(), r_3.length(), SQLITE_STATIC);
 
             //product list
             ostringstream os_4;
@@ -297,17 +300,20 @@ public:
             for (auto p = spec->products.begin(); p != spec->products.end(); ++p) {
                 pwiz::msdata::IO::write(writer_4, *p);
             }
-            string r_4 = os_4.str();
+            r_4 = os_4.str();
             if (r_4.empty()) sqlite3_bind_null(mMzdbFile.stmt, 17);
             else
-                sqlite3_bind_text(mMzdbFile.stmt, 17, r_4.c_str(), r_4.length(), SQLITE_TRANSIENT);
+                sqlite3_bind_text(mMzdbFile.stmt, 17, r_4.c_str(), r_4.length(), SQLITE_STATIC);
         } else {
             sqlite3_bind_null(mMzdbFile.stmt, 16);
             sqlite3_bind_null(mMzdbFile.stmt, 17);
         }
 
         //shared param tree id
-        sqlite3_bind_null(mMzdbFile.stmt, 18);
+        if (mMzdbFile.sharedParamTreeID)
+            sqlite3_bind_int(mMzdbFile.stmt, 18, mMzdbFile.sharedParamTreeID);
+        else
+            sqlite3_bind_null(mMzdbFile.stmt, 18);
 
         //instrument config id
         sqlite3_bind_int(mMzdbFile.stmt, 19, 1); //instrumentConfigurationIndex(msdata, scan.instrumentConfigurationPtr));

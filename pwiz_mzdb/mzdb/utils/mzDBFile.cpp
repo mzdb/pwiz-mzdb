@@ -5,7 +5,10 @@ using namespace std;
 namespace mzdb {
 
 MzDBFile::MzDBFile(string& _name) : bbHeight(0), bbHeightMsn(0), bbWidth(0),
-    bbWidthMsn(0), name(_name),  db(0), stmt(0){}
+    bbWidthMsn(0), name(_name), sourceFileID(0), sharedParamTreeID(0), instrumentConfigurationID(0),
+    dataProcessingID(0), db(0), stmt(0) {
+
+}
 
 MzDBFile::MzDBFile(string& _name, float _bbHeight, float _bbHeightMsn,
                    float _bbWidth, float _bbWidthMsn, bool _noLoss) :
@@ -14,7 +17,13 @@ MzDBFile::MzDBFile(string& _name, float _bbHeight, float _bbHeightMsn,
     bbHeightMsn(_bbHeightMsn),
     bbWidth(_bbWidth),
     bbWidthMsn(_bbWidthMsn),
-    noLoss(_noLoss){}
+    sourceFileID(0),
+    sharedParamTreeID(0),
+    instrumentConfigurationID(0),
+    dataProcessingID(0),
+    noLoss(_noLoss) {
+
+}
 
 MzDBFile::~MzDBFile() {
     //handles the closing of the sqlite file

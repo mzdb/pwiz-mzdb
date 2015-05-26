@@ -268,6 +268,11 @@ inline static int precursorChargeOf(const pwiz::msdata::SpectrumPtr &s) {
     return si.cvParam(pwiz::msdata::MS_charge_state).valueAs<int>();
 }
 
+/**
+ * get the precusor mz as double value
+ * @param s
+ * @return
+ */
 inline static int precursorMzOf(const pwiz::msdata::SpectrumPtr &s) {
     const pwiz::msdata::SelectedIon& si = s->precursors.front().selectedIons.front();
     return si.cvParam(pwiz::msdata::MS_selected_ion_m_z).valueAs<double>();
@@ -283,17 +288,17 @@ inline static int precursorMzOf(const pwiz::msdata::SpectrumPtr &s) {
  * @param a pwiz activation object contained in precursor object
  * @return string representing activation to be inserted in the database
  */
-static inline string getActivationCode(const pwiz::msdata::Activation& a) {
+static inline void getActivationCode(const pwiz::msdata::Activation& a, string& r) {
     if (a.empty())
-        return string(EMPTY_STR);
+        r = EMPTY_STR;
     if (a.hasCVParam(pwiz::msdata::MS_CID) && ! a.hasCVParam(pwiz::msdata::MS_ETD))
-        return string(CID_STR);
+        r = CID_STR;
     else if (a.hasCVParam(pwiz::msdata::MS_ETD)) //electron_transfer_dissociation))
-        return string(ETD_STR);
+        r = ETD_STR;
     else if (a.hasCVParam(pwiz::msdata::MS_HCD)) //MS_high_energy_collision_induced_dissociation))
-        return string(HCD_STR);
+        r = "HCD"; //HCD_STR;
      else
-        return string(UNKNOWN_STR);
+        r = UNKNOWN_STR;
 }
 
 

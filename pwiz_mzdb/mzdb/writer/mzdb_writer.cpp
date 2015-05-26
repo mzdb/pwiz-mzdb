@@ -61,6 +61,8 @@ void mzDBWriter::buildDataEncodingRowByID() {
 ///@brief mzDBWriter::createTables
 void mzDBWriter::createTables() {
 
+    // foreign keys are not used because of the use of a temporary table
+    // for spectrum.
     LOG(INFO) << "Settings SQLite pragmas...";
     int r = sqlite3_exec(m_mzdbFile.db,
                          //"PRAGMA mmap_size=268435456;"
@@ -103,8 +105,6 @@ void mzDBWriter::createTables() {
                      "compression TEXT, byte_order TEXT(13) NOT NULL, \n"
                      "mz_precision INTEGER NOT NULL, \n"
                      "intensity_precision INTEGER NOT NULL);"
-
-                     // "param_tree TEXT NOT NULL);"
 
                      "CREATE TABLE software (\n"
                      "id INTEGER PRIMARY KEY AUTOINCREMENT, \n"
@@ -542,28 +542,28 @@ void mzDBWriter::insertMetaData() {
     string& tree = ISerializer::serialize(m_mzdbFile, m_serializer);
     sqlite3_bind_text(m_mzdbFile.stmt, 5, tree.c_str(), tree.length(), SQLITE_STATIC);
 
-    int rc_ = sqlite3_step(m_mzdbFile.stmt);
-    //    if (rc_ != SQLITE_DONE)
-    //        LOG(ERROR) << "mzdb metdata failed: SQLITE ERROR CODE: " << rc_;
+    sqlite3_step(m_mzdbFile.stmt);
+
     sqlite3_finalize(m_mzdbFile.stmt);
     m_mzdbFile.stmt = 0;
 
     //-----------------------------------------------------------------------------------------------------------
     //DATA PROCESSINGS
-
     const char* sql_2 = "INSERT INTO data_processing VALUES (NULL, ?);";
     sqlite3_prepare_v2(m_mzdbFile.db, sql_2, -1, &(m_mzdbFile.stmt), 0);
     for (auto s = dataProcessings.begin(); s != dataProcessings.end(); ++s){
         sqlite3_bind_text(m_mzdbFile.stmt, 1, (*s)->id.c_str(), (*s)->id.length(), SQLITE_STATIC);
         sqlite3_step(m_mzdbFile.stmt);
         sqlite3_reset(m_mzdbFile.stmt);
+
+        //increase data processing ID
+        m_mzdbFile.dataProcessingID++;
     }
     sqlite3_finalize(m_mzdbFile.stmt);
     m_mzdbFile.stmt = 0;
 
     //-----------------------------------------------------------------------------------------------------------
     //SCAN SETTINGS TODO: shared_param_tree_id WARNING this is not a param container
-
     const char* sql_3 ="INSERT INTO scan_settings VALUES (NULL, ?, NULL);";
     sqlite3_prepare_v2(m_mzdbFile.db, sql_3, -1, &(m_mzdbFile.stmt), 0);
     for (auto s = scanSettings.begin(); s != scanSettings.end(); ++s) {
@@ -584,25 +584,8 @@ void mzDBWriter::insertMetaData() {
             LOG(ERROR) << "Error inserting dataEncoding row";
     }
 
-    //    string profileMode = "INSERT INTO data_encoding VALUES (NULL, 'profile', 'none', 'little_endian', 64, 64)";
-    //    sqlite3_exec(m_mzdbFile.db, profileMode.c_str(), 0, 0, 0);
-    //    m_mzdbFile.stmt = 0;
-
-    //    string fittedMode = "INSERT INTO data_encoding VALUES (NULL, 'fitted', 'none', 'little_endian', 64, 32)";
-    //    sqlite3_exec(m_mzdbFile.db, fittedMode.c_str(), 0, 0, 0);
-    //    m_mzdbFile.stmt = 0;
-
-    //    string centMode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', 32, 32)";
-    //    sqlite3_exec(m_mzdbFile.db, centMode.c_str(), 0, 0, 0);
-    //    m_mzdbFile.stmt = 0;
-
-    //    string cent2Mode = "INSERT INTO data_encoding VALUES (NULL, 'centroided', 'none', 'little_endian', 64, 32)";
-    //    sqlite3_exec(m_mzdbFile.db, cent2Mode.c_str(), 0, 0, 0);
-    //    m_mzdbFile.stmt = 0;
-
     //-----------------------------------------------------------------------------------------------------------
     //SOFTWARE
-
     const char* sql_7 = "INSERT INTO software VALUES (NULL, ?, ?, ?, NULL)";
     sqlite3_prepare_v2(m_mzdbFile.db, sql_7, -1, &(m_mzdbFile.stmt), 0);
     for (auto s = softwares.begin(); s != softwares.end(); ++s) {
@@ -624,7 +607,6 @@ void mzDBWriter::insertMetaData() {
 
     //-----------------------------------------------------------------------------------------------------------
     //PROCESSING METHOD TODO shared param _tree
-
     vector<ProcessingMethod> alreadyIn;
     const char* sql_8 = "INSERT INTO processing_method VALUES(NULL, ?, ?, NULL, ?, ?)";
     sqlite3_prepare_v2(m_mzdbFile.db, sql_8, -1, &(m_mzdbFile.stmt), 0);
@@ -676,41 +658,46 @@ void mzDBWriter::insertMetaData() {
     vector<SourceFilePtr> sourceFiles;
     const char* sql_10 = "INSERT INTO source_file VALUES(NULL, ?, ?, ?, NULL)";
     sqlite3_prepare_v2(m_mzdbFile.db, sql_10, -1, &(m_mzdbFile.stmt), 0);
-    if (! scanSettings.empty()) {
-        for( auto scanset = scanSettings.begin(); scanset != scanSettings.end(); ++scanset) {
-            const auto& sfs = (*scanset)->sourceFilePtrs;
-            for(auto sourceFile = sfs.begin(); sourceFile != sfs.end(); ++sourceFile) {
-                m_paramsCollecter.updateCVMap(**sourceFile);
-                m_paramsCollecter.updateUserMap(**sourceFile);
-                string& name = (*sourceFile)->name;
-                string& location = (*sourceFile)->location;
-                string params = ISerializer::serialize(**sourceFile, m_serializer);//_serializer->serialize<SourceFile>(**sourceFile);
-                sqlite3_bind_text(m_mzdbFile.stmt, 1, name.c_str(), name.length(), SQLITE_STATIC);
-                sqlite3_bind_text(m_mzdbFile.stmt, 2, location.c_str(), location.length(), SQLITE_STATIC);
-                sqlite3_bind_text(m_mzdbFile.stmt, 3, params.c_str(), params.length(), SQLITE_STATIC);
-                sqlite3_step(m_mzdbFile.stmt);
-                sqlite3_reset(m_mzdbFile.stmt);
-                sourceFiles.push_back(*sourceFile);
-            }
-            sqlite3_finalize(m_mzdbFile.stmt);
-            m_mzdbFile.stmt = 0;
-        }
-    } else {
-        LOG(INFO) << "use default source file";
-        const auto& sourceFile = m_msdata->run.defaultSourceFilePtr;
-        m_paramsCollecter.updateCVMap(*sourceFile);
-        m_paramsCollecter.updateUserMap(*sourceFile);
-        string& name = sourceFile->name;
-        string& location = sourceFile->location;
-        string& params = ISerializer::serialize(*sourceFile, m_serializer);
-        sqlite3_bind_text(m_mzdbFile.stmt, 1, name.c_str(), name.length(), SQLITE_STATIC);
-        sqlite3_bind_text(m_mzdbFile.stmt, 2, location.c_str(), location.length(), SQLITE_STATIC);
-        sqlite3_bind_text(m_mzdbFile.stmt, 3, params.c_str(), params.length(), SQLITE_STATIC);
-        sqlite3_step(m_mzdbFile.stmt);
-        sourceFiles.push_back(sourceFile);
-        sqlite3_finalize(m_mzdbFile.stmt);
-        m_mzdbFile.stmt = 0;
-    }
+//    if (! scanSettings.empty()) {
+//        for( auto scanset = scanSettings.begin(); scanset != scanSettings.end(); ++scanset) {
+//            const auto& sfs = (*scanset)->sourceFilePtrs;
+//            for(auto sourceFile = sfs.begin(); sourceFile != sfs.end(); ++sourceFile) {
+//                m_paramsCollecter.updateCVMap(**sourceFile);
+//                m_paramsCollecter.updateUserMap(**sourceFile);
+//                string& name = (*sourceFile)->name;
+//                string& location = (*sourceFile)->location;
+//                string params = ISerializer::serialize(**sourceFile, m_serializer);//_serializer->serialize<SourceFile>(**sourceFile);
+//                sqlite3_bind_text(m_mzdbFile.stmt, 1, name.c_str(), name.length(), SQLITE_STATIC);
+//                sqlite3_bind_text(m_mzdbFile.stmt, 2, location.c_str(), location.length(), SQLITE_STATIC);
+//                sqlite3_bind_text(m_mzdbFile.stmt, 3, params.c_str(), params.length(), SQLITE_STATIC);
+//                sqlite3_step(m_mzdbFile.stmt);
+//                sqlite3_reset(m_mzdbFile.stmt);
+
+//                sourceFiles.push_back(*sourceFile);
+//                m_mzdbFile.sourceFileID++;
+//            }
+//            sqlite3_finalize(m_mzdbFile.stmt);
+//            m_mzdbFile.stmt = 0;
+//        }
+//    } else {
+    LOG(INFO) << "use default source file";
+    const auto& sourceFile = m_msdata->run.defaultSourceFilePtr;
+    m_paramsCollecter.updateCVMap(*sourceFile);
+    m_paramsCollecter.updateUserMap(*sourceFile);
+    string& name = sourceFile->name;
+    string& location = sourceFile->location;
+    string& params = ISerializer::serialize(*sourceFile, m_serializer);
+    sqlite3_bind_text(m_mzdbFile.stmt, 1, name.c_str(), name.length(), SQLITE_STATIC);
+    sqlite3_bind_text(m_mzdbFile.stmt, 2, location.c_str(), location.length(), SQLITE_STATIC);
+    sqlite3_bind_text(m_mzdbFile.stmt, 3, params.c_str(), params.length(), SQLITE_STATIC);
+    sqlite3_step(m_mzdbFile.stmt);
+
+    sourceFiles.push_back(sourceFile);
+    m_mzdbFile.sourceFileID++;
+
+    sqlite3_finalize(m_mzdbFile.stmt);
+    m_mzdbFile.stmt = 0;
+//    }
 
     int sourceFileCounter = 1;
     const char* sql_11 = "INSERT INTO source_file_scan_settings_map VALUES (? , ?)";
@@ -764,6 +751,7 @@ void mzDBWriter::insertMetaData() {
         sqlite3_bind_text(m_mzdbFile.stmt, 2, id.c_str(), id.length(), SQLITE_STATIC);
         sqlite3_step(m_mzdbFile.stmt);
         sqlite3_reset(m_mzdbFile.stmt);
+        m_mzdbFile.sharedParamTreeID++;
     }
     sqlite3_finalize(m_mzdbFile.stmt);
     m_mzdbFile.stmt = 0;
@@ -802,15 +790,15 @@ void mzDBWriter::insertMetaData() {
             LOG(ERROR) << "Error inserting instrument config metadata.";
             LOG(ERROR) << "SQLITE ERROR CODE: " << rc <<":" << sqlite3_errmsg(m_mzdbFile.db) ;
         }
+        m_mzdbFile.instrumentConfigurationID++;
         sqlite3_reset(m_mzdbFile.stmt);
     }
     sqlite3_finalize(m_mzdbFile.stmt);
     m_mzdbFile.stmt = 0;
 
     //-----------------------------------------------------------------------------------------------------------
-    //RUN TODO shared param tree
-
-    const char* sql_28 = "INSERT INTO run VALUES (NULL, ?, ?, ?, NULL, ?, ?, ?, ?, ?)";
+    //RUN
+    const char* sql_28 = "INSERT INTO run VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     sqlite3_prepare_v2(m_mzdbFile.db, sql_28, -1, &(m_mzdbFile.stmt), 0);
 
     const string& runName= run.id;
@@ -827,23 +815,27 @@ void mzDBWriter::insertMetaData() {
     sqlite3_bind_text(m_mzdbFile.stmt, 3, runString.c_str(), runString.length(), SQLITE_STATIC);
 
     // NULL is for shared param tree as it is not defined for the moment
+    if (m_mzdbFile.sharedParamTreeID)
+        sqlite3_bind_int(m_mzdbFile.stmt, 4, m_mzdbFile.sharedParamTreeID);
+    else
+        sqlite3_bind_null(m_mzdbFile.stmt, 4);
 
     //sample
-    sqlite3_bind_int(m_mzdbFile.stmt, 4, 1);//pos + 1);
+    sqlite3_bind_int(m_mzdbFile.stmt, 5, 1);
 
     //instrument config
-    int pos_ = find(insconfs.begin(), insconfs.end(), run.defaultInstrumentConfigurationPtr) - insconfs.begin();
-    sqlite3_bind_int(m_mzdbFile.stmt, 5, pos_ + 1);
+    //int pos_ = find(insconfs.begin(), insconfs.end(), run.defaultInstrumentConfigurationPtr) - insconfs.begin();
+    sqlite3_bind_int(m_mzdbFile.stmt, 6, m_mzdbFile.instrumentConfigurationID);  //pos_ + 1);
 
     //default sourcefile
-    int pos__ = find(sourceFiles.begin(), sourceFiles.end(), run.defaultSourceFilePtr) - sourceFiles.begin();
-    sqlite3_bind_int(m_mzdbFile.stmt, 6, pos__ + 1);
+    //int pos__ = find(sourceFiles.begin(), sourceFiles.end(), run.defaultSourceFilePtr) - sourceFiles.begin();
+    sqlite3_bind_int(m_mzdbFile.stmt, 7, m_mzdbFile.sourceFileID);  //pos__ + 1);
 
     //default spectrum processing
-    sqlite3_bind_int(m_mzdbFile.stmt, 7, 1);
+    sqlite3_bind_int(m_mzdbFile.stmt, 8, 1);
 
     //default chromatogram processing
-    sqlite3_bind_int(m_mzdbFile.stmt, 8, 1);
+    sqlite3_bind_int(m_mzdbFile.stmt, 9, 1);
 
     int rc = sqlite3_step(m_mzdbFile.stmt);
     if (rc != SQLITE_DONE) {
@@ -871,9 +863,9 @@ void mzDBWriter::insertMetaData() {
 
         bool precursorEmpty = chrom->precursor.empty();
 
-        string activationCode = std::string(UNKNOWN_STR);
+        string activationCode=""; // = std::string(UNKNOWN_STR);
         if (! precursorEmpty)
-            activationCode = getActivationCode(chrom->precursor.activation);
+            getActivationCode(chrom->precursor.activation, activationCode);
         sqlite3_bind_text(m_mzdbFile.stmt, 2, activationCode.c_str(), activationCode.length(), SQLITE_STATIC);
 
 
