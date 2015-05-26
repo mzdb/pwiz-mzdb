@@ -13,7 +13,9 @@ Current stable version is 0.9.7.
 
 - [ ] fix spectra sequence (after insertion) => INSERT INTO sqlite_sequence VALUES ('spectrum', #inserted spectra )
 - [ ] fix chromatogram.activation_type (weird "unknown" string)
+- [ ] fix data_encoding table records (last record is duplicated and seems to not be used)
 - [ ] fix default Bounding Boxes dimensions for DIA data
+- [ ] set default encoding mode for DIA MS2 data to "fitted"
 - [ ] remove empty record in user_term table or fix this record
 - [ ] remove messages related to DIA detection if --dia switch is used
 - [ ] increase mzdb.version to 0.7 (data_encoding table changed, other schema changes ???)
