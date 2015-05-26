@@ -13,6 +13,7 @@ Current stable version is 0.9.7.
 
 - [ ] fix spectra sequence (after insertion) => INSERT INTO sqlite_sequence VALUES ('spectrum', #inserted spectra )
 - [ ] fix chromatogram.activation_type (weird "unknown" string)
+- [ ] fix spectrum.main_precursor_mz for ABSciex data (it is rounded and should not be)
 - [ ] fix data_encoding table records (last record is duplicated and seems to not be used)
 - [ ] fix default Bounding Boxes dimensions for DIA data
 - [ ] set default encoding mode for DIA MS2 data to "fitted"
