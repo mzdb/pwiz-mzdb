@@ -11,8 +11,11 @@ Current stable version is 0.9.8 (jerkos++).
 
 ### Release 0.9.8
 
-TODO :
+TODO (0.9.8.1):
 - [ ] fix spectra sequence (after insertion) => INSERT INTO sqlite_sequence VALUES ('spectrum', #inserted spectra )
+- [ ] fix chromatogram.activation_type (weird "unknown" string)
+- [ ] fix default Bounding Boxes dimensions for DIA data
+- [ ] remove empty record in user_term table or fix this record
 - [ ] increase mzdb.version to 0.7 (data_encoding table changed, other schema changes ???)
 
 New features:
