@@ -11,7 +11,9 @@ Current stable version is 0.9.8 (jerkos++).
 
 ### Release 0.9.8
 
-TODO (after spectra insertion): INSERT INTO sqlite_sequence VALUES ('spectrum', #inserted spectra )
+TODO :
+- [ ] fix spectra sequence (after insertion) => INSERT INTO sqlite_sequence VALUES ('spectrum', #inserted spectra )
+- [ ] increase mzdb.version to 0.7 (data_encoding table changed, other schema changes ???)
 
 New features:
 - [x] AbSciex (.WIFF) files support
