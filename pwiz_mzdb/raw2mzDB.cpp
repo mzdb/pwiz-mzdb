@@ -251,6 +251,13 @@ int main(int argc, char* argv[]) {
       exit(EXIT_FAILURE);
     }
 
+
+    //--- overriding default encoding to `fitted` for DIA mslevel 2
+    if (dia) {
+        dataModeByMsLevel[2] = FITTED;
+        dataModeByMsLevel[3] = FITTED;
+    }
+
     vector<int> modifiedIndex;
 
     parseRange(profile, PROFILE, dataModeByMsLevel, modifiedIndex, help);
