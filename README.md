@@ -11,6 +11,8 @@ Current stable version is 0.9.8 (jerkos++).
 
 ### Release 0.9.8
 
+TODO (after spectra insertion): INSERT INTO sqlite_sequence VALUES ('spectrum', #inserted spectra )
+
 New features:
 - [x] AbSciex (.WIFF) files support
 - [x] Bruker (.d) files support
