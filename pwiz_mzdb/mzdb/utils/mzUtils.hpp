@@ -273,7 +273,7 @@ inline static int precursorChargeOf(const pwiz::msdata::SpectrumPtr &s) {
  * @param s
  * @return
  */
-inline static int precursorMzOf(const pwiz::msdata::SpectrumPtr &s) {
+inline static double precursorMzOf(const pwiz::msdata::SpectrumPtr &s) {
     const pwiz::msdata::SelectedIon& si = s->precursors.front().selectedIons.front();
     return si.cvParam(pwiz::msdata::MS_selected_ion_m_z).valueAs<double>();
 }
