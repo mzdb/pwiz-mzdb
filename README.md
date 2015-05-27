@@ -9,18 +9,6 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 
 Current stable version is 0.9.7.
 
-### Release 0.9.8.1 (hot fix version)
-
-- [x] fix spectra sequence (after insertion) => INSERT INTO main.sqlite_sequence VALUES ('spectrum', #inserted spectra )
-- [x] fix chromatogram.activation_type (weird "unknown" string)
-- [ ] fix spectrum.main_precursor_mz for ABSciex data (it is rounded and should not be)
-- [x] fix data_encoding table records (last record is duplicated and seems to not be used)
-- [ ] fix default Bounding Boxes dimensions for DIA data
-- [x] set default encoding mode for DIA MS2 data to "fitted"
-- [x] remove empty record in user_term table or fix this record (can't reproduce for the error, have to check the fix)
-- [x] remove messages related to DIA detection if --dia switch is used
-- [x] increase mzdb.version to 0.7 (data_encoding table changed, other schema changes ???): No other changes
-
 ### Release 0.9.8
 
 New features:
@@ -39,6 +27,7 @@ Improvements
 Bug fixes:
 - [x] Wrong encoding for HCD spectra (32 instead of 64 bits)
 - [ ] ~~add missing CvTerms~~ (not present in Pwiz Msdata object, neither in converted mzML files)
+- see issues for more informations 
 
 ### Release 0.9.9
 
