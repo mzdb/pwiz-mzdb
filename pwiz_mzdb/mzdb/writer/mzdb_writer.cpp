@@ -865,7 +865,7 @@ void mzDBWriter::insertMetaData() {
 
         string activationCode=""; // = std::string(UNKNOWN_STR);
         if (! precursorEmpty)
-            getActivationCode(chrom->precursor.activation, activationCode);
+            activationCode = getActivationCode(chrom->precursor.activation);
         sqlite3_bind_text(m_mzdbFile.stmt, 2, activationCode.c_str(), activationCode.length(), SQLITE_STATIC);
 
 

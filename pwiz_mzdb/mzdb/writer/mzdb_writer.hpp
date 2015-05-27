@@ -351,8 +351,14 @@ public:
 
         bbHeightManager[1] = invms1;
         for (int msnb = 2; msnb <= MAX_MS; ++msnb) {
-            bbHeightManager[msnb] = invmsn;
-            bbWidthManager[msnb] = m_mzdbFile.bbWidthMsn;
+            if (! this->getSwathAcquisition()) {
+                bbHeightManager[msnb] = invmsn;
+                bbWidthManager[msnb] = m_mzdbFile.bbWidthMsn;
+            } else {
+                // in swath acquisition bb sizes are the same as DDA msLevel1
+                bbHeightManager[msnb] = invms1;
+                bbWidthManager[msnb] = m_mzdbFile.bbWidth;
+            }
         }
 
         //---begin a new transaction

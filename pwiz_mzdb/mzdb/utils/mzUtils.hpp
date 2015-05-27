@@ -288,17 +288,17 @@ inline static int precursorMzOf(const pwiz::msdata::SpectrumPtr &s) {
  * @param a pwiz activation object contained in precursor object
  * @return string representing activation to be inserted in the database
  */
-static inline void getActivationCode(const pwiz::msdata::Activation& a, string& r) {
+static inline string getActivationCode(const pwiz::msdata::Activation& a) {
     if (a.empty())
-        r = EMPTY_STR;
+        return EMPTY_STR;
     if (a.hasCVParam(pwiz::msdata::MS_CID) && ! a.hasCVParam(pwiz::msdata::MS_ETD))
-        r = CID_STR;
+        return CID_STR;
     else if (a.hasCVParam(pwiz::msdata::MS_ETD)) //electron_transfer_dissociation))
-        r = ETD_STR;
+        return ETD_STR;
     else if (a.hasCVParam(pwiz::msdata::MS_HCD)) //MS_high_energy_collision_induced_dissociation))
-        r = "HCD"; //HCD_STR;
+        return HCD_STR;
      else
-        r = UNKNOWN_STR;
+        return UNKNOWN_STR;
 }
 
 

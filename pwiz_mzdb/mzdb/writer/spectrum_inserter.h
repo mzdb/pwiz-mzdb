@@ -169,7 +169,7 @@ public:
         //activation_type
         string activationCode;
         if (msLevel > 1) {
-            mzdb::getActivationCode(spec->precursors.front().activation, activationCode);
+            activationCode = mzdb::getActivationCode(spec->precursors.front().activation);
             sqlite3_bind_text(mMzdbFile.stmt, 7, activationCode.c_str(), activationCode.length(), SQLITE_STATIC);
         } else {
             // in the sql model shoud not be null -> use an empty string

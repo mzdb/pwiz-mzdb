@@ -294,7 +294,7 @@ int main(int argc, char* argv[]) {
     }
 
     auto& msData = msdList[0];
-    auto originFileFormat = pwiz::msdata::identifyFileFormat( readers, f.name );
+    auto originFileFormat = pwiz::msdata::identifyFileFormat(readers, f.name);
 
     mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, compress);
 
