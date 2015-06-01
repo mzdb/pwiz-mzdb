@@ -207,7 +207,7 @@ struct DataEncoding {
         else if (mode == CENTROID)
             mode_str = "centroid";
 
-        return "INSERT INTO data_encoding VALUES (NULL, '" + mode_str + "', '"+ compression + "', 'little_endian', "+ mzPrec + ", " + intPrec + ");";
+        return "INSERT INTO data_encoding VALUES (NULL, '" + mode_str + "', '"+ compression + "', 'little_endian', "+ mzPrec + ", " + intPrec + ", NULL);";
     }
 };
 

@@ -104,7 +104,8 @@ void mzDBWriter::createTables() {
                      "id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT(10) NOT NULL,\n"
                      "compression TEXT, byte_order TEXT(13) NOT NULL, \n"
                      "mz_precision INTEGER NOT NULL, \n"
-                     "intensity_precision INTEGER NOT NULL);"
+                     "intensity_precision INTEGER NOT NULL, \n"
+                     "param_tree TEXT);"
 
                      "CREATE TABLE software (\n"
                      "id INTEGER PRIMARY KEY AUTOINCREMENT, \n"
