@@ -149,6 +149,8 @@ int main(int argc, char* argv[]) {
 
     string filename = "", centroid = "", profile = "", fitted = "", namefile = "", serialization = "xml";
     bool compress = false;
+    double ppm = 20.0;
+
 
     //---bounding boxes sizes defaults
     float bbWidth = 15, bbWidthMSn = 0; //15
@@ -186,6 +188,7 @@ int main(int argc, char* argv[]) {
                   "\t-c, --centroid : centroidization, eg: -c 1 (centroidization msLevel 1) or -c 1-5 (centroidization msLevel 1 to msLevel 5) \n"
                   "\t-p, --profile : idem but for profile mode \n"
                   "\t-f, --fitted : idem buf for fitted mode \n"
+                  "\t--ppm : ppm parameter for peak detection algorithm of WIFF files, default: 20\n"
                   "\t-T, --bbTimeWidth : bounding box width for ms1 in seconds, default: 15s\n"
                   "\t-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s\n"
                   "\t-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da \n"
@@ -212,6 +215,7 @@ int main(int argc, char* argv[]) {
     ops >> Option('n', "nscans", nscans);
     ops >> Option("no_loss", noLoss);
     ops >> Option("dia", dia);
+    ops >> Option("ppm", ppm);
     //ops >> Option("bufferSize", nbCycles);
     //ops >> Option("max_nb_threads", maxNbThreads);
 
@@ -332,6 +336,8 @@ int main(int argc, char* argv[]) {
 
     //---create parameters for peak picking
     mzPeakFinderUtils::PeakPickerParams p;
+    // overriding ppm
+    p.ppm = ppm;
 
     clock_t beginTime = clock();
 

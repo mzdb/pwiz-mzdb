@@ -65,14 +65,14 @@ enum FIT_OPTIONS {
 */
 
 struct PeakPickerParams {
-    double baseline, noise, minSNR, fwhm;
+    double baseline, noise, minSNR, fwhm, ppm;
     unsigned char optimizationOpt;
     bool adaptiveBaselineAndNoise;
 
     PeakPickerParams(double minSNR, double fwhm, double baseline, double noise, unsigned char optimizationOpt):
         minSNR(minSNR), fwhm(fwhm), baseline(baseline), noise(noise), optimizationOpt(optimizationOpt), adaptiveBaselineAndNoise(false) {}
 
-    PeakPickerParams(): minSNR(0), fwhm(0), baseline(0), noise(0), optimizationOpt(0x01), adaptiveBaselineAndNoise(false) {}
+    PeakPickerParams(): ppm(20.0), minSNR(0), fwhm(0), baseline(0), noise(0), optimizationOpt(0x01), adaptiveBaselineAndNoise(false) {}
 
     bool isEmpty() { return !baseline && !noise; }
 

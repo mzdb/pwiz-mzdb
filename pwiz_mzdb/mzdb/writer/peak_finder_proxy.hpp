@@ -28,6 +28,7 @@
 
 #include "../utils/mzUtils.hpp"
 #include "peak_finder_zero_bounded.hpp"
+#include "peak_finder_tof.hpp"
 #include "peak_finder_wavelet.hpp"
 
 namespace mzdb {
@@ -128,13 +129,14 @@ public:
         switch (fileType) {
         case pwiz::msdata::MS_ABI_WIFF_format :{
             //---modify test purposes
-            peakPickerParams.adaptiveBaselineAndNoise = false;
-            //peakPickerParams.optimizationOpt = 0x01;
-            peakPickerParams.noise = 0;
-            peakPickerParams.baseline = 0;
-            peakPickerParams.minSNR = 0;
-            peakPickerParams.fwhm = TOF_FWHM;
-            mzPeakFinderWavelet::findPeaks(s, centroids, peakPickerParams);
+            //            peakPickerParams.adaptiveBaselineAndNoise = false;
+            //            //peakPickerParams.optimizationOpt = 0x01;
+            //            peakPickerParams.noise = 0;
+            //            peakPickerParams.baseline = 0;
+            //            peakPickerParams.minSNR = 0;
+            //            peakPickerParams.fwhm = TOF_FWHM;
+            //            mzPeakFinderWavelet::findPeaks(s, centroids, peakPickerParams);
+            mzPeakFinderQTof::findPeaks<mz_t, int_t>(s, centroids, peakPickerParams);
             break;
         }
         case pwiz::msdata::MS_Thermo_RAW_format : {

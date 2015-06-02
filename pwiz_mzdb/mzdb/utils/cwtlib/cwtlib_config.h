@@ -52,9 +52,9 @@ using std::string;
 #define CWT_SQRTPI  1.772453850905516027298167483341145182797 /* sqrt(PI)   */
 #define CWT_SQRT2PI 2.506628274631000502415765284811045253006 /* sqrt(2*PI) */
 
-#ifndef PI
-#  define PI CWT_PI
-#endif
+//#ifndef PI
+//#  define PI CWT_PI
+//#endif
 
 // cwtlib namespace definitions
 #define __CWTLIB_BEGIN_NAMESPACE namespace cwtlib {

@@ -10,10 +10,9 @@
 #include "ceres_problems.hpp"
 #include "peak_models.hpp"
 
+using namespace std;
 
 namespace mzdb {
-
-using namespace std;
 
 namespace mzPeakFinderZeroBounded {
 
