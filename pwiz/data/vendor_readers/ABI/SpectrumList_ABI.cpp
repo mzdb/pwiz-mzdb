@@ -212,8 +212,25 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_ABI::spectrum(size_t index, DetailLevel d
             precursor.activation.set(MS_beam_type_collision_induced_dissociation); // assume beam-type CID since all ABI instruments that write WIFFs are either QqTOF or QqLIT
 
             precursor.selectedIons.push_back(selectedIon);
+
+            // fix isolation width
+            if (spectrum->getHasIsolationInfo())
+            {
+                double centerMz, lowerLimit, upperLimit;
+                spectrum->getIsolationInfo(centerMz, lowerLimit, upperLimit);
+
+                precursor.set(MS_isolation_window_target_m_z, centerMz, MS_m_z);
+                precursor.set(MS_isolation_window_upper_offset, upperLimit);
+                precursor.set(MS_isolation_window_lower_offset, lowerLimit);
+            }
+
+
             result->precursors.push_back(precursor);
         }
+
+        //virtual bool getHasIsolationInfo() const;
+        //virtual void getIsolationInfo(double& centerMz, double& lowerLimit, double& upperLimit) const;
+
 
         //result->set(MS_lowest_observed_m_z, spectrum->getMinX(), MS_m_z);
         //result->set(MS_highest_observed_m_z, spectrum->getMaxX(), MS_m_z);
