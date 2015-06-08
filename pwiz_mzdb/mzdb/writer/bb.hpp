@@ -197,7 +197,7 @@ public:
      * Encode bounding box into byte array given mzDB convention
      *
      * @param v: output vector of byte
-     * @param dataModes: map msLevel dataMode
+     * @param dataModes: map scan index / dataMode
      * @see DataMode
      */
     void asByteArray(vector<byte>& v, map<int, DataMode>& dataModes) const {

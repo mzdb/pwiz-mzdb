@@ -87,7 +87,7 @@ namespace mzdb {
 
 #define STEP_PERCENT 2
 #define HUNDRED 100
-#define MAX_MS 3
+#define MAX_MS 2
 
 #define bb_ms1_mz_width_default 5
 #define bb_ms1_rt_width_default 15
@@ -194,6 +194,10 @@ protected:
         switch ( (int) m_originFileFormat ) {
         case (int) pwiz::msdata::MS_Thermo_RAW_format: {
             return  std::unique_ptr<mzIMetadataExtractor>(new mzThermoMetadataExtractor(this->m_mzdbFile.name));
+        }
+        case (int) pwiz::msdata::MS_ABI_WIFF_format: {
+            LOG(INFO) << "AB Sciex metadata extractor created";
+            return std::unique_ptr<mzIMetadataExtractor>(new mzABSciexMetadataExtractor(this->m_mzdbFile.name));
         }
         default: {
             LOG(WARNING) << "Metadata extraction is not supported for this file format:" << pwiz::msdata::cvTermInfo(m_originFileFormat).name;
@@ -325,8 +329,10 @@ public:
         //--- always prefer vendor centroiding
         pwiz::util::IntegerSet levelsToCentroid;
         for (auto it = this->m_dataModeByMsLevel.begin(); it != this->m_dataModeByMsLevel.end(); ++it) {
-            if ( it->second == CENTROID)
+            auto dm = it->second;
+            if ( dm == CENTROID || (m_originFileFormat == pwiz::msdata::MS_ABI_WIFF_format && dm == FITTED)) {
                 levelsToCentroid.insert(it->first);
+            }
         }
 
         pwiz::msdata::SpectrumListPtr spectrumList = m_msdata->run.spectrumListPtr;
@@ -342,14 +348,15 @@ public:
         LOG(INFO) << "SpectrumList size: " << nscans;
 
         map<int, map<int, int> > runSlices;
-        map<int, double> bbHeightManager, bbWidthManager; //currentRt
-        bbWidthManager[1] = m_mzdbFile.bbWidth;
+        map<int, double> bbHeightManager, bbWidthManager;
 
         //---faster to do a multiplication than a division so calculate just once the inverse
         double invms1 = 1.0 / m_mzdbFile.bbHeight;
         double invmsn = 1.0 / m_mzdbFile.bbHeightMsn;
 
         bbHeightManager[1] = invms1;
+        bbWidthManager[1] = m_mzdbFile.bbWidth;
+
         for (int msnb = 2; msnb <= MAX_MS; ++msnb) {
             if (! this->getSwathAcquisition()) {
                 bbHeightManager[msnb] = invmsn;
@@ -437,7 +444,7 @@ public:
                                                                          nscans, bbWidthManager, m_originFileFormat,params);
                 auto cons = pcThreadBuilder.getDDAGenericConsumerThread( m_msdata, m_serializer, bbHeightManager,
                                                                          runSlices, progressCount, nscans );
-                prod.join();cons.join();
+                prod.join(); cons.join();
             }
 
         } // end file type

@@ -81,7 +81,7 @@ public:
 
 
     void put(T& element) {
-        m_queue.put(std::move(element));
+        m_queue.put(element);
     }
 
     void get(T& element) {

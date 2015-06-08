@@ -61,8 +61,8 @@ private:
     void _peakPickAndPush(SpectraContainerUPtr& cycle, pwiz::msdata::CVID filetype,
                           mzPeakFinderUtils::PeakPickerParams& params) {
 
-        this->m_peakPicker.start<h_mz_t, h_int_t, l_mz_t, l_int_t>(cycle, filetype, params);
-        this->put(std::move(cycle));
+          this->m_peakPicker.start<h_mz_t, h_int_t, l_mz_t, l_int_t>(cycle, filetype, params);
+          this->put(cycle);
     }
 
     /**
@@ -102,12 +102,12 @@ public:
      * @param filetype
      * @param params
      */
-    void _produce(  pwiz::util::IntegerSet& levelsToCentroid,
-                    SpectrumListType* spectrumList,
-                    int nscans,
-                    map<int, double>& bbRtWidth,
-                    pwiz::msdata::CVID filetype,
-                    mzPeakFinderUtils::PeakPickerParams& params) {
+    void _produce(pwiz::util::IntegerSet& levelsToCentroid,
+                  SpectrumListType* spectrumList,
+                  int nscans,
+                  map<int, double>& bbRtWidth,
+                  pwiz::msdata::CVID filetype,
+                  mzPeakFinderUtils::PeakPickerParams& params) {
 
         /* initializing counter */
         int cycleCount = 0, scanCount = 1;
@@ -116,7 +116,6 @@ public:
         HighResSpectrumSPtr currMs1(nullptr);
 
         for (size_t i = 0; i < nscans; ++i) {
-
             pwiz::msdata::SpectrumPtr spectrum;
 
             try {
@@ -134,6 +133,7 @@ public:
 
             const int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
             m_msLevels.insert(msLevel);
+
             const float rt = PwizHelper::rtOf(spectrum);
 
             //method comes from MetadataExtractionPolicy inheritage
@@ -151,16 +151,18 @@ public:
                 spectraByMsLevel[msLevel] = std::move(spectraCollection);
             }
 
+
             //get a reference to the unique pointer corresponding to the current mslevel
             auto& container = spectraByMsLevel[msLevel];
 
 
             //check if the bounding box is well sized. If yes, launch peak-picking and add it to the queue
-            auto& bbRtWidthBound =  bbRtWidth[msLevel];
+            auto& bbRtWidthBound = bbRtWidth[msLevel];
 
             bool added = false;
 
-            if ( container->empty() ) {
+
+            if (container->empty() ) {
                 this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum);
                 ++scanCount;
                 added = true;
@@ -170,16 +172,24 @@ public:
 
                 this->_peakPickAndPush(container, filetype, params);
 
-                this->put(std::move(container));
 
+//                this->put(container); //std::move(container));
+
+
+                //---create a new container
                 SpectraContainerUPtr c(new SpectraContainer(msLevel));
 
+                //set its parent
                 c->parentSpectrum = currMs1;
+
+                //check if already been added
                 if (!added) {
                     this->_addSpectrum(c, scanCount, cycleCount, isInHighRes, spectrum);
                     ++scanCount;
                 }
+
                 spectraByMsLevel[msLevel] = std::move(c);
+
             } else {
                 if (!added) {
                     this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum);
@@ -187,13 +197,15 @@ public:
                 }
             }
 
+
         } // end for
+
 
         //handles ending, i.e non finished cycles
         for(int i = 1; i <= spectraByMsLevel.size(); ++i) {
             // FIX: when there are only MS2 spectra
             if (spectraByMsLevel.find(i) != spectraByMsLevel.end()) {
-                auto& container = spectraByMsLevel[i];
+                auto& container = spectraByMsLevel.at(i);
                 while (container && ! container->empty()) {
                     this->_peakPickAndPush(container, filetype, params);
                 }

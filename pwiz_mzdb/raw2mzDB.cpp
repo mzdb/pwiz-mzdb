@@ -46,6 +46,7 @@ using namespace pwiz::msdata;
 
 #ifdef _WIN32
 void trans_func( unsigned int u, EXCEPTION_POINTERS* pExp ){
+    LOG(ERROR) << "about to throw a converted exception";
     throw runtime_error("SEH exception.");
 }
 #endif
@@ -100,7 +101,7 @@ void parseRange(string& range, DataMode mode,
             std::cout << help << endl;
             exit(EXIT_FAILURE);
         }
-        if (range.size() == 1) {
+        else if (range.size() == 1) {
             int p;
             try {
                 p = boost::lexical_cast<int>(range);
@@ -113,7 +114,7 @@ void parseRange(string& range, DataMode mode,
             modifiedIndex.push_back(p);
 
         }
-        if (range.size() == 3) {
+        else if (range.size() == 3) {
             vector<string> splitted;
             boost::split(splitted, range, boost::is_any_of("-"));
             int p1 = 0, p2 = 0;
@@ -141,15 +142,14 @@ void parseRange(string& range, DataMode mode,
 
 /// Starting point !
 int main(int argc, char* argv[]) {
-    //#ifdef _WIN32
-    //    //set se translator
-    //    LOG(INFO) << "Setting custom translator for SEH exception.";
-    //    _set_se_translator(trans_func);
-    //#endif
-
+//    #ifdef _WIN32
+//        //set se translator
+//        LOG(INFO) << "Setting custom translator for SEH exception.";
+//        _set_se_translator(trans_func);
+//    #endif
     string filename = "", centroid = "", profile = "", fitted = "", namefile = "", serialization = "xml";
     bool compress = false;
-    double ppm = 20.0;
+    //double ppm = 20.0;
 
 
     //---bounding boxes sizes defaults
@@ -188,7 +188,7 @@ int main(int argc, char* argv[]) {
                   "\t-c, --centroid : centroidization, eg: -c 1 (centroidization msLevel 1) or -c 1-5 (centroidization msLevel 1 to msLevel 5) \n"
                   "\t-p, --profile : idem but for profile mode \n"
                   "\t-f, --fitted : idem buf for fitted mode \n"
-                  "\t--ppm : ppm parameter for peak detection algorithm of WIFF files, default: 20\n"
+                  //"\t--ppm : ppm parameter for peak detection algorithm of WIFF files, default: 20\n"
                   "\t-T, --bbTimeWidth : bounding box width for ms1 in seconds, default: 15s\n"
                   "\t-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s\n"
                   "\t-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da \n"
@@ -215,7 +215,7 @@ int main(int argc, char* argv[]) {
     ops >> Option('n', "nscans", nscans);
     ops >> Option("no_loss", noLoss);
     ops >> Option("dia", dia);
-    ops >> Option("ppm", ppm);
+    //ops >> Option("ppm", ppm);
     //ops >> Option("bufferSize", nbCycles);
     //ops >> Option("max_nb_threads", maxNbThreads);
 
@@ -259,7 +259,7 @@ int main(int argc, char* argv[]) {
     //--- overriding default encoding to `fitted` for DIA mslevel 2
     if (dia) {
         dataModeByMsLevel[2] = FITTED;
-        dataModeByMsLevel[3] = FITTED;
+        //dataModeByMsLevel[3] = FITTED;
     }
 
     vector<int> modifiedIndex;
@@ -287,7 +287,7 @@ int main(int argc, char* argv[]) {
     vector<MSDataPtr> msdList;
 
     try {
-        ( (FullReaderList*) readers.get() )->read(f.name, msdList);
+        ((FullReaderList*) readers.get())->read(f.name, msdList);
     } catch(exception& e) {
         LOG(ERROR) << e.what() << endl;
         LOG(FATAL) << "This a fatal error. Exiting..." << endl;
@@ -326,18 +326,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    //---overwrite swath mode if needed
-//    if (dia) {
-//        if (! writer.getSwathAcquisition()) {
-//            LOG(INFO) << "Overwriting acquisition to swath mode...";
-//            writer.setSwathAcquisition(true);
-//        }
-//    }
-
     //---create parameters for peak picking
     mzPeakFinderUtils::PeakPickerParams p;
     // overriding ppm
-    p.ppm = ppm;
+    //p.ppm = ppm;
 
     clock_t beginTime = clock();
 
@@ -367,5 +359,7 @@ int main(int argc, char* argv[]) {
 
    clock_t endTime = clock();
    LOG(INFO) << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl;
+
+
     return 0;
 }

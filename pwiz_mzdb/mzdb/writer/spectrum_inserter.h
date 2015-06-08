@@ -67,7 +67,8 @@ private:
             if (de.mode == mode && pe == de.peakEncoding)
                 return it->first;
         }
-        throw exception("Can not determine the good data encoding ID");
+        return 1;
+        //throw exception("Can not determine the good data encoding ID");
     }
 
 public:
@@ -291,7 +292,6 @@ public:
                 pwiz::msdata::IO::write(writer_3, *p);
             }
             r_3 =  os_3.str();
-            // weird error encoding when using SQLITE_STATIC
             sqlite3_bind_text(mMzdbFile.stmt, 16, r_3.c_str(), r_3.length(), SQLITE_STATIC);
 
             //product list

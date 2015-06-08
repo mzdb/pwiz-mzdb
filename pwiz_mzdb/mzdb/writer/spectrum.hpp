@@ -195,7 +195,8 @@ struct PWIZ_API_DECL mzSpectrum {
     //kind of lazy attribute
     inline const float& rt() {
         if (! retentionTime)
-            retentionTime =  (float)spectrum->scanList.scans.front().cvParam(pwiz::msdata::MS_scan_start_time).timeInSeconds();
+                retentionTime =  (float)spectrum->scanList.scans.front().cvParam(pwiz::msdata::MS_scan_start_time).timeInSeconds();
+
         return retentionTime;
     }
 

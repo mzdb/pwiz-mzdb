@@ -67,14 +67,15 @@ private:
         s->getMZIntensityPairs(pairs);
 
         //---following lines remove all zeros of the intensity array
-        /*pairs.erase(std::remove_if(pairs.begin(), pairs.end(), [](const pwiz::msdata::MZIntensityPair& p) { return p.intensity == (int_t)0.0; }),
-                    pairs.end());*/
+//        pairs.erase(std::remove_if(pairs.begin(), pairs.end(), [](const pwiz::msdata::MZIntensityPair& p) { return p.intensity == (int_t)0.0; }),
+//                    pairs.end());
 
         results.resize(pairs.size());
         float rt = static_cast<float>(s->scanList.scans[0].cvParam(pwiz::msdata::MS_scan_start_time).timeInSeconds());
+
         std::transform(pairs.begin(), pairs.end(), results.begin(), [&rt, s](pwiz::msdata::MZIntensityPair& p) -> std::shared_ptr<Centroid<mz_t, int_t> > {
-            mz_t mz = std::move((mz_t)p.mz);
-            int_t ints = std::move((int_t)p.intensity);
+            mz_t mz = (mz_t)p.mz; //std::move((mz_t)p.mz);
+            int_t ints = (int_t)p.intensity; //std::move((int_t)p.intensity);
             return std::make_shared<Centroid<mz_t, int_t> >(mz, ints, rt);
         });
     }
@@ -95,18 +96,24 @@ public:
                                  pwiz::msdata::CVID fileType,
                                  mzPeakFinderUtils::PeakPickerParams& peakPickerParams) {
 
-        const pwiz::msdata::CVParam& isCentroided = s->cvParam(pwiz::msdata::MS_centroid_spectrum);
-        DataMode currentMode = ( isCentroided.empty() ) ? PROFILE: CENTROID;
+        //const pwiz::msdata::CVParam isCentroided = s->cvParam(pwiz::msdata::MS_centroid_spectrum);
+        //isCentroided.cvid == pwiz::msdata::CVID_Unknown) ? PROFILE: CENTROID;
+
+        DataMode currentMode = s->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
 
         DataMode effectiveMode;
-
         if (wantedMode == PROFILE && currentMode == PROFILE) {
             effectiveMode = PROFILE;
             computeCentroids<mz_t, int_t>(s, results);
 
-        } else if ((wantedMode == CENTROID && currentMode == PROFILE) || (wantedMode == FITTED && currentMode == PROFILE)) {//findPeak then centroidize}
+        } else if ((wantedMode == CENTROID && currentMode == PROFILE) || (wantedMode == FITTED && currentMode == PROFILE)) {
+            //findPeak then centroidize
             effectiveMode = wantedMode;
-            findPeaks<mz_t, int_t>(s, results, fileType, peakPickerParams);
+            if (fileType == pwiz::msdata::MS_ABI_WIFF_format) {
+                computeCentroids<mz_t, int_t>(s, results);
+            } else {
+                findPeaks<mz_t, int_t>(s, results, fileType, peakPickerParams);
+            }
         } else {
             // current is CENTROID nothing to do
             effectiveMode = CENTROID;

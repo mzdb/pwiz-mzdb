@@ -36,23 +36,29 @@ namespace mzdb {
 void mzDBWriter::buildDataEncodingRowByID() {
     int id = 1;
     bool hasProfileMode = hasDataMode(PROFILE);
+    
     if (hasProfileMode && m_mzdbFile.noLoss) {
-        m_dataEncodingByID[id] = DataEncoding(-1, PROFILE, NO_LOSS_PEAK);
+        DataEncoding d(-1, PROFILE, NO_LOSS_PEAK);
+        m_dataEncodingByID[id] = d;
         ++id;
     } else if (hasProfileMode && ! m_mzdbFile.noLoss) {
-        m_dataEncodingByID[id] = DataEncoding(-1, PROFILE, HIGH_RES_PEAK);
+        DataEncoding d(-1, PROFILE, HIGH_RES_PEAK);
+        m_dataEncodingByID[id] = d;
         ++id;
     }
 
     if (hasDataMode(FITTED)) {
-        m_dataEncodingByID[id] = DataEncoding(-1, FITTED, HIGH_RES_PEAK);
+        DataEncoding d(-1, FITTED, HIGH_RES_PEAK);
+        m_dataEncodingByID[id] = d;
         ++id;
     }
 
     if (hasDataMode(CENTROID)) {
-        m_dataEncodingByID[id] = DataEncoding(-1, CENTROID, HIGH_RES_PEAK);
+        DataEncoding d1(-1, CENTROID, HIGH_RES_PEAK);
+        DataEncoding d2(-1, CENTROID, LOW_RES_PEAK);
+        m_dataEncodingByID[id] = d1;
         ++id;
-        m_dataEncodingByID[id] = DataEncoding(-1, CENTROID, LOW_RES_PEAK);
+        m_dataEncodingByID[id] = d2;
     }
 }
 
@@ -462,7 +468,13 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
     m_metadataExtractor = std::move(this->getMetadataExtractor());
 
     //populate dataencoding that will be inserted in the mzdb
+//    try {
     this->buildDataEncodingRowByID();
+//    }catch(boost::bad_lexical_cast& e) {
+//        LOG(ERROR) << e.what();
+//    }catch(...) {
+//        LOG(ERROR) << "weird error";
+//    }
 }
 
 

@@ -34,7 +34,7 @@ private:
             boost::thread_group g;
             size_t counter = ( N - j < maxNbThreads ) ? N - j : maxNbThreads;
             for (size_t i = 0; i < counter; ++i) {
-                g.create_thread(std::bind(&mzSpectrum<mz_t, int_t>::doPeakPicking, spectra[j + i], m, filetype, params));
+                g.create_thread(std::bind(&mzSpectrum<mz_t, int_t>::doPeakPicking, spectra.at(j + i), m, filetype, params));
             }
             g.join_all();
         }
