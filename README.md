@@ -8,9 +8,12 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 ## Project contributors
 
 <div>
-<img src="http://www.profiproteomics.fr/wp-content/themes/profi/images/logo-profi.png" href="http://www.profiproteomics.fr" alt="ProFI" width="200" />
+<a href="http://www.profiproteomics.fr" ><img src="http://www.profiproteomics.fr/wp-content/themes/profi/images/logo-profi.png" alt="ProFI" width="200" />
+</a>
 <br/>
-<img src="http://omics-services.com/images/logo_omics_services.png" href="http://omics-services.com]" alt="Omics Services" width="200" />
+<a href="http://omics-services.com" >
+<img src="http://omics-services.com/images/logo_omics_services.png" alt="Omics Services" width="200" />
+</a>
 </div>
 
 ## Roadmap
