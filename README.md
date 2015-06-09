@@ -87,9 +87,10 @@ Compilation on Linux may require some code corrections for the moment. We plan t
 
 In order to build with *bjam*:
 
-* Download project dependencies as compiled libraries: [pwiz-mzdb-lib](https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.8/pwiz-mzdb-lib.zip)
-
-* Execute the "quickbuild" script: **quickbuild.bat -j8 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses**
+* Download project dependencies as static compiled libraries: [pwiz-mzdb-lib](https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.8/pwiz-mzdb-lib.zip)
+* Unzip this file in the directory <code>project_root/pwiz_mzdb/mzdb/lib</code>
+* Then run the following command from the project root: <br/>
+<code>quickbuild -j8 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses</code>
 
 #### Project structure
 
