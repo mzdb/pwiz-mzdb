@@ -5,6 +5,14 @@ An extension of the ProteoWizard framework enabling the support of the mzDB form
 
 For details about mzDB concepts (scanSlice, runSlice...) and specifications, have a look to the [related repository](http://github.com/mzdb/mzdb-specs).
 
+## Project contributors
+
+<div>
+<img src="http://www.profiproteomics.fr/wp-content/themes/profi/images/logo-profi.png" href="http://www.profiproteomics.fr" alt="ProFI" width="200" />
+<br/>
+<img src="http://omics-services.com/images/logo_omics_services.png" href="http://omics-services.com]" alt="Omics Services" width="200" />
+</div>
+
 ## Roadmap
 
 Current stable version is 0.9.7.
