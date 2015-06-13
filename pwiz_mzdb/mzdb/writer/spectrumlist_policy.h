@@ -31,6 +31,7 @@ template<>
 static pwiz::msdata::SpectrumPtr getSpectrum(pwiz::msdata::SpectrumList* spectrumList, size_t index,
                                              bool getBinaryData,
                                              pwiz::util::IntegerSet& levelsToCentroid) {
+
     return spectrumList->spectrum(index, getBinaryData);
 }
 

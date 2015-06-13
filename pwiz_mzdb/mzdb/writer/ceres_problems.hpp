@@ -150,11 +150,19 @@ public:
 };
 
 
-
+/**
+ * Describe a problem to solve
+ */
 template<typename mz_t, typename int_t>
 class ProblemSolver {
+
+    /** detected centroid */
     vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids;
+
+    /** spectrum or DataPointsCollection mz data */
     const vector<mz_t>& xData;
+
+    /** spectrum or DataPointsCollection intensity data */
     const vector<int_t>& yData;
 
 public:
@@ -164,7 +172,11 @@ public:
                           vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids_): centroids(centroids_), xData(x_), yData(y_) {
     }
 
-
+     /**
+     *
+     * @param output optimized centroids
+     * @param options @see getDefaultOptions()
+     */
     void solve(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& output, ceres::Solver::Options options = getDefaultOptions()) {
 
         ceres::Problem problem;
@@ -229,6 +241,10 @@ public:
         //centroids.clear();
     }
 
+    /**
+     * Default options for optimizations. Max_num iterations adjusted to 50.
+     * @return options object from ceres
+     */
     static ceres::Solver::Options getDefaultOptions() {
           ceres::Solver::Options options;
           options.max_num_iterations = 50;

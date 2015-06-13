@@ -33,7 +33,9 @@
 namespace mzdb {
 
 /**
- *
+ * Cycle object used especially in DDA/DIA producers. Basically, a cycle object
+ * can contain low AND high resolution spectra.
+ * @see mzDDAProducer
  */
 template< class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
 struct mzSpectraContainer {
@@ -47,21 +49,29 @@ struct mzSpectraContainer {
     typedef std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > HighResSpectumSPtr;
     typedef std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > LowResSpectrumSPtr;
 
+    /** ms level */
     int msLevel;
+
     std::vector<pair<HighResSpectumSPtr, LowResSpectrumSPtr > > spectra;
+
+    /** if cycle of ms level 2, will be filled else will be null */
     HighResSpectumSPtr parentSpectrum;
 
     inline mzSpectraContainer() {}
     inline mzSpectraContainer(int msLevel): msLevel(msLevel) {}
 
+    /** add low resolution spectrum */
     inline void addLowResSpectrum(LowResSpectrumSPtr s) {
         spectra.push_back(std::make_pair(nullptr, s));
     }
 
+    /** add high resolution spectrum */
     inline void addHighResSpectrum(HighResSpectumSPtr s) {
         spectra.push_back(std::make_pair(s, nullptr));
     }
 
+
+    /** return retention time of the first spectrum of the cycle */
     inline float getBeginRt() const {
         if (spectra.front().first != nullptr)
             return spectra.front().first->rt();
@@ -69,6 +79,7 @@ struct mzSpectraContainer {
             return spectra.front().second->rt();
     }
 
+    /** return ID (which is stored in sqlite) of the first spectrum of the cycle*/
     inline int getBeginId() const {
         if (spectra.front().first != nullptr)
             return spectra.front().first->id;
@@ -80,6 +91,11 @@ struct mzSpectraContainer {
 
     inline int size() const {return spectra.size();}
 
+    /**
+     *
+     * @param highResSpec high resolution spectra output
+     * @param lowResSpec low resolution output
+     */
     inline void getSpectra(std::vector<HighResSpectumSPtr>& highResSpec,
                            std::vector<LowResSpectrumSPtr>& lowResSpec) const {
         for (auto it = spectra.begin(); it != spectra.end(); ++it) {

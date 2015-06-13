@@ -40,6 +40,10 @@ public:
     }
 };
 
+/**
+ * Simplified non-blocking queue derived from Folly developped at facebook.
+ * Benchmarks don't show significative difference between a blocking approach
+ */
 template<class T>
 class FollyQueueingPolicy: public mzAbstractQueueingPolicy<FollyQueueingPolicy<T>,
         folly::ProducerConsumerQueue<T> >{
@@ -68,7 +72,9 @@ public:
     }
 };
 
-
+/**
+ * Blocking queue implementation
+ */
 template<class T>
 class BlockingQueueingPolicy: public mzAbstractQueueingPolicy<BlockingQueueingPolicy<T>,
         BlockingQueue<T> >{

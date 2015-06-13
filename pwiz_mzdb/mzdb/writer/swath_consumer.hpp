@@ -14,6 +14,10 @@ using namespace std;
 
 namespace mzdb {
 
+/**
+ * Same function than mzDDAConsumer but adapted to DIA/SWATH
+ * @ see mzDDAConsumer
+ */
 template<class QueueingPolicy,
          class SpectrumListType> // Wiff or raw proteowizard object
 class  mzSwathConsumer:  QueueingPolicy, mzSpectrumInserter, mzBBInserter {

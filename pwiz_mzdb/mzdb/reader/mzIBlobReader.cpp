@@ -28,7 +28,7 @@ int buildMapPositions(byte* buf,
         DataEncoding de;
 
         try {
-            de = dataEncodings.at(id);
+            de = dataEncodings[id];
         } catch (exception& e){
             cout << e.what() << endl;
             cout <<  "Can not catch data encoding for scan id:" << id <<"\n";

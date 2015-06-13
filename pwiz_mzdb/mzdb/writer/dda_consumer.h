@@ -10,6 +10,15 @@
 
 namespace mzdb {
 
+/**
+ * The role of this class is to:
+ *  - read cycle objects from queue
+ *  - insert spectrum in sqlite table `spectrum`
+ *  - create and insert run slice in sqlite table `run_slice`
+ *  - create and insert bounding box in sqlite table `bounding_box`,
+ *    and sqlite virtual tables `bounding_box_rtree`, `bounding_box_msn_rtree`.
+ *
+ */
 template<class QueueingPolicy, class SpectrumListType>
 class mzDDAConsumer:  QueueingPolicy, mzSpectrumInserter, mzBBInserter {
 

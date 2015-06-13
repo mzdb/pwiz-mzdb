@@ -20,9 +20,11 @@ using namespace std;
 namespace mzdb {
 
 /**
- * @brief The mzDDAProducer class
- * Reads spectrum, aggregates it in cycle object, perform peak-picking (fitting) then send it
- * to a queue for being inserted in the sqlite database.
+ * The role of this class is to:
+ *  - read spectra sequentially from pwiz object spectrumList
+ *  - build some kind of cycle objects (referred as spectraCollections)
+ *  - perform peak-picking
+ *  - push cycle objects in a queue
  */
 template< class QueueingPolicy,
           class MetadataExtractionPolicy,

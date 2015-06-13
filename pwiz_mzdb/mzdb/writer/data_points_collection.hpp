@@ -28,14 +28,26 @@
 
 namespace mzdb {
 
+/**
+ * Datastructure especially used for Thermo peak picking. A data points collection
+ * is constituted primarly by data points beteen to series of `0` in Thermo  raw files
+ */
 template<class mz_t, class int_t>
 struct DataPointsCollection {
 
     typedef unique_ptr<mzPeak<mz_t, int_t> > PeakUPtr;
 
+    /** associated pwiz spectrum */
     pwiz::msdata::SpectrumPtr spectrum;
-    const vector<mz_t>& mzData;                                 //taken as references
-    const vector<int_t>& intData;                               //taken as references
+
+    /** mz points constituting the dataPointsCollection */
+    const vector<mz_t>& mzData;
+
+    /** intensity points constituting the dataPointsCollection */
+    const vector<int_t>& intData;
+
+    /** peaks (unique_ptr) detected in this dataPointsCollection. Safely deleted when
+     * datacollection is destructed*/
     vector<PeakUPtr> detectedPeaks;
 
 private:

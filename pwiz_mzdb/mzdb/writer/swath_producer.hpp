@@ -13,6 +13,10 @@ using namespace std;
 
 namespace mzdb {
 
+/**
+ * Same function than mzDDAProcuder but adapted for SWATH/DIA
+ * @see mzDDAProducer
+ */
 template<
         class QueueingPolicy,
         class MetadataExtractionPolicy, // TODO: create a policy which claims isInHighRes always true

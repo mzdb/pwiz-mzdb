@@ -5,7 +5,7 @@
 
 namespace mzdb {
 
-/** Simple fitting without jacobian calculation */
+/** Simple fitting without jacobian calculation (handled by autodiffcostfunction from ceres*/
 template<class mz_t, class int_t>
 class GaussianFittingCentroids {
 
