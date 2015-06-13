@@ -112,24 +112,26 @@ TODO
 
 To iterate over all spectra, simply do the following:
 
-	//build a mzdbfile
-	MzDBFile mzdb(filename);
+```C++
+//build a mzdbfile
+MzDBFile mzdb(filename);
+
+mzDBReader reader(mzdb); //build a mzdbreader object
+MSData msdata; // build empty Pwiz msdata object
+
+// the following will build a custom SpectrumList, ready for iteration
+reader.readMzDB(msdata);
+
+SpectrumListPtr sl = msdata.run.spectrumListPtr; // fetch spectrumList
+for (size_t i=0; i < sl.size(); ++i) {
+	// fetch spectrum, second argument is for getting spectrum data points
+	// it has no effect on the actual implementation, always return a spectrum
+	// with mz/intensity arrays
+	SpectrumPtr s = sl.spectrum(i, true);
 	
-	mzDBReader reader(mzdb); //build a mzdbreader object
-	MSData msdata; // build empty Pwiz msdata object
-	
-	// the following will build a custom SpectrumList, ready for iteration
-	reader.readMzDB(msdata);
-	
-	SpectrumListPtr sl = msdata.run.spectrumListPtr; // fetch spectrumList
-	for (size_t i=0; i < sl.size(); ++i) {
-		// fetch spectrum, second argument is for getting spectrum data points
-		// it has no effect on the actual implementation, always return a spectrum
-		// with mz/intensity arrays
-		SpectrumPtr s = sl.spectrum(i, true);
-		
-		//...do something else
-	}
+	//...do something else
+}
+```
 
 Warning: this is not suitable for accessing only one random spectrum. User may use the 'getSpectrum' function instead.
 	
@@ -137,32 +139,36 @@ Warning: this is not suitable for accessing only one random spectrum. User may u
 
 Not yet implemented. You can only extract one runSlice at a time for the moment:
 
-	MzDBFile mzdb(filename);
-	
-	mzDBReader reader(mzdb); //build a mzdbreader object
-	MSData msdata; // build empty Pwiz msdata object
-	
-	// the following will build a custom SpectrumList, ready for iteration
-	reader.readMzDB(msdata);
-	vector<mzScan*> results; // mzScan is a simple object containing vector members 'mz' and 'intensities'
-	reader.extractRunSlice(mzmin, mzmax, msLevel, results);
-	
+```C++
+MzDBFile mzdb(filename);
+
+mzDBReader reader(mzdb); //build a mzdbreader object
+MSData msdata; // build empty Pwiz msdata object
+
+// the following will build a custom SpectrumList, ready for iteration
+reader.readMzDB(msdata);
+vector<mzScan*> results; // mzScan is a simple object containing vector members 'mz' and 'intensities'
+reader.extractRunSlice(mzmin, mzmax, msLevel, results);
+```
+
 This feature is already implemented in the java reader mzDBAccess
 
 #### Query LC-MS DDA/DIA data using R*Tree queries
 
 To extract region using R*Tree:
 
-	MzDBFile mzdb(filename);
-	
-	mzDBReader reader(mzdb); //build a mzdbreader object
-	MSData msdata; // build empty Pwiz msdata object
-	
-	// the following will build a custom SpectrumList, ready for iteration
-	reader.readMzDB(msdata);
-	vector<mzScan*> results; // mzScan is a simple object containing vector members 'mz' and 'intensities'
-	
-	reader.extractRegion(mzmin, mzmax, rtmin, rtmax, msLevel, results);
+```C++
+MzDBFile mzdb(filename);
+
+mzDBReader reader(mzdb); //build a mzdbreader object
+MSData msdata; // build empty Pwiz msdata object
+
+// the following will build a custom SpectrumList, ready for iteration
+reader.readMzDB(msdata);
+vector<mzScan*> results; // mzScan is a simple object containing vector members 'mz' and 'intensities'
+
+reader.extractRegion(mzmin, mzmax, rtmin, rtmax, msLevel, results);
+```
 
 Specifying a msLevel=1 will extract region using spectra acquired in mslevel=1, suitable for DDA analysis. 
 Otherwise, it will request the msn R*Tree suitable to perform DIA analysis.   
