@@ -15,12 +15,12 @@ namespace BBComputer {
 
 //---------------------------- BOUNDING BOX INSERTIONS ---------------------
 /**
- * @brief buildCentroidsByScanID
  * build Map key scanID value vector of centroids
  *
  * @param centroidsByScanId: output map scanID, detected centroids
  * @param spectra: input spectra with centroids vector filled
  * @param dataModes: map msLevel dataMode
+ *
  * @see DataMode
  */
 template<typename mz_t, typename int_t>
@@ -38,7 +38,6 @@ static void buildCentroidsByScanID(map<int, vector<std::shared_ptr<Centroid<mz_t
 
 
 /**
- * @brief groupByMzIndex
  * Caculation of the runSlice index for each peak it belongs to
  *
  * @param v
@@ -66,7 +65,6 @@ static void groupByMzIndex(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& v, 
 }
 
 /**
- * @brief computeBoundingBox
  * Compute and create bounding box objects
  *
  * @param bbheight inverse of the bounding box height (mz dimension)

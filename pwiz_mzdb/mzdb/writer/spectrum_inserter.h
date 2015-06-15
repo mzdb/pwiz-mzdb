@@ -16,7 +16,8 @@
 namespace mzdb {
 
 /**
- * @brief The mzSpectrumInserter class
+ * The mzSpectrumInserter class
+ * =============================
  *
  * Insert spectrum into mzDB file
  */

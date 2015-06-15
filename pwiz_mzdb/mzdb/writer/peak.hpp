@@ -36,7 +36,10 @@ namespace mzdb {
 using namespace std;
 
 /**
- * @brief Centroid class
+ * Centroid class
+ * ==============
+ *
+ * Mainly computed by mzPeak
  */
 template<class mz_t, class int_t>
 struct PWIZ_API_DECL Centroid {
@@ -47,9 +50,14 @@ struct PWIZ_API_DECL Centroid {
     /// intensity value
     int_t intensity;
 
-    /// left/right width at half maxmimum result from peak data points fitting against gaussian.
+    /// left width at half maxmimum result from peak data points fitting against gaussian.
+    float lwhm;
+
+    /// right width at half maxmimum result from peak data points fitting against gaussian.
+    float rwhm;
+
     /// rt retention time in seconds
-    float lwhm, rwhm, rt; //, background;
+    float rt; //, background;
 
 
     inline Centroid() :mz(0.0), intensity(0.0), lwhm(0.0), rwhm(0.0), rt(0.0){}
@@ -69,8 +77,10 @@ struct PWIZ_API_DECL Centroid {
 
 
 /**
- * @brief the mzPeak
- * represents a mass peak
+ * the mzPeak class
+ * ================
+ *
+ * Basically represents a mass peak
  */
 template<class mz_t, class int_t>
 class PWIZ_API_DECL mzPeak {
@@ -97,7 +107,6 @@ protected:
 public:
 
     /**
-     * @brief apexIndex
      * @return index of the apex
      */
     inline int apexIndex() const throw() {
@@ -107,19 +116,16 @@ public:
     }
 
     /**
-     * @brief apexMz
      * @return apexMz mz at the peak apex
      */
     inline mz_t apexMz() const throw() {return _mzData[apexIndex()];}
 
     /**
-     * @brief apexIntensity
      * @return apex intensity intensity at the peak apex
      */
     inline int_t apexIntensity() const throw() {return _intData[apexIndex()];}
 
     /**
-     * @brief sumIntensities
      * @return sum all intensities of data points
      */
     inline float sumIntensities() const throw(){
@@ -142,13 +148,11 @@ public:
     inline void setIndex(int _inde) {_index = _inde;}
 
     /**
-     * @brief mzPeak
      * @param s Pointer to pwiz Spectrum it belongs
      */
     inline mzPeak(const pwiz::msdata::SpectrumPtr &s) : _spectrum(s), _index(0){}
 
     /**
-     * @brief mzPeak
      * @param mz mz values of data points
      * @param ints intensities values of data points
      * @param s Pointer to pwiz Spectrum it belongs
@@ -160,7 +164,11 @@ public:
 
     }
     
-
+    /**
+     * @return origin spectrum dataMode, i.e.:
+     * 1. profile
+     * 2. centroid
+     */
     inline DataMode originMode() const{
         pwiz::data::CVParam& isCentroided = _spectrum->cvParam(pwiz::data::MS_centroid_spectrum);
         DataMode currentMode = ! isCentroided.empty() ? CENTROID : PROFILE;
@@ -168,7 +176,6 @@ public:
     }
 
     /**
-     * @brief rt
      * @return retention time of the peak (spectrum retention time) in seconds
      */
     inline float rt() const {
@@ -182,8 +189,9 @@ public:
     //                             CENTROID FUNCTIONS
 
     /**
-     * @brief _computeCentroid
-     * Computes centroid from data points. The first centroid mz and intensity approximation
+     * Computes centroid from data points.
+     *
+     * The first centroid mz and intensity approximation
      * are estimated using a Parabola fitting (mathematical formula taken from MaxQuant paper)
      */
     PWIZ_API_DECL CentroidSPtr _computeCentroid() const{
@@ -304,9 +312,7 @@ public:
         return _centroid;
     }
 
-    /**return is an implicit conversion*/
     /**
-     * @brief interpolateXAtY
      * Simple linear interpolation
      *
      * @param xData

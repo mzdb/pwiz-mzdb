@@ -14,6 +14,9 @@
 namespace mzdb {
 
 /**
+ * MzDBFile structure
+ * ==================
+ *
  * Contains `sqlite3 db and statement` pointers plus some helping metadata about the current conversion.
  * Can also read user_params XML chunk of the `mzdb table` when used in `reading mode`.
  *

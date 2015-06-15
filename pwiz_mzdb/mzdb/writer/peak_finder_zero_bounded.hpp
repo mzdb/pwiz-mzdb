@@ -14,11 +14,14 @@ using namespace std;
 
 namespace mzdb {
 
+
+/**
+ * Algorithm adapted to Thermo data
+ */
 namespace mzPeakFinderZeroBounded {
 
 /**
- * @brief findPeaks
- * Algorithm adapted to Thermo data
+ *
  */
 template<class mz_t, class int_t>
 static void findPeaks(const pwiz::msdata::SpectrumPtr& s,

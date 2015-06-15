@@ -151,7 +151,10 @@ public:
 
 
 /**
- * Describe a problem to solve
+ * ProblemSolver class
+ * ====================
+ *
+ * Try to optimize lwhm and rwhm from detected centroids into signal
  */
 template<typename mz_t, typename int_t>
 class ProblemSolver {

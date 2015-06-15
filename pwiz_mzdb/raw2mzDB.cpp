@@ -91,6 +91,58 @@ inline bool exists (const std::string& name) {
     }   
 }
 
+pair<int, int> parseRange2(string& range) {
+    if (range != "") {
+        if (range.size() > 3) {
+            LOG(ERROR) << "Error in parsing command line";
+            exit(EXIT_FAILURE);
+        }
+        else if (range.size() == 1) {
+            int p;
+            try {
+                p = boost::lexical_cast<int>(range);
+            } catch (boost::bad_lexical_cast &) {
+                LOG(ERROR) << "Error, index must be an integer";
+                exit(EXIT_FAILURE);
+            }
+            return make_pair<int, int>(0, p);
+
+        }
+        else if (range.size() == 3) {
+            vector<string> splitted;
+            boost::split(splitted, range, boost::is_any_of("-"));
+            int p1 = 0, p2 = 0;
+            try {
+                p1 = boost::lexical_cast<int>(splitted[0]);
+                p2 = boost::lexical_cast<int>(splitted[1]);
+            } catch (boost::bad_lexical_cast &) {
+                LOG(ERROR) << "Error, the two indexes must be integers";
+                exit(EXIT_FAILURE);
+            }
+            if (p1 && p2 && p1 <= p2) {
+                return make_pair<int, int>(p1, p2);
+            } else {
+                LOG(ERROR) << "Error index 2 greater than index 1";
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        else if (range.size() == 2) {
+            vector<string> splitted;
+            boost::split(splitted, range, boost::is_any_of("-"));
+            int p1 = 0;
+            try {
+                p1 = boost::lexical_cast<int>(splitted[0]);
+                return make_pair<int, int>(p1, 0);
+            } catch(boost::bad_lexical_cast &) {
+                LOG(ERROR) << "Error, index must be integer";
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+    return make_pair<int, int>(0,0);
+}
+
 /// Parse command line, range (1-, 1-3)
 void parseRange(string& range, DataMode mode,
                          map<int, DataMode>& results,
@@ -133,7 +185,28 @@ void parseRange(string& range, DataMode mode,
                 }
             } else {
                 std::cout << help << "\n";
-                LOG(ERROR) << "Error parameter 2 greater than parameter 1";
+                LOG(ERROR) << "Error index 2 greater than index 1";
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        else if (range.size() == 2) {
+            vector<string> splitted;
+            boost::split(splitted, range, boost::is_any_of("-"));
+            int p1 = 0;
+            try {
+                p1 = boost::lexical_cast<int>(splitted[0]);
+                if (p1 > MAX_MS) {
+                    LOG(ERROR) << "Error,  index 1, " << p1 <<" bigger than index 2" << MAX_MS;
+                    exit(EXIT_FAILURE);
+                }
+                for (int i = p1; i <= MAX_MS; ++i) {
+                    results[i] = mode;
+                    modifiedIndex.push_back(i);
+                }
+
+            } catch(boost::bad_lexical_cast &) {
+                LOG(ERROR) << "Error, index must be integer";
                 exit(EXIT_FAILURE);
             }
         }
@@ -147,7 +220,7 @@ int main(int argc, char* argv[]) {
 //        LOG(INFO) << "Setting custom translator for SEH exception.";
 //        _set_se_translator(trans_func);
 //    #endif
-    string filename = "", centroid = "", profile = "", fitted = "", namefile = "", serialization = "xml";
+    string filename = "", centroid = "", profile = "", fitted = "", namefile = "", serialization = "xml", scanRange="";
     bool compress = false;
     //double ppm = 20.0;
 
@@ -213,8 +286,11 @@ int main(int argc, char* argv[]) {
     //ops >> Option('s', "serialize", serialization);
     ops >> Option('o', "output", namefile);
     ops >> Option('n', "nscans", nscans);
-    ops >> Option("no_loss", noLoss);
-    ops >> Option("dia", dia);
+    //ops >> Option('n', "nscans", scanRange);
+    ops >> OptionPresent("no_loss", noLoss);
+    ops >> OptionPresent("dia", dia);
+
+    //std::cout << "dia:" << dia << std::endl;
     //ops >> Option("ppm", ppm);
     //ops >> Option("bufferSize", nbCycles);
     //ops >> Option("max_nb_threads", maxNbThreads);
@@ -262,11 +338,14 @@ int main(int argc, char* argv[]) {
         //dataModeByMsLevel[3] = FITTED;
     }
 
+    //todo use set instead
     vector<int> modifiedIndex;
 
     parseRange(profile, PROFILE, dataModeByMsLevel, modifiedIndex, help);
     parseRange(fitted, FITTED, dataModeByMsLevel, modifiedIndex, help);
     parseRange(centroid, CENTROID, dataModeByMsLevel, modifiedIndex, help);
+
+    //auto scanR = parseRange2(scanRange);
 
     //---print gathered informations
     std::cout << "\nWhat I understood :\n";

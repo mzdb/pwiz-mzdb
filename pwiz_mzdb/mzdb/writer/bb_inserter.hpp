@@ -9,7 +9,9 @@
 namespace mzdb {
 
 /**
- * @brief The mzBBInserter class
+ * The mzBBInserter class
+ * =======================
+ *
  * Insertion of runslices, bounding boxes in mzDB file
  */
 class mzBBInserter {

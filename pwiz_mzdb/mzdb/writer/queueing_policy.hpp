@@ -41,6 +41,9 @@ public:
 };
 
 /**
+ * FollyQueueingPolicy class
+ * ==========================
+ *
  * Simplified non-blocking queue derived from Folly developped at facebook.
  * Benchmarks don't show significative difference between a blocking approach
  */
@@ -73,6 +76,9 @@ public:
 };
 
 /**
+ * BlockingQueueingPolicy class
+ * =============================
+ *
  * Blocking queue implementation
  */
 template<class T>

@@ -14,6 +14,9 @@
 namespace mzdb {
 
 /**
+ * PCBuilder class
+ * =================
+ *
  * In charge of building adapted `producers` and `consumers` in order to handle conversion.
  */
 template<class QueueType,

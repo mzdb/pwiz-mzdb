@@ -10,7 +10,6 @@ namespace mzdb {
 
 
 /**
- * @brief getSpectrum
  * template function for ABI and Thermo spectrumList proteowizard implementation.
  * Accept a supplementary parameter, a vector containing the index of msLevel to
  * perform a centroidization using vendor algorithm

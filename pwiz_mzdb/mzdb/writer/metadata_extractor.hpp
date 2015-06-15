@@ -31,6 +31,9 @@
 namespace mzdb {
 
 /**
+ *  mzIMetadataExtractor class
+ * ===========================
+ *
  * interface for extracting metadata, defining the minimum knowledge about
  * on sample
  */
@@ -98,7 +101,9 @@ public:
 };
 
 /**
- * @brief The mzEmptyMetadataExtractor class
+ * The mzEmptyMetadataExtractor class
+ * ===================================
+ *
  * Extractor used when provided raw file is a xml based file
  * A priori we do not have extra knowledge about the method etc...
  */
@@ -129,9 +134,15 @@ public:
 
 };
 
-/// ABI Sciex metadata extractor
 
 #ifdef _WIN32
+
+/**
+ * The mzABSciexMetadataExtractor class
+ * =====================================
+ *
+ * ABI Sciex metadata extractor
+ */
 class mzABSciexMetadataExtractor : public mzAbstractMetadataExtractor< mzABSciexMetadataExtractor, (int) pwiz::cv::MS_ABI_WIFF_format > {
 
     pwiz::vendor_api::ABI::WiffFilePtr _wiffFilePtr;
@@ -202,11 +213,15 @@ class mzABSciexMetadataExtractor : public mzAbstractMetadataExtractor< mzABSciex
 
 #endif
 
+
+#ifdef _WIN32
+
 /**
- * @brief The mzThermoMetadataExtractor class
+ * The mzThermoMetadataExtractor class
+ * =====================================
+ *
  * Go fetch some special attributes contained in the thermo data file
  */
-#ifdef _WIN32
 class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMetadataExtractor, (int) pwiz::cv::MS_Thermo_RAW_format> {
     pwiz::vendor_api::Thermo::RawFilePtr _rawfilePtr;
 
@@ -292,6 +307,12 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
         return sample;
     }
 
+    /**
+     * Check if _FTMS_ exists in scan cvParams.
+     *
+     * @param p
+     * @return boolean true if is in high resolution false otherwise
+     */
     virtual inline bool isInHighRes(pwiz::msdata::SpectrumPtr p) {
         const std::string& scanparam = p->scanList.scans[0].cvParam(pwiz::msdata::MS_filter_string).value;
         bool highRes = (scanparam.find("FTMS") != std::string::npos) ? true : false;

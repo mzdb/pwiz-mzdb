@@ -11,6 +11,9 @@
 namespace mzdb {
 
 /**
+ * mzDDAConsumer class
+ * ====================
+ *
  * The role of this class is to:
  *  - read cycle objects from queue
  *  - insert spectrum in sqlite table `spectrum`
@@ -38,7 +41,6 @@ class mzDDAConsumer:  QueueingPolicy, mzSpectrumInserter, mzBBInserter {
 public:
 
     /**
-     * @brief _consume
      * @param msdata
      * @param serializer
      * @param bbMzWidthByMsLevel

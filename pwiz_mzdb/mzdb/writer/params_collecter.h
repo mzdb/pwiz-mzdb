@@ -12,7 +12,9 @@ using namespace std;
 namespace mzdb {
 
 /**
- * @brief The mzParamsCollecter class
+ * The mzParamsCollecter class
+ * ===========================
+ *
  * Allow the collect of user param and cv params of pwiz ParamContainer objects
  *
  * @see DataContainer
@@ -32,7 +34,6 @@ private:
 public:
 
     /**
-     * @brief mzParamsCollecter
      * Ctor
      *
      * @param mzdbFile
@@ -40,7 +41,6 @@ public:
     mzParamsCollecter(MzDBFile& mzdbFile): m_mzdbFile(mzdbFile) {}
 
     /**
-     * @brief updateCVMap
      * fetch new cvParam (that is not already in the map) from a ParamContainer
      *
      * @param pc
@@ -52,8 +52,8 @@ public:
     }
 
     /**
-     * @brief updateUserMap
      * fetch new userParam (that is not already in the map) from a ParamContainer
+     *
      * @param pc
      */
     inline void updateUserMap(const pwiz::msdata::ParamContainer& pc) {
@@ -63,7 +63,6 @@ public:
     }
 
     /**
-     * @brief insertCollectedCVTerms
      * Insert all cvParams and userParams object in cv_params and user_params table respectively
      * in the sqlite database.
      */

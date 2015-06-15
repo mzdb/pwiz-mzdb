@@ -12,17 +12,24 @@ using namespace std;
 namespace mzdb {
 
 /**
- * @brief The mzMultiThreadedPeakPicker class
- * performs peak-picking of several spectra using several threads
+ * The mzMultiThreadedPeakPicker class
+ * ====================================
+ *
+ * performs peak-picking of several spectra using several threads.
  */
 class mzMultiThreadedPeakPicker {
 
 private:
-    /*attribute */
+
+    /// wanted DataMode for each msLevel wanted by the user.
     map<int, DataMode>& m_dataModeByMsLevel;
 
 
-    /* methods */
+    /**
+     * Launches peak picking for each spectrum in its own thread.
+     *
+     * This is a little aggressive.
+     */
     template<typename mz_t, typename int_t>
     void _peakPicksTypedSpectra(vector<std::shared_ptr<mzSpectrum<mz_t, int_t> > >& spectra,
                                 DataMode m,
@@ -42,8 +49,7 @@ private:
 
 
     /**
-     * @brief _peakPicks
-     * launch peakPicking using a thread group
+     * wrapper: launches peak picking on several spectra
      */
     template<class h_mz_t, class h_int_t,
              class l_mz_t, class l_int_t>
@@ -72,7 +78,7 @@ public:
 
 
     /**
-     * wrapper of the function above
+     * wrapper one liner for launching peak picking on a cycle object
      */
     template<class h_mz_t, class h_int_t,
              class l_mz_t, class l_int_t>

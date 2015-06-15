@@ -41,14 +41,23 @@ struct ISpectrum {
 };
 
 /**
- * @brief The mzSpectrum class
+ * The mzSpectrum class
+ * ====================
  *
+ * Represents spectrum object.
+ *
+ * This a templated object:
+ *  1. mz_t: type for mass over charge encoding
+ *  2. int_t: type for intensity encoding
  */
 template<typename mz_t=double, typename int_t=float>
 struct PWIZ_API_DECL mzSpectrum {
 
-    /// database ID, and cycle number
-    int id, cycle;
+    /// database ID
+    int id;
+
+    /// cycle number
+    int cycle;
 
     /// retention time in seconds
     float retentionTime;
@@ -59,8 +68,13 @@ struct PWIZ_API_DECL mzSpectrum {
     /// isInHighRes true if ms1 or HCD ms2 scan false otherwise
     bool isInHighRes, isInserted;
 
+    /// precusorCharge if spectrum has msLevel==2
     int _precursorCharge;
+
+    /// precusorMz if spectrum has msLevel==2
     double _precursorMz;
+
+    ///msLevel of the spectrum
     int _msLevel;
 
     /// vector containing the result of the fitting i.e. centroids
@@ -139,10 +153,10 @@ struct PWIZ_API_DECL mzSpectrum {
     }*/
 
     /**
-     * @brief getEffectiveMode
      * return the effective dataMode roughly equivalent to the wanted mode
+     *
      * @param wantedMode
-     * @return
+     * @return effective mode
      */
     inline DataMode getEffectiveMode(DataMode wantedMode) {
         const pwiz::msdata::CVParam& isCentroided = spectrum->cvParam(pwiz::msdata::MS_centroid_spectrum);
@@ -161,10 +175,12 @@ struct PWIZ_API_DECL mzSpectrum {
 
 
     /**
-      * @brief doPeakPicking : perform peak picking, fill peaks member
-      * @param m
-      * @param ppa
-      * @param threshold
+      * Perform peak picking, fill peaks member et set the member
+      * _effectiveMode_.
+      *
+      * @param m wanted dataMode to convert
+      * @param ppa CVID representing filetype
+      * @param peak picking params object
       */
     inline void doPeakPicking(DataMode m, pwiz::msdata::CVID ppa, mzPeakFinderUtils::PeakPickerParams& params) {
         effectiveMode = mzPeakFinderProxy::computePeaks(spectrum, peaks, m, ppa, params);
@@ -176,7 +192,6 @@ struct PWIZ_API_DECL mzSpectrum {
     inline int initialPointsCount() const throw() {return spectrum->defaultArrayLength;}
 
     /**
-     * @brief nbPeaks
      * return #mass peaks after fitting process
      * @return
      */

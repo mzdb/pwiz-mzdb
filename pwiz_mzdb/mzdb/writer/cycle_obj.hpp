@@ -33,8 +33,12 @@
 namespace mzdb {
 
 /**
+ * mzSpectraContainer class
+ * ========================
+ *
  * Cycle object used especially in DDA/DIA producers. Basically, a cycle object
  * can contain low AND high resolution spectra.
+ *
  * @see mzDDAProducer
  */
 template< class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>

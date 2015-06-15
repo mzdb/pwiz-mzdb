@@ -29,6 +29,9 @@
 namespace mzdb {
 
 /**
+ *  DataPointsCollection class
+ * =============================
+ *
  * Datastructure especially used for Thermo peak picking. A data points collection
  * is constituted primarly by data points beteen to series of `0` in Thermo  raw files
  */
@@ -51,6 +54,7 @@ struct DataPointsCollection {
     vector<PeakUPtr> detectedPeaks;
 
 private:
+
     /**
      * force to be a vector in template parameter
      * should be private

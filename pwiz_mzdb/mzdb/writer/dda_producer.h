@@ -20,6 +20,9 @@ using namespace std;
 namespace mzdb {
 
 /**
+ * mzDDAProducer class
+ * ===================
+ *
  * The role of this class is to:
  *  - read spectra sequentially from pwiz object spectrumList
  *  - build some kind of cycle objects (referred as spectraCollections)

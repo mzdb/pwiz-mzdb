@@ -9,18 +9,16 @@
 #include "data_points_collection.hpp"
 
 
-namespace mzdb {
-
 using namespace std;
 
-namespace mzPeakFinderWavelet {
-
+namespace mzdb {
 
 /**
- * @brief findPeaks
  * find mass peaks using continuous wavelet transform at a specified scale
  * Algorihtm adapted to ABI, Bruker instruments (TOF instruments)
  */
+namespace mzPeakFinderWavelet {
+
 template<class mz_t, class int_t>
 static void findPeaks(const pwiz::msdata::SpectrumPtr& s,
                       vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids,

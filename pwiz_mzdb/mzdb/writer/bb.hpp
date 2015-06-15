@@ -38,10 +38,14 @@ using namespace std;
 namespace mzdb {
 
 /**
- * Represents a ``bounding box``. It can mix low res peaks (encoded m/z 32 bits) and
- * high res peaks (encoded m/z 64 bits)
+ * mzBoundingBox class
+ * ===================
  *
- * Note: The 2 unique_ptr are destroyed when mzBoundingBox destructor is called.
+ * Represents a __bounding box__. It can mix _low resolution_ peaks (encoded m/z 32 bits) and
+ * _high resolution_ peaks (encoded m/z 64 bits). Members _low_res_peaks and _high_res_peaks
+ * can be assimilated to `ScanSlice` concept.
+ *
+ * __Note:__ The 2 unique_ptr are automatically destroyed when mzBoundingBox destructor is called.
  */
 template<class h_mz_t, class h_int_t, class l_mz_t, class l_int_t>
 class PWIZ_API_DECL mzBoundingBox {
@@ -60,13 +64,19 @@ protected:
     /// may be null
     unique_ptr<map<int, vector<LowResCentroidSPtr> > > _lowResPeaksByScanIDs;
 
-    /// minima and maxima values in both mz and rt dimensions
+    /// minimum m/z found in the bounding box
     float _mzmin;
+
+    /// maximum m/z found in the bounding box
     float _mzmax;
+
+    /// minimum retention time found in the bounding box
     float _rtmin;
+
+    /// maximum retention time found in the bounding box
     float _rtmax; //use for descriptive field no precision needed
 
-    /// the run slice index this bounding box belongs to
+    /// run slice index (which is stored in sqlite) which this bounding box belongs
     int _runSliceIdx;
 
 
@@ -89,7 +99,7 @@ public:
     }
 
     /**
-     * Ctor only providing maps containing data
+     * Ctor only providing maps containing scanID/_ScanSlice_ data
      *
      * @param h: pointer to map scanId, high res peaks
      * @param l: pointer to map scanID, low res peaks
@@ -106,7 +116,7 @@ public:
      *
      * @param idx: run slice index of the bounding box
      * @param height: height of the bounding box i.e. it's size in mz dimension
-     * @param h: pointer to map scanId, high res peaks
+     * @param h: pointer to map scanID, high res peaks
      * @param l: pointer to map scanID, low res peaks
      */
     mzBoundingBox(int idx,
@@ -194,7 +204,14 @@ public:
     }
 
     /**
-     * Encode bounding box into byte array given mzDB convention
+     * Encode bounding box into byte array given dataModes
+     *
+     * A _BB_ is encoded as follows:
+     * for each scanSlice composing the _BB_:
+     * - scanID (integer)
+     * - #data points (integer)
+     * - m/z(64-32 bits encoding depending on specified dataMode), intensity(64 or 32 bits encodings,
+     *   lwhm, rwhm (if _FITTED_ mode) for each data points
      *
      * @param v: output vector of byte
      * @param dataModes: map scan index / dataMode
@@ -231,6 +248,8 @@ public:
      * @param v: output byte vector
      * @param idx: scanID
      * @param w scanID, peaks
+     *
+     * @see asByteArray
      */
     template<typename mz_t, typename int_t>
     inline static void insertCentroidToBinaryVector(vector<byte>& v, int idx,
@@ -250,7 +269,9 @@ public:
      *
      * @param v: output byte vector
      * @param idx  scanID
-     * @param w scanID, peaks
+     * @param w map scanID, peaks
+     *
+     * @see asByteArray
      */
     template<typename mz_t, typename int_t>
     inline static void insertFittedToBinaryVector(vector<byte>& v, int idx,
@@ -268,10 +289,12 @@ public:
     }
 
     /**
-     * Fill the bounding box of empty scan (even if a scanSlice has no peaks it will appears)
+     * When missing scanID, create an empty vector in order to keep
+     * all scanIDs in `_highResPeaksByScanIDs` and `_lowResPeaksByScanIDs`.
+     * It can happen when a _ScanSlice_ is empty.
      *
-     * @param h: map scanID, high res peaks
-     * @param l: map scanID, low res peaks
+     * @param h: map scanID, high resolution peaks
+     * @param l: map scanID, low resolution peaks
      */
     inline void update(map<int, vector<HighResCentroidSPtr> >& h,
                        map<int, vector<LowResCentroidSPtr> >& l) throw(){
@@ -292,7 +315,11 @@ public:
     }
 
     /**
-     * Find rt boundaries scanning maxima and minima retention time values in all scans
+     * Find retention time boundaries scanning maxima and minima retention
+     * time values in all scans. This reajustment is supposed to lead to faster
+     * _rtree_ query. However this not used, especially because of performance
+     * penalties
+     *
      */
     inline void setRtBoundaries() {
         _rtmin = 1e9;
@@ -351,10 +378,10 @@ public:
     /**
      * Allow iteration over scanSlice in scanID ascendant.
      *
+
      * @param v: output vector containing:
-     *
-     * -first value: 1 if highResPeak, 2 if low res peak
-     * -second value: scanID
+     * - first value: 1 if highResPeak, 2 if low res peak
+     * - second value: scanID
      */
     inline void iterationOrder(vector<pair<int, int> >& v) const {
 

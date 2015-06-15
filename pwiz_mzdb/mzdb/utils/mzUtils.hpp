@@ -10,6 +10,9 @@
 #include "pwiz/analysis/peakdetect/PeakFamilyDetectorFT.hpp"
 #include "pwiz/analysis/spectrum_processing/PrecursorRecalculatorDefault.hpp"
 
+#include "glog/logging.h"
+
+
 using namespace std;
 
 namespace mzdb {
@@ -249,8 +252,10 @@ template <typename T> static bool isInMapKeys(typename T::key_type value, T& m) 
 }
 
 
-/// regroups functions taking in parameters pwiz::msdata::SpectrumPtr
-/// gather some metadata on it
+/**
+ * regroups functions taking in parameters pwiz::msdata::SpectrumPtr
+ * gather some metadata on it
+ */
 namespace PwizHelper {
 
 inline static float rtOf(const pwiz::msdata::SpectrumPtr& s) {
@@ -270,8 +275,8 @@ inline static int precursorChargeOf(const pwiz::msdata::SpectrumPtr &s) {
 
 /**
  * get the precusor mz as double value
- * @param s
- * @return
+ * @param s pwiz spectrum shared pointer
+ * @return precusor mz as double value
  */
 inline static double precursorMzOf(const pwiz::msdata::SpectrumPtr &s) {
     const pwiz::msdata::SelectedIon& si = s->precursors.front().selectedIons.front();
@@ -285,7 +290,7 @@ inline static double precursorMzOf(const pwiz::msdata::SpectrumPtr &s) {
  * Get simple activation code as string for pwiz ``Activation`` object.
  * -HCD, CID, ETD
  *
- * @param a pwiz activation object contained in precursor object
+ * @param a pwiz activation object contained in _pwiz precursor_ object
  * @return string representing activation to be inserted in the database
  */
 static inline string getActivationCode(const pwiz::msdata::Activation& a) {
@@ -310,7 +315,7 @@ static inline string getActivationCode(const pwiz::msdata::Activation& a) {
  *
  * @param s:pwiz::msdata::SpectrumPtr
  * @param wantedMode: DataMode dataMode wanted by the user for this msLevel
- * @return
+ * @return effective DataMode
  */
 static DataMode getDataMode( const pwiz::msdata::SpectrumPtr s, DataMode wantedMode)  {
 
@@ -329,7 +334,11 @@ static DataMode getDataMode( const pwiz::msdata::SpectrumPtr s, DataMode wantedM
     return effectiveMode;
 }
 
-/// some useful functions to get first approximation of centroid
+
+
+/**
+ * Some useful functions to get first approximation of centroid
+ */
 namespace mzMath {
 
 
@@ -374,7 +383,13 @@ inline static double fwhm( double sigma) {
     return sigma * SIGMA_FACTOR;
 }
 
-/**the wizard math formula*/
+/**
+ * the wizard math formula: this is used to estimate the sampling
+ * when reconstructing MS signal from fitted data.
+ *
+ * This formula has been retrieved empirically from Thermo data.
+ *
+ */
 inline static double mzToDeltaMz(double mz) {
     return 2E-07 * pow(mz, 1.5);
 }
@@ -385,9 +400,15 @@ inline bool static isFiniteNumber(T& x) {
    return (x <= DBL_MAX && x >= -DBL_MAX);
 }
 
-/// MaxQuant formula (parabola) to compute m/z centroid from mass peak data points
-/// @param xData m/z values
-/// @param yData intensities values
+
+
+/**
+ * MaxQuant formula (parabola) to compute m/z centroid from mass peak data points
+ *
+ * @param xData m/z values
+ * @param yData intensities values
+ * @return m/z of the centroid
+ */
 template<class mz_t, class int_t>
 static double gaussianCentroidApex(const std::vector<mz_t>& xData, const std::vector<int_t>& yData) {
     int nb_values = xData.size();

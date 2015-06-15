@@ -314,7 +314,8 @@ static const pair<double, double> getBaselineAndNoise( const vector<double>& int
 
 
 /**
-* @brief cwt
+* Perform continous wavelet transform on intensities
+*
 * @param intensities
 * @param fwhm
 * @param result

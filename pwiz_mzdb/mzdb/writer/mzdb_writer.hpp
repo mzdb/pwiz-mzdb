@@ -95,7 +95,8 @@ namespace mzdb {
 #define bb_msn_rt_width_default 0
 
 /**
- * @brief The mzDBWriter class
+ * The mzDBWriter class
+ * =====================
  */
 class mzDBWriter: private boost::noncopyable {
 

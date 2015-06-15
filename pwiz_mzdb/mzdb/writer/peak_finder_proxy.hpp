@@ -50,7 +50,9 @@ enum PeakPickingAlgorithm{
 };*/
 
 /**
- * @brief The mzPeakFinderProxy class
+ * The mzPeakFinderProxy class
+ * ============================
+ *
  * Class that manage the launch of the good algorithm for peak picking each spectrum.
  */
 class PWIZ_API_DECL mzPeakFinderProxy {
@@ -59,6 +61,10 @@ private:
 
     //PeakFinderResults* peakFinderResults;
 
+    /**
+     * When not peak picking is needed, we convert each data points into
+     * a centroid object.
+     */
     template<class mz_t, class int_t>
     static void computeCentroids(const pwiz::msdata::SpectrumPtr &s,
                                  vector<std::shared_ptr<Centroid<mz_t, int_t> > >& results) {
@@ -84,7 +90,7 @@ public:
 
     inline mzPeakFinderProxy() {}
 
-    /*
+    /**
      * Determine the encoding dataMode knowing the current dataMode deduced
      * by decoding cvparam, classically 'MS_centroid_spectum' and the wanted
      * mode.
@@ -122,7 +128,7 @@ public:
         return effectiveMode;
     }
 
-    /*
+    /**
      *  findPeaks: will the choose the appropriate algorithm based
      *  on the detected raw file type.
      */
