@@ -139,7 +139,7 @@ public:
     /** DIA thermo producer */
     inline boost::thread getDIAThermoProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListThermo* spectrumList,
-                                                    int nscans,
+                                                    pair<int, int>& nscans,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDiaThermoProducer->getProducerThread(levelsToCentroid, spectrumList,
@@ -149,7 +149,7 @@ public:
     /** DDA thermo producer  */
     inline  boost::thread getDDAThermoProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                      SpectrumListThermo* spectrumList,
-                                                     int nscans,
+                                                     pair<int, int>& nscans,
                                                      map<int, double>& bbWidthManager,
                                                      pwiz::msdata::CVID filetype,
                                                      mzPeakFinderUtils::PeakPickerParams& params) {
@@ -161,7 +161,7 @@ public:
     /** DDA ABI producer */
     inline  boost::thread getDDAABIProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                   SpectrumListABI* spectrumList,
-                                                  int nscans,
+                                                  pair<int, int>& nscans,
                                                   map<int, double>& bbWidthManager,
                                                   pwiz::msdata::CVID filetype,
                                                   mzPeakFinderUtils::PeakPickerParams& params) {
@@ -173,7 +173,7 @@ public:
     /** */
     inline  boost::thread getSwathABIProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListABI* spectrumList,
-                                                    int nscans,
+                                                    pair<int, int>& nscans,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mSwathABIProducer->getProducerThread(levelsToCentroid, spectrumList,
@@ -183,7 +183,7 @@ public:
     /** */
     inline  boost::thread getSwathGenericProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                         SpectrumList* spectrumList,
-                                                        int nscans,
+                                                        pair<int, int>& nscans,
                                                         pwiz::msdata::CVID filetype,
                                                         mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mSwathGenericProducer->getProducerThread(levelsToCentroid, spectrumList,
@@ -193,7 +193,7 @@ public:
     /** */
     inline  boost::thread getDDAGenericProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                       SpectrumList* spectrumList,
-                                                      int nscans,
+                                                      pair<int, int>& nscans,
                                                       map<int, double>& bbWidthManager,
                                                       pwiz::msdata::CVID filetype,
                                                       mzPeakFinderUtils::PeakPickerParams& params) {

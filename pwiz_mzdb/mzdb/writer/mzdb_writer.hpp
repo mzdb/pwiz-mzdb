@@ -279,7 +279,7 @@ public:
     template<typename h_mz_t, typename h_int_t,
              typename l_mz_t, typename l_int_t>
     PWIZ_API_DECL void writeMzDB(string& filename,
-                                 int nscans,
+                                 pair<int, int>& nscans,
                                  int nbCycles, // primary needed for swath acquisition
                                  mzPeakFinderUtils::PeakPickerParams& params) {
 
@@ -299,8 +299,8 @@ public:
         if (filename == "")
             filename = m_mzdbFile.name + ".mzDB";
 
-        if (! nscans)
-            nscans = m_msdata->run.spectrumListPtr->size();
+//        if (! nscans)
+//            nscans = m_msdata->run.spectrumListPtr->size();
 
         //---just log sqlite version for information
         printf("\n");
@@ -339,14 +339,19 @@ public:
         pwiz::msdata::SpectrumListPtr spectrumList = m_msdata->run.spectrumListPtr;
 
         int spectrumListSize = spectrumList->size();
-        nscans = (nscans > spectrumListSize) ? spectrumListSize : nscans;
+        //int startScan = 0, endScan = spectrumListSize;
 
-        if (! nscans) {
+        if (! nscans.second)
+            nscans.second = spectrumListSize;
+
+        nscans.second = (nscans.second > spectrumListSize) ? spectrumListSize : nscans.second;
+
+        if (nscans.second - nscans.first <= 0) {
             LOG(INFO) << "Empty spectrum list...Exiting\n";
             return;
         }
 
-        LOG(INFO) << "SpectrumList size: " << nscans;
+        LOG(INFO) << "SpectrumList size: " << nscans.second - nscans.first;
 
         map<int, map<int, int> > runSlices;
         map<int, double> bbHeightManager, bbWidthManager;
@@ -395,7 +400,7 @@ public:
                 auto prod = pcThreadBuilder.getDIAThermoProducerThread(levelsToCentroid, spectrumListThermo,
                                                                        nscans, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDIAThermoConsumerThread(m_msdata, m_serializer,
-                                                                       bbHeightManager, runSlices, progressCount, nscans);
+                                                                       bbHeightManager, runSlices, progressCount, nscans.second);
                 prod.join(); cons.join();
 
             } else {
@@ -403,7 +408,7 @@ public:
                 auto prod = pcThreadBuilder.getDDAThermoProducerThread( levelsToCentroid, spectrumListThermo,
                                                                         nscans, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAThermoConsumerThread( m_msdata, m_serializer, bbHeightManager,
-                                                                        runSlices, progressCount, nscans );
+                                                                        runSlices, progressCount, nscans.second);
                 prod.join(); cons.join();
             }
         }
@@ -415,7 +420,7 @@ public:
                 auto prod = pcThreadBuilder.getSwathABIProducerThread( levelsToCentroid, s,
                                                                        nscans, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getSwathABIConsumerThread( m_msdata, m_serializer, bbHeightManager,
-                                                                       runSlices, progressCount, nscans );
+                                                                       runSlices, progressCount, nscans.second);
                 prod.join(); cons.join();
 
             } else {
@@ -424,7 +429,7 @@ public:
                 auto prod = pcThreadBuilder.getDDAABIProducerThread( levelsToCentroid, s,
                                                                      nscans, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAABIConsumerThread( m_msdata, m_serializer, bbHeightManager,
-                                                                     runSlices, progressCount, nscans );
+                                                                     runSlices, progressCount, nscans.second);
                 prod.join(); cons.join();
             }
         }
@@ -436,7 +441,7 @@ public:
                 auto prod = pcThreadBuilder.getSwathGenericProducerThread( levelsToCentroid, spectrumList.get(),
                                                                            nscans, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getSwathGenericConsumerThread( m_msdata, m_serializer, bbHeightManager,
-                                                                           runSlices, progressCount, nscans );
+                                                                           runSlices, progressCount, nscans.second );
                 prod.join(); cons.join();
 
             } else {
@@ -444,7 +449,7 @@ public:
                 auto prod = pcThreadBuilder.getDDAGenericProducerThread( levelsToCentroid, spectrumList.get(),
                                                                          nscans, bbWidthManager, m_originFileFormat,params);
                 auto cons = pcThreadBuilder.getDDAGenericConsumerThread( m_msdata, m_serializer, bbHeightManager,
-                                                                         runSlices, progressCount, nscans );
+                                                                         runSlices, progressCount, nscans.second );
                 prod.join(); cons.join();
             }
 
@@ -466,7 +471,7 @@ public:
 
         const char* query = "INSERT INTO main.sqlite_sequence(name, seq) VALUES ('spectrum', ?);";
         sqlite3_prepare_v2(m_mzdbFile.db, query, -1, &(m_mzdbFile.stmt), 0);
-        sqlite3_bind_int(m_mzdbFile.stmt, 1, nscans);
+        sqlite3_bind_int(m_mzdbFile.stmt, 1, nscans.second - nscans.first);
         sqlite3_step(m_mzdbFile.stmt);
 
         //finalize statement
@@ -479,7 +484,7 @@ public:
 
     /// All informations are encoded as 64-bits double.
     void PWIZ_API_DECL writeNoLossMzDB(string& filename,
-                                       int nscans,
+                                       pair<int, int>& nscans,
                                        int nbCycles,
                                        mzPeakFinderUtils::PeakPickerParams& params) {
         this->writeMzDB<double, double, double, double>(filename, nscans, nbCycles, params);
@@ -488,7 +493,7 @@ public:
     /// Mz of all spectrum are encoded as 64-bits double. Intensities are stored
     /// as 32-bits float
     void PWIZ_API_DECL  writeMzDBMzHi(string& filename,
-                                      int nscans,
+                                      pair<int, int>& nscans,
                                       int nbCycles,
                                       mzPeakFinderUtils::PeakPickerParams& params) {
         this->writeMzDB<double, float, double, float>(filename, nscans, nbCycles, params);
@@ -497,7 +502,7 @@ public:
 
     /// only Mz of spectrum from msLevel = 1 are converted into 64-bits double
     void PWIZ_API_DECL  writeMzDBMzMs1Hi(string& filename,
-                                         int nscans,
+                                         pair<int, int>& nscans,
                                          int nbCycles,
                                          mzPeakFinderUtils::PeakPickerParams& params) {
         this->writeMzDB<double, float, float, float>(filename, nscans, nbCycles, params);
@@ -505,7 +510,7 @@ public:
 
     /// all data encoded as 32-bits float. Useful for low resolution instrument ?
     void PWIZ_API_DECL  writeMzDBAllLow(string& filename,
-                                        int nscans,
+                                        pair<int, int>& nscans,
                                         int nbCycles,
                                         mzPeakFinderUtils::PeakPickerParams& params) {
         this->writeMzDB<float, float, float, float>(filename, nscans, nbCycles, params);

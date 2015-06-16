@@ -109,7 +109,7 @@ public:
      */
     void _produce(pwiz::util::IntegerSet& levelsToCentroid,
                   SpectrumListType* spectrumList,
-                  int nscans,
+                  pair<int, int>& nscans,
                   map<int, double>& bbRtWidth,
                   pwiz::msdata::CVID filetype,
                   mzPeakFinderUtils::PeakPickerParams& params) {
@@ -120,7 +120,7 @@ public:
         unordered_map<int, SpectraContainerUPtr> spectraByMsLevel;
         HighResSpectrumSPtr currMs1(nullptr);
 
-        for (size_t i = 0; i < nscans; ++i) {
+        for (size_t i = nscans.first; i < nscans.second; ++i) {
             pwiz::msdata::SpectrumPtr spectrum;
 
             try {
@@ -252,7 +252,7 @@ public:
      */
     boost::thread getProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                     SpectrumListType* spectrumList,
-                                    int nscans,
+                                    pair<int, int>& nscans,
                                     map<int, double>& bbWidthManager,
                                     pwiz::msdata::CVID filetype,
                                     mzPeakFinderUtils::PeakPickerParams& params) {

@@ -56,7 +56,7 @@ private:
     void _produce(
             pwiz::util::IntegerSet& levelsToCentroid,
             SpectrumListType* spectrumList,
-            int nscans,
+            pair<int, int>& nscans,
             pwiz::msdata::CVID filetype,
             mzPeakFinderUtils::PeakPickerParams& params) {
 
@@ -66,7 +66,7 @@ private:
         HighResSpectrumSPtr currMs1(nullptr);
         SpectraContainerUPtr cycle; //(nullptr);
 
-        for (size_t i = 0; i < nscans; ++i) {
+        for (size_t i = nscans.first; i < nscans.second; ++i) {
 
             pwiz::msdata::SpectrumPtr spectrum;
             spectrum =  mzdb::getSpectrum<SpectrumListType>(spectrumList, i, true, levelsToCentroid);
@@ -106,7 +106,7 @@ private:
         }
 
         //signify that we finished producing
-        LOG(INFO) << "Producer finished...\n";
+        //LOG(INFO) << "Producer finished...\n";
         this->put(std::move(SpectraContainerUPtr(nullptr)));
     }
 
@@ -122,7 +122,7 @@ public:
 
     boost::thread getProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                     SpectrumListType* spectrumList,
-                                    int nscans,
+                                    pair<int, int>& nscans,
                                     pwiz::msdata::CVID filetype,
                                     mzPeakFinderUtils::PeakPickerParams& params) {
 

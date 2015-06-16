@@ -119,7 +119,7 @@ pair<int, int> parseRange2(string& range) {
                 LOG(ERROR) << "Error, the two indexes must be integers";
                 exit(EXIT_FAILURE);
             }
-            if (p1 && p2 && p1 <= p2) {
+            if (p1 <= p2) {
                 return make_pair<int, int>(p1, p2);
             } else {
                 LOG(ERROR) << "Error index 2 greater than index 1";
@@ -220,7 +220,7 @@ int main(int argc, char* argv[]) {
 //        LOG(INFO) << "Setting custom translator for SEH exception.";
 //        _set_se_translator(trans_func);
 //    #endif
-    string filename = "", centroid = "", profile = "", fitted = "", namefile = "", serialization = "xml", scanRange="";
+    string filename = "", centroid = "", profile = "", fitted = "", namefile = "", serialization = "xml", scanRangeStr="";
     bool compress = false;
     //double ppm = 20.0;
 
@@ -285,8 +285,8 @@ int main(int argc, char* argv[]) {
     ops >> Option('m', "bbMzWidthMSn", bbHeightMSn);
     //ops >> Option('s', "serialize", serialization);
     ops >> Option('o', "output", namefile);
-    ops >> Option('n', "nscans", nscans);
-    //ops >> Option('n', "nscans", scanRange);
+    //ops >> Option('n', "nscans", nscans);
+    ops >> Option('n', "nscans", scanRangeStr);
     ops >> OptionPresent("no_loss", noLoss);
     ops >> OptionPresent("dia", dia);
 
@@ -344,6 +344,8 @@ int main(int argc, char* argv[]) {
     parseRange(profile, PROFILE, dataModeByMsLevel, modifiedIndex, help);
     parseRange(fitted, FITTED, dataModeByMsLevel, modifiedIndex, help);
     parseRange(centroid, CENTROID, dataModeByMsLevel, modifiedIndex, help);
+
+    pair<int, int> scanRange = parseRange2(scanRangeStr);
 
     //auto scanR = parseRange2(scanRange);
 
@@ -415,14 +417,14 @@ int main(int argc, char* argv[]) {
     try {
         if (noLoss) {
             //LOG(INFO) << "No-loss mode encoding: all ms Mz-64, all ms Int-64";
-            writer.writeNoLossMzDB(namefile, nscans, nbCycles, p);
+            writer.writeNoLossMzDB(namefile, scanRange, nbCycles, p);
         } else {
             if (false) { // If msInstrument only good at ms1
                 //LOG(INFO) << "ms1 Mz-64, all ms Int-32 encoding";
-                writer.writeMzDBMzMs1Hi(namefile, nscans, nbCycles, p);
+                writer.writeMzDBMzMs1Hi(namefile, scanRange, nbCycles, p);
             } else {
                 //LOG(INFO) << "all ms Mz-64, all ms Int-32 encoding";
-                writer.writeMzDBMzHi(namefile, nscans, nbCycles, p);
+                writer.writeMzDBMzHi(namefile, scanRange, nbCycles, p);
             }
         }
 

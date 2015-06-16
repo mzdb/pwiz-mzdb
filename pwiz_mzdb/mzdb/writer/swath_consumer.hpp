@@ -74,7 +74,7 @@ private:
 
                 this->get(cycleCollection);
                 if ( cycleCollection == nullptr ) {
-                    LOG(INFO) << "Inserter consumer finished du to null pointer\n";
+                    //LOG(INFO) << "Inserter consumer finished du to null pointer\n";
                     toBeBroken = true;
                     break;
                 }
@@ -116,7 +116,7 @@ private:
             }
 
             if (progressionCount >= nscans ) {
-                LOG(INFO) << "Inserter consumer finished: reaches final progression";
+                //LOG(INFO) << "Inserter consumer finished: reaches final progression";
                 break;
             }
 
