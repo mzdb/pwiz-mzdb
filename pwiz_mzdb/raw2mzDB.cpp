@@ -22,6 +22,8 @@
 #include <iostream>
 #include <fstream>
 
+#define  GLOG_NO_ABBREVIATED_SEVERITIES
+
 #ifdef _WIN32
 #include <share.h>
 #include <eh.h>
@@ -33,8 +35,6 @@
 #include "mzdb/writer/mzdb_writer.hpp"
 #include "mzdb/utils/MzDBFile.h"
 
-#include "mzdb/utils/glog/logging.h"
-
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -44,12 +44,13 @@ using namespace mzdb;
 using namespace GetOpt;
 using namespace pwiz::msdata;
 
-#ifdef _WIN32
-void trans_func( unsigned int u, EXCEPTION_POINTERS* pExp ){
-    LOG(ERROR) << "about to throw a converted exception";
-    throw runtime_error("SEH exception.");
-}
-#endif
+
+//#ifdef _WIN32
+//void trans_func( unsigned int u, EXCEPTION_POINTERS* pExp ){
+//    LOG(ERROR) << "about to throw a converted exception";
+//    throw runtime_error("SEH exception.");
+//}
+//#endif
 
 
 /// Warning, calling this function will delete a previous mzdb file.
@@ -63,8 +64,9 @@ int deleteIfExists(const string &filename) {
         if (remove(filename.c_str()) != 0) {
             LOG(ERROR) << "Error trying to delete file, exiting...May the file is opened elsewhere ?";
             exit(EXIT_FAILURE);
-        } else
+        } else {
             LOG(INFO) << "Done";
+        }
     }
     return 0;
 }
@@ -215,6 +217,9 @@ void parseRange(string& range, DataMode mode,
 
 /// Starting point !
 int main(int argc, char* argv[]) {
+
+    //google::InitGoogleLogging(argv[0]);
+
 //    #ifdef _WIN32
 //        //set se translator
 //        LOG(INFO) << "Setting custom translator for SEH exception.";
@@ -318,7 +323,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-#ifdef WIN32
+#ifdef _WIN32
     if (alreadyOpened(filename)) {
         LOG(ERROR) << "File already open in another application.\nPlease close it to perform conversion.";
         exit(EXIT_FAILURE);
@@ -335,6 +340,15 @@ int main(int argc, char* argv[]) {
     //--- overriding default encoding to `fitted` for DIA mslevel 2
     if (dia) {
         dataModeByMsLevel[2] = FITTED;
+
+        if (bbHeightMSn != 10000 || bbWidthMSn != 0) {
+            LOG(WARNING) << "Warning: 'bbMzWidthMSn' and/or 'bbRtWidthMSn' when 'dia' is set will be ignored !";
+        }
+
+        // create bounding box of the same dimensions than MS1
+        bbHeightMSn = bbHeight;
+        bbWidthMSn = bbWidth;
+
         //dataModeByMsLevel[3] = FITTED;
     }
 
@@ -355,6 +369,13 @@ int main(int argc, char* argv[]) {
     for (auto it = dataModeByMsLevel.begin(); it != dataModeByMsLevel.end(); ++it) {
         std::cout << "ms " << it->first << " => selected Mode: " << dataModes[(int) it->second] << "\n";
     }
+    std::cout << "\n";
+
+
+    std::cout << "Bounding box dimensions:\n";
+    std::cout << "MS 1\t" << "m/z: " << bbHeight << " Da, retention time: " << bbWidth << "sec\n";
+    std::cout << "MS n\t" << "m/z: " << bbHeightMSn << " Da, retention time: " << bbWidthMSn << "sec\n";
+
     std::cout << "\n";
     //end parsing commandline
 
