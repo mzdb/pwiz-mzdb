@@ -10,7 +10,7 @@
 #include "pwiz/analysis/peakdetect/PeakFamilyDetectorFT.hpp"
 #include "pwiz/analysis/spectrum_processing/PrecursorRecalculatorDefault.hpp"
 
-#include "glog/logging.h"
+//#include "glog/logging.h"
 
 
 using namespace std;

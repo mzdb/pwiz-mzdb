@@ -54,6 +54,9 @@ enum PeakPickingAlgorithm{
  * ============================
  *
  * Class that manage the launch of the good algorithm for peak picking each spectrum.
+ * `Effective mode` are distinguished than `wanted mode` (will be DEPRECATED). For some
+ * reasons it will be easier to allow centroid to fit conversion. The resulting HWHMs
+ * will be null.
  */
 class PWIZ_API_DECL mzPeakFinderProxy {
 
@@ -110,6 +113,17 @@ public:
         DataMode effectiveMode;
         if (wantedMode == PROFILE && currentMode == PROFILE) {
             effectiveMode = PROFILE;
+            // just construct data points
+            computeCentroids<mz_t, int_t>(s, results);
+        } else if (wantedMode == PROFILE && currentMode == CENTROID) {
+
+            auto msLevel = s->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
+            throw runtime_error("WantedMode PROFILE whereas currentMode is CENTROID for msLevel <"
+                                + boost::lexical_cast<string>(msLevel) + ">. Please change it to FITTED or CENTROID.");
+
+        } else if (wantedMode == FITTED && currentMode == CENTROID) {
+            // WARNING changing behavior here
+            effectiveMode = FITTED;
             computeCentroids<mz_t, int_t>(s, results);
 
         } else if ((wantedMode == CENTROID && currentMode == PROFILE) || (wantedMode == FITTED && currentMode == PROFILE)) {

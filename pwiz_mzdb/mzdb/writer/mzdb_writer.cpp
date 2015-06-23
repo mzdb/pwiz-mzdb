@@ -19,14 +19,12 @@
 #include "wchar.h"
 #include "string.h"
 
+#include "boost/thread/thread.hpp"
+#include "boost/algorithm/string.hpp"
+
 #include "mzdb_writer.hpp"
 #include "version.h"
 
-#include "boost/thread/thread.hpp"
-#include "boost/algorithm/string.hpp"
-#ifdef _WIN32
-#include "pwiz_aux/msrc/utility/vendor_api/thermo/RawFile.h" //to test purpose
-#endif
 
 using namespace std;
 using namespace pwiz::msdata;
@@ -63,6 +61,36 @@ void mzDBWriter::buildDataEncodingRowByID() {
 }
 
 
+void mzDBWriter::determineSpectrumListType(pwiz::msdata::SpectrumListPtr inner) {
+    if (m_PreferPeakPickingVendor) {
+        pwiz::msdata::detail::SpectrumList_Thermo* thermo = dynamic_cast<pwiz::msdata::detail::SpectrumList_Thermo*>(inner.get());
+        if (thermo) {
+            m_Mode = 1;
+        }
+
+        pwiz::msdata::detail::SpectrumList_Bruker* bruker = dynamic_cast<pwiz::msdata::detail::SpectrumList_Bruker*>(inner.get());
+        if (bruker) {
+            m_Mode = 2;
+        }
+
+        pwiz::msdata::detail::SpectrumList_ABI* abi = dynamic_cast<pwiz::msdata::detail::SpectrumList_ABI*>(inner.get());
+        if (abi) {
+            m_Mode = 3;
+        }
+
+        pwiz::msdata::detail::SpectrumList_Agilent* agilent = dynamic_cast<pwiz::msdata::detail::SpectrumList_Agilent*>(inner.get());
+        if (agilent) {
+            m_Mode = 4;
+        }
+
+        pwiz::msdata::detail::SpectrumList_ABI_T2D* abi_t2d = dynamic_cast<pwiz::msdata::detail::SpectrumList_ABI_T2D*>(inner.get());
+        if (abi_t2d) {
+            m_Mode = 5;
+        }
+    }
+}
+
+
 ///Setup pragmas and tables
 ///@brief mzDBWriter::createTables
 void mzDBWriter::createTables() {
@@ -83,8 +111,8 @@ void mzDBWriter::createTables() {
                          "PRAGMA locking_mode=EXCLUSIVE;"
                          "PRAGMA ignore_check_constraints=ON;", 0, 0, 0);
     if (r != SQLITE_OK) {
-        LOG(ERROR) << "SQLITE_RETURN: " << r;
-        LOG(WARNING) << "Error setting database PRAGMAS: slow performance...\n";
+//        LOG(ERROR) << "SQLITE_RETURN: " << r;
+//        LOG(WARNING) << "Error setting database PRAGMAS: slow performance...\n";
     }
     // Setting the SQLite _database page size to the same size speeds up
     //_database on systems where the cluster size is the same. The default
@@ -455,6 +483,9 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
     m_msdata(msdata),
     m_paramsCollecter(f),
 
+    m_Mode(0),
+    m_PreferPeakPickingVendor(true),
+
     // booleans determining if using compression (generally not a good idea for thermo rawfiles)
     // but interesting when converting Wiff files. swathMode: Enable or disable the swath mode
     m_compress(compress),
@@ -464,17 +495,15 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
     m_progressionCounter(0),
     m_emptyPrecCount(0) {
 
+    //determine spectrumListPtr real type
+    pwiz::msdata::SpectrumListPtr spectrumList = m_msdata->run.spectrumListPtr;
+    this->determineSpectrumListType(spectrumList);
+
+
     //implementation goes here
     m_metadataExtractor = std::move(this->getMetadataExtractor());
 
-    //populate dataencoding that will be inserted in the mzdb
-//    try {
     this->buildDataEncodingRowByID();
-//    }catch(boost::bad_lexical_cast& e) {
-//        LOG(ERROR) << e.what();
-//    }catch(...) {
-//        LOG(ERROR) << "weird error";
-//    }
 }
 
 
@@ -801,7 +830,7 @@ void mzDBWriter::insertMetaData() {
         int rc = sqlite3_step(m_mzdbFile.stmt);
         if (rc != SQLITE_DONE) {
             LOG(ERROR) << "Error inserting instrument config metadata.";
-            LOG(ERROR) << "SQLITE ERROR CODE: " << rc <<":" << sqlite3_errmsg(m_mzdbFile.db) ;
+            LOG(ERROR) << "SQLITE ERROR CODE: " << rc <<":" << sqlite3_errmsg(m_mzdbFile.db);
         }
         m_mzdbFile.instrumentConfigurationID++;
         sqlite3_reset(m_mzdbFile.stmt);
@@ -867,7 +896,7 @@ void mzDBWriter::insertMetaData() {
     const char* sql_29 = "INSERT INTO chromatogram VALUES(NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)";
     sqlite3_prepare_v2(m_mzdbFile.db, sql_29, -1, &(m_mzdbFile.stmt), 0);
     for (size_t i = 0; i < chromList->size(); ++i) {
-        const ChromatogramPtr& chrom = chromList->chromatogram(i, true);
+        const pwiz::msdata::ChromatogramPtr& chrom = chromList->chromatogram(i, true);
         m_paramsCollecter.updateCVMap(*chrom);
         m_paramsCollecter.updateUserMap(*chrom);
 
@@ -962,7 +991,7 @@ void mzDBWriter::checkAndFixRunSliceNumberAnId() {
     m_mzdbFile.stmt = 0;
     //--- ---
     if ( ! std::is_sorted(runSliceIds.begin(), runSliceIds.end()) ) {
-        //LOG(INFO) << "Detected problem in run slice number...fixing it";
+        LOG(INFO) << "Detected problem in run slice number...fixing it";
         int runSliceNb = 1;
         sqlite3_prepare_v2(m_mzdbFile.db, "UPDATE run_slice set number=? WHERE id=?", -1, &(this->m_mzdbFile.stmt), 0);
         for (size_t i = 0; i < runSliceIds.size(); ++i) {

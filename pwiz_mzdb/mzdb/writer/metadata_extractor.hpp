@@ -24,7 +24,7 @@
 #include "pwiz_aux/msrc/utility/vendor_api/thermo/RawFile.h"
 #include "pwiz_aux/msrc/utility/vendor_api/ABI/WiffFile.hpp"
 
-#include "../utils/glog/logging.h"
+//#include "../utils/glog/logging.h"
 #include "../utils/mzUtils.hpp"
 #include "user_text.h"
 
@@ -156,7 +156,7 @@ class mzABSciexMetadataExtractor : public mzAbstractMetadataExtractor< mzABSciex
         try {
             _wiffFilePtr = pwiz::vendor_api::ABI::WiffFile::create(f);
         } catch (...) {
-            LOG(ERROR) << "Unknown error";
+//            LOG(ERROR) << "Unknown error";
         }
     }
 
@@ -182,7 +182,7 @@ class mzABSciexMetadataExtractor : public mzAbstractMetadataExtractor< mzABSciex
     /* return default values ?*/
     virtual inline double getLowMass() {
         if (! _wiffFilePtr) {
-            LOG(WARNING) << "Wiff file shared pointer seems to be null";
+//            LOG(WARNING) << "Wiff file shared pointer seems to be null";
             return 0.0;
         }
         //TODO: getting the first spectrum to gather lowest, highest Mass
@@ -197,7 +197,7 @@ class mzABSciexMetadataExtractor : public mzAbstractMetadataExtractor< mzABSciex
     /* return default values ?*/
     virtual inline double getHighMass() {
         if (! _wiffFilePtr) {
-            LOG(WARNING) << "Wiff file shared pointer seems to be null";
+//            LOG(WARNING) << "Wiff file shared pointer seems to be null";
             return 0.0;
         }
         //TODO: getting the first spectrum to gather lowest, highest Mass
@@ -230,7 +230,7 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
         try {
             _rawfilePtr = pwiz::vendor_api::Thermo::RawFile::create(f);
         } catch (...) {
-            LOG(ERROR) << "Unknown error";
+//            LOG(ERROR) << "Unknown error";
         }
     }
 

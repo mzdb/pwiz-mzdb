@@ -240,7 +240,7 @@ struct PWIZ_API_DECL mzSpectrum {
             const pwiz::msdata::SelectedIon& si = spectrum->precursors.front().selectedIons.front();
             _precursorCharge = si.cvParam(pwiz::msdata::MS_charge_state).valueAs<int>();
         }
-        return _precursorCharge
+        return _precursorCharge;
                 //}
                 //return -1;
     }

@@ -353,25 +353,34 @@ public:
     void insertScans(unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> >& cycleObject,
                      pwiz::msdata::MSDataPtr msdata,
                      ISerializer::xml_string_writer& serializer,
-                     int bbFirstScanID=0) {
+                     int bbFirstScanIDMS1=0,
+                     int bbFirstScanIDMS2=0) {
 
         //to handle swath cycle
         int i = 1;
         auto& parentSpectrum = cycleObject->parentSpectrum;
-        if (parentSpectrum && parentSpectrum->isInserted == false && bbFirstScanID) {
-            this->insertScan<h_mz_t, h_int_t>(parentSpectrum, i, bbFirstScanID, parentSpectrum, msdata, serializer);
+        if (parentSpectrum && parentSpectrum->isInserted == false && bbFirstScanIDMS1) {
+            this->insertScan<h_mz_t, h_int_t>(parentSpectrum, i, bbFirstScanIDMS1, parentSpectrum, msdata, serializer);
             ++i;
         }
         auto& spectra = cycleObject->spectra;
         for (auto it = spectra.begin(); it != spectra.end(); ++it) {
+            int bbfirstid = bbFirstScanIDMS2 ? bbFirstScanIDMS2 : cycleObject->getBeginId();
+
             if (it->first != nullptr) {
-                this->insertScan<h_mz_t, h_int_t, h_mz_t, h_int_t>
-                        (it->first, i, cycleObject->getBeginId(),
-                         cycleObject->parentSpectrum, msdata, serializer);
+                this->insertScan<h_mz_t, h_int_t, h_mz_t, h_int_t>(it->first,
+                                                                   i,
+                                                                   bbfirstid, //cycleObject->getBeginId(),
+                                                                   parentSpectrum,  //cycleObject->parentSpectrum,
+                                                                   msdata,
+                                                                   serializer);
             } else {
-                this->insertScan<l_mz_t, l_int_t, h_mz_t, h_int_t>
-                        (it->second, i, cycleObject->getBeginId(),
-                         cycleObject->parentSpectrum, msdata, serializer);
+                this->insertScan<l_mz_t, l_int_t, h_mz_t, h_int_t>(it->second,
+                                                                   i,
+                                                                   bbfirstid, //cycleObject->getBeginId(),
+                                                                   parentSpectrum,  //cycleObject->parentSpectrum,
+                                                                   msdata,
+                                                                   serializer);
             }
             ++i;
         }

@@ -195,7 +195,7 @@ public:
         else if (opt == mzPeakFinderUtils::CWT_DISABLED)
             return _detectPeaksCLASSIC(params);
         else {
-            LOG(ERROR) <<"Wrong cwt use ...";
+//            LOG(ERROR) <<"Wrong cwt use ...";
             exit(EXIT_FAILURE);
         }
     }

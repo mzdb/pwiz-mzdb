@@ -4,10 +4,11 @@ lib mzdb_utils
     lz4.c
     lz4hc.c
     [ glob cwtlib/*.cpp ]
-    [ glob glog/*.cc ]
+    #[ glob glog/*.cc ]
 
 : #requirments
     <include>.
+    #<include>./glog
     <include>./cwtlib
     <library>../../../pwiz/data/msdata
     <library>../../../pwiz/analysis/spectrum_processing
@@ -19,6 +20,7 @@ lib mzdb_utils
 
 : #usage-requirments
     <include>.
+    #<include>./glog
     <library>../../../pwiz/data/msdata
     <library>../../../pwiz/analysis/spectrum_processing
     <library>../../../pwiz/analysis/peakdetect

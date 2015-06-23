@@ -207,7 +207,6 @@ public:
         m_mzdbFile(mzdbFile), m_bbCount(1), m_lastMinRunSliceIdx(0), m_lastMaxRunSliceIdx(0), m_runSliceCount(1){}
 
     /**
-     * @brief buildAndInsertData
      * Build bounding box then insert it into the mzDB file
      */
     template<class h_mz_t, class h_int_t,class l_mz_t, class l_int_t>

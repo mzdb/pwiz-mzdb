@@ -57,6 +57,7 @@ private:
     void _consume( pwiz::msdata::MSDataPtr msdata,
                    ISerializer::xml_string_writer& serializer,
                    map<int, double>& bbMzWidthByMsLevel,
+                   double& ms1RtWidth,
                    map<int, map<int, int> >& runSlices,
                    int& progressionCount,
                    int nscans ) {
@@ -69,7 +70,7 @@ private:
             if (toBeBroken)
                 break;
 
-            while (m_cycles.size() <  4) {
+            while (m_cycles.empty() || m_cycles.back()->getBeginRt() - m_cycles.front()->getBeginRt() <= ms1RtWidth) { //size() <  4) {
                 SpectraContainerUPtr cycleCollection(nullptr);
 
                 this->get(cycleCollection);
@@ -85,28 +86,35 @@ private:
                 m_cycles.push_back(std::move(cycleCollection));
 
             }
+
+            SpectraContainerUPtr lastContainer = std::move(m_cycles.back());
+
+            if (! m_cycles.empty())
+                m_cycles.erase(m_cycles.end() - 1);
+
             vector<HighResSpectrumSPtr> ms1Spectra;
 
             int bbFirstMs1ScanID = m_cycles.front()->parentSpectrum->id;
+            int bbFirstMs2ScanID = m_cycles.front()->getBeginId();
 
             //insert scans using mzSpectrumInserter, insert cycle consecutively
             for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
                 ms1Spectra.push_back( (*it)->parentSpectrum);
-                this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID );
+                this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID, bbFirstMs2ScanID);
             }
 
             //handle first level
             progressionCount += ms1Spectra.size();
             this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(1, //msLevel
                                                                        bbMzWidthByMsLevel[1],
-                    ms1Spectra, //highresspectra
-                    vector<LowResSpectrumSPtr>(), //empty lowres spectra
-                    runSlices[1]);
+                                                                       ms1Spectra, //highresspectra
+                                                                       vector<LowResSpectrumSPtr>(), //empty lowres spectra
+                                                                       runSlices[1]);
 
             this->_buildMSnBB(bbMzWidthByMsLevel, progressionCount, runSlices);
 
             m_cycles.clear();
-
+            m_cycles.push_back(std::move(lastContainer));
 
             // progression update computing the new progression
             int newPercent = (int) (((float) progressionCount / nscans * 100));
@@ -235,6 +243,7 @@ public:
     boost::thread getConsumerThread(pwiz::msdata::MSDataPtr msdata,
                                     ISerializer::xml_string_writer& serializer,
                                     map<int, double>& bbMzWidthByMsLevel,
+                                    double& ms1RtWidth,
                                     map<int, map<int, int> >& runSlices,
                                     int& progressionCount,
                                     int nscans ) {
@@ -245,6 +254,7 @@ public:
                              std::ref(msdata),
                              std::ref(serializer),
                              std::ref(bbMzWidthByMsLevel),
+                             std::ref(ms1RtWidth),
                              std::ref(runSlices),
                              std::ref(progressionCount),
                              nscans

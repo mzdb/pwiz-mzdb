@@ -23,7 +23,6 @@ static pwiz::msdata::SpectrumPtr getSpectrum(SpectrumListType* spectrumList,
 }
 
 /**
- * @brief getSpectrum
  * template specialization
  */
 template<>

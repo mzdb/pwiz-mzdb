@@ -64,7 +64,7 @@ private:
         int cycleCount = 0, scanCount = 1;
 
         HighResSpectrumSPtr currMs1(nullptr);
-        SpectraContainerUPtr cycle; //(nullptr);
+        SpectraContainerUPtr cycle(nullptr);
 
         for (size_t i = nscans.first; i < nscans.second; ++i) {
 

@@ -29,15 +29,24 @@
 #include <memory>
 #include <functional>
 
-#ifdef _WIN32
-#include "ppl.h"
-#endif
+#define GLOG_NO_ABBREVIATED_SEVERITIES
 
 //--- Pwiz import
 #include "pwiz/data/msdata/MSDataFile.hpp"
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/IO.hpp"
+
+#ifdef _WIN32
+
 #include "pwiz_aux/msrc/utility/vendor_api/thermo/RawFile.h"
+
+#include "pwiz/data/vendor_readers/ABI/SpectrumList_ABI.hpp"
+#include "pwiz/data/vendor_readers/ABI/T2D/SpectrumList_ABI_T2D.hpp"
+#include "pwiz/data/vendor_readers/Agilent/SpectrumList_Agilent.hpp"
+#include "pwiz/data/vendor_readers/Bruker/SpectrumList_Bruker.hpp"
+#include "pwiz/data/vendor_readers/Thermo/SpectrumList_Thermo.hpp"
+
+#endif
 
 //---version
 #include "pwiz/Version.hpp"
@@ -46,8 +55,7 @@
 
 
 //#include "pwiz/analysis/spectrum_processing/SpectrumList_PrecursorRecalculator.hpp"
-//#include "pwiz/data/vendor_readers/Thermo/SpectrumList_Thermo.hpp"
-//#include "pwiz/data/vendor_readers/ABI/SpectrumList_ABI.hpp"
+
 #include "boost/thread/thread.hpp"
 
 //--- SQLite import
@@ -111,6 +119,12 @@ protected:
     /// Origin file format. Defined with Pwiz method calling. It only cares about the previous format
     /// resulting from a conversion  or not
     pwiz::msdata::CVID m_originFileFormat;
+
+    ///@see msConvert code for precision
+    int m_Mode;
+
+    ///should use peak picking vendor if available. By defaut set to `true`
+    bool m_PreferPeakPickingVendor;
 
     ///Several metadata extractor exist. Thermo for example, provides many metadata instead
     /// of ABI.
@@ -183,7 +197,6 @@ protected:
     void createIndexes();
 
     /**
-     * @brief getMetadataExtractor
      * Create the appropriate metadata extractor given input file format
      * @see m_originFileFormat
      *
@@ -192,11 +205,12 @@ protected:
      */
     inline std::unique_ptr<mzIMetadataExtractor> getMetadataExtractor() {
 #ifdef _WIN32
-        switch ( (int) m_originFileFormat ) {
-        case (int) pwiz::msdata::MS_Thermo_RAW_format: {
+        switch ( m_Mode) {
+        case 1: {
+            LOG(INFO) << "Thermo metadata extractor created";
             return  std::unique_ptr<mzIMetadataExtractor>(new mzThermoMetadataExtractor(this->m_mzdbFile.name));
         }
-        case (int) pwiz::msdata::MS_ABI_WIFF_format: {
+        case 3: {
             LOG(INFO) << "AB Sciex metadata extractor created";
             return std::unique_ptr<mzIMetadataExtractor>(new mzABSciexMetadataExtractor(this->m_mzdbFile.name));
         }
@@ -250,6 +264,12 @@ public:
      * @brief checkAndFixRunSliceNumberAnId
      */
     PWIZ_API_DECL void checkAndFixRunSliceNumberAnId();
+
+    /**
+     *
+     * @param spectrumList
+     */
+    PWIZ_API_DECL void determineSpectrumListType(pwiz::msdata::SpectrumListPtr spectrumList);
 
     /**
      * @brief mzDBWriter
@@ -329,9 +349,9 @@ public:
 
         //--- always prefer vendor centroiding
         pwiz::util::IntegerSet levelsToCentroid;
-        for (auto it = this->m_dataModeByMsLevel.begin(); it != this->m_dataModeByMsLevel.end(); ++it) {
+        for (auto it = m_dataModeByMsLevel.begin(); it != m_dataModeByMsLevel.end(); ++it) {
             auto dm = it->second;
-            if ( dm == CENTROID || (m_originFileFormat == pwiz::msdata::MS_ABI_WIFF_format && dm == FITTED)) {
+            if (dm == CENTROID || dm == FITTED) {  //(m_originFileFormat == pwiz::msdata::MS_ABI_WIFF_format && dm == FITTED)) {
                 levelsToCentroid.insert(it->first);
             }
         }
@@ -339,7 +359,6 @@ public:
         pwiz::msdata::SpectrumListPtr spectrumList = m_msdata->run.spectrumListPtr;
 
         int spectrumListSize = spectrumList->size();
-        //int startScan = 0, endScan = spectrumListSize;
 
         if (! nscans.second)
             nscans.second = spectrumListSize;
@@ -387,60 +406,126 @@ public:
         // from facebook;
         MzDBQueue mzdbQueue(100);
         PCBuilder<MzDBBlockingQueueing, mzMultiThreadedPeakPicker> pcThreadBuilder(
-                    mzdbQueue, m_mzdbFile, m_paramsCollecter,
-                    m_originFileFormat, m_dataModeByMsLevel, m_dataEncodingByID);
+                    mzdbQueue,
+                    m_mzdbFile,
+                    m_paramsCollecter,
+                    m_originFileFormat,
+                    m_Mode,
+                    m_dataModeByMsLevel,
+                    m_dataEncodingByID);
 
-        if (m_originFileFormat == pwiz::msdata::MS_Thermo_RAW_format) {
-            LOG(INFO) << "Thermo raw file format detected";
-            auto* spectrumListThermo =
-                    static_cast<pwiz::msdata::detail::SpectrumList_Thermo*>(spectrumList.get());
+        if (m_Mode == 1) {
+            LOG(INFO) << "Thermo spectrumList";
+            auto* s = static_cast<pwiz::msdata::detail::SpectrumList_Thermo*>(spectrumList.get());
 
             if (m_swathMode) {
                 LOG(INFO) << "DIA producer/consumer";
-                auto prod = pcThreadBuilder.getDIAThermoProducerThread(levelsToCentroid, spectrumListThermo,
+                auto prod = pcThreadBuilder.getDIAThermoProducerThread(levelsToCentroid, s,
                                                                        nscans, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDIAThermoConsumerThread(m_msdata, m_serializer,
-                                                                       bbHeightManager, runSlices, progressCount, nscans.second);
+                auto cons = pcThreadBuilder.getDIAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager[1],
+                        runSlices, progressCount, nscans.second);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
-                auto prod = pcThreadBuilder.getDDAThermoProducerThread( levelsToCentroid, spectrumListThermo,
-                                                                        nscans, bbWidthManager, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDDAThermoConsumerThread( m_msdata, m_serializer, bbHeightManager,
-                                                                        runSlices, progressCount, nscans.second);
+                auto prod = pcThreadBuilder.getDDAThermoProducerThread(levelsToCentroid, s,
+                                                                       nscans, bbWidthManager, m_originFileFormat, params);
+                auto cons = pcThreadBuilder.getDDAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager,
+                                                                       runSlices, progressCount, nscans.second);
                 prod.join(); cons.join();
             }
-        }
-        else if (m_originFileFormat == pwiz::msdata::MS_ABI_WIFF_format) {
-            auto* s = static_cast<pwiz::msdata::detail::SpectrumList_ABI*>(spectrumList.get());
-            LOG(INFO) << "AB Sciex file format detected";
+
+        } else if (m_Mode == 2) {
+            auto* s = static_cast<pwiz::msdata::detail::SpectrumList_Bruker*>(spectrumList.get());
+            LOG(INFO) << "Bruker spectrumList";
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
-                auto prod = pcThreadBuilder.getSwathABIProducerThread( levelsToCentroid, s,
+                auto prod = pcThreadBuilder.getDIABrukerProducerThread(levelsToCentroid, s,
                                                                        nscans, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getSwathABIConsumerThread( m_msdata, m_serializer, bbHeightManager,
+                auto cons = pcThreadBuilder.getDIABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager[1],
                                                                        runSlices, progressCount, nscans.second);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
 
-                auto prod = pcThreadBuilder.getDDAABIProducerThread( levelsToCentroid, s,
-                                                                     nscans, bbWidthManager, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDDAABIConsumerThread( m_msdata, m_serializer, bbHeightManager,
-                                                                     runSlices, progressCount, nscans.second);
+                auto prod = pcThreadBuilder.getDDABrukerProducerThread(levelsToCentroid, s,
+                                                                       nscans, bbWidthManager, m_originFileFormat, params);
+                auto cons = pcThreadBuilder.getDDABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager,
+                                                                       runSlices, progressCount, nscans.second);
                 prod.join(); cons.join();
             }
-        }
 
-        else {
-            LOG(INFO) << "Beta support spectrumList";
+        } else if (m_Mode == 3) {
+            auto* s = static_cast<pwiz::msdata::detail::SpectrumList_ABI*>(spectrumList.get());
+            LOG(INFO) << "ABI spectrumList";
+            if (m_swathMode) {
+                LOG(INFO) << "Swath producer/consumer";
+                auto prod = pcThreadBuilder.getSwathABIProducerThread(levelsToCentroid, s,
+                                                                      nscans, m_originFileFormat, params);
+                auto cons = pcThreadBuilder.getSwathABIConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager[1],
+                                                                      runSlices, progressCount, nscans.second);
+                prod.join(); cons.join();
+
+            } else {
+                LOG(INFO) << "DDA producer/consumer";
+
+                auto prod = pcThreadBuilder.getDDAABIProducerThread(levelsToCentroid, s,
+                                                                    nscans, bbWidthManager, m_originFileFormat, params);
+                auto cons = pcThreadBuilder.getDDAABIConsumerThread(m_msdata, m_serializer, bbHeightManager,
+                                                                    runSlices, progressCount, nscans.second);
+                prod.join(); cons.join();
+            }
+
+        } else if (m_Mode == 4) {
+            auto* s = static_cast<pwiz::msdata::detail::SpectrumList_Agilent*>(spectrumList.get());
+            LOG(INFO) << "Agilent spectrumList";
+            if (m_swathMode) {
+                LOG(INFO) << "Swath producer/consumer";
+                auto prod = pcThreadBuilder.getDIAAgilentProducerThread(levelsToCentroid, s,
+                                                                        nscans, m_originFileFormat, params);
+                auto cons = pcThreadBuilder.getDIAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager[1],
+                                                                        runSlices, progressCount, nscans.second);
+                prod.join(); cons.join();
+
+            } else {
+                LOG(INFO) << "DDA producer/consumer";
+
+                auto prod = pcThreadBuilder.getDDAAgilentProducerThread(levelsToCentroid, s,
+                                                                        nscans, bbWidthManager, m_originFileFormat, params);
+                auto cons = pcThreadBuilder.getDDAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager,
+                                                                        runSlices, progressCount, nscans.second);
+                prod.join(); cons.join();
+            }
+
+        } else if (m_Mode == 5) {
+            auto* s = static_cast<pwiz::msdata::detail::SpectrumList_ABI_T2D*>(spectrumList.get());
+            LOG(INFO) << "ABI_T2D  spectrumList";
+            if (m_swathMode) {
+                LOG(INFO) << "Swath producer/consumer";
+                auto prod = pcThreadBuilder.getDIAABI_T2DProducerThread(levelsToCentroid, s,
+                                                                        nscans, m_originFileFormat, params);
+                auto cons = pcThreadBuilder.getDIAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager[1],
+                                                                        runSlices, progressCount, nscans.second);
+                prod.join(); cons.join();
+
+            } else {
+                LOG(INFO) << "DDA producer/consumer";
+
+                auto prod = pcThreadBuilder.getDDAABI_T2DProducerThread(levelsToCentroid, s,
+                                                                        nscans, bbWidthManager, m_originFileFormat, params);
+                auto cons = pcThreadBuilder.getDDAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager,
+                                                                        runSlices, progressCount, nscans.second);
+                prod.join(); cons.join();
+            }
+
+        } else {
+            LOG(INFO) << "Default spectrumList";
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getSwathGenericProducerThread( levelsToCentroid, spectrumList.get(),
                                                                            nscans, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getSwathGenericConsumerThread( m_msdata, m_serializer, bbHeightManager,
+                auto cons = pcThreadBuilder.getSwathGenericConsumerThread( m_msdata, m_serializer, bbHeightManager, bbWidthManager[1],
                                                                            runSlices, progressCount, nscans.second );
                 prod.join(); cons.join();
 
@@ -452,8 +537,9 @@ public:
                                                                          runSlices, progressCount, nscans.second );
                 prod.join(); cons.join();
             }
+        }
 
-        } // end file type
+
 
         //--- metadata cv terms (user param and cv param)
         m_paramsCollecter.insertCollectedCVTerms();
@@ -480,7 +566,7 @@ public:
         //--- in case of precursor calculations
         //LOG(INFO) << "Precursors not found at 50ppm (using vendor peak-piking) count: "<< this->m_emptyPrecCount;
 
-    }
+    } // end function
 
     /// All informations are encoded as 64-bits double.
     void PWIZ_API_DECL writeNoLossMzDB(string& filename,

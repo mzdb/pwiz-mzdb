@@ -96,7 +96,6 @@ private:
 public:
 
     /**
-     * @brief _produce
      * Read all spectra from data file, performs peak-picking and push cycle objects
      * into the queue
      *
