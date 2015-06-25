@@ -354,7 +354,8 @@ public:
                      pwiz::msdata::MSDataPtr msdata,
                      ISerializer::xml_string_writer& serializer,
                      int bbFirstScanIDMS1=0,
-                     int bbFirstScanIDMS2=0) {
+                     map<int, int>* bbFirstSpectrumID=nullptr) {
+                     //int bbFirstScanIDMS2=0) {
 
         //to handle swath cycle
         int i = 1;
@@ -365,9 +366,9 @@ public:
         }
         auto& spectra = cycleObject->spectra;
         for (auto it = spectra.begin(); it != spectra.end(); ++it) {
-            int bbfirstid = bbFirstScanIDMS2 ? bbFirstScanIDMS2 : cycleObject->getBeginId();
 
             if (it->first != nullptr) {
+                int bbfirstid = (bbFirstSpectrumID != nullptr) ? (*bbFirstSpectrumID)[(it->first)->id] : cycleObject->getBeginId();
                 this->insertScan<h_mz_t, h_int_t, h_mz_t, h_int_t>(it->first,
                                                                    i,
                                                                    bbfirstid, //cycleObject->getBeginId(),
@@ -375,6 +376,7 @@ public:
                                                                    msdata,
                                                                    serializer);
             } else {
+                int bbfirstid = (bbFirstSpectrumID != nullptr) ? (*bbFirstSpectrumID)[(it->first)->id] : cycleObject->getBeginId();
                 this->insertScan<l_mz_t, l_int_t, h_mz_t, h_int_t>(it->second,
                                                                    i,
                                                                    bbfirstid, //cycleObject->getBeginId(),

@@ -95,13 +95,9 @@ private:
             vector<HighResSpectrumSPtr> ms1Spectra;
 
             int bbFirstMs1ScanID = m_cycles.front()->parentSpectrum->id;
-            int bbFirstMs2ScanID = m_cycles.front()->getBeginId();
+            //int bbFirstMs2ScanID = m_cycles.front()->getBeginId();
 
-            //insert scans using mzSpectrumInserter, insert cycle consecutively
-            for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
-                ms1Spectra.push_back( (*it)->parentSpectrum);
-                this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID, bbFirstMs2ScanID);
-            }
+
 
             //handle first level
             progressionCount += ms1Spectra.size();
@@ -111,7 +107,15 @@ private:
                                                                        vector<LowResSpectrumSPtr>(), //empty lowres spectra
                                                                        runSlices[1]);
 
-            this->_buildMSnBB(bbMzWidthByMsLevel, progressionCount, runSlices);
+            map<int, int> firstBBSpectrumIDBySpectrumID;
+            this->_buildMSnBB(bbMzWidthByMsLevel, progressionCount, runSlices, firstBBSpectrumIDBySpectrumID);
+
+            //insert scans using mzSpectrumInserter, insert cycle consecutively
+            for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
+                ms1Spectra.push_back( (*it)->parentSpectrum);
+                this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID, &firstBBSpectrumIDBySpectrumID);
+            }
+
 
             m_cycles.clear();
             m_cycles.push_back(std::move(lastContainer));
@@ -134,7 +138,7 @@ private:
 
     /// Try to build the msn bounding box using the same process
     /// Will work a priori only for constant swath window
-    void _buildMSnBB(map<int, double>& bbMzWidthByMsLevel, int& progressionCount, map<int, map<int, int> >& runSlices) {
+    void _buildMSnBB(map<int, double>& bbMzWidthByMsLevel, int& progressionCount, map<int, map<int, int> >& runSlices, map<int, int>& firstBBSpectrumIDBySpectrumID) {
         //first split all ms2 (using precursor mz) into good ms1 groups
         //auto ms1MzWidth = m_swathIsolationWindow;  //25.0;
 
@@ -160,11 +164,27 @@ private:
                 ++progressionCount;
             }
         }
+
+//        map<int, int> firstBBSpectrumIDBySpectrumID;
+
         //iterate over the mzwidth index / spectra map;
         for (auto mapIt = ms2SpectraByPrecursorMzIndex.begin(); mapIt != ms2SpectraByPrecursorMzIndex.end(); ++mapIt) {
 
             auto& windowIndex = mapIt->first;
             auto& ms2Spectra = mapIt->second;
+
+            auto& sp = ms2Spectra.front();
+
+//            printf("%d, %d, \n", sp->id, bbFirstMs2ScanID);
+//            if (sp->id != bbFirstMs2ScanID)
+//                    printf("GOOD to check this");
+
+            for (auto specIt = ms2Spectra.begin(); specIt != ms2Spectra.end(); ++specIt) {
+                auto& spec = *specIt;
+                firstBBSpectrumIDBySpectrumID[spec->id] = sp->id;
+            }
+
+
             //auto& ms1MzWidth = isolationWidthByMzIndex[idx];
             auto& minPrecMz = m_isolationWindowStarts[windowIndex];
             auto& ms1MzWidth = m_isolationWindowSizes[windowIndex];

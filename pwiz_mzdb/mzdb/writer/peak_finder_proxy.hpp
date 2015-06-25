@@ -127,13 +127,8 @@ public:
             computeCentroids<mz_t, int_t>(s, results);
 
         } else if ((wantedMode == CENTROID && currentMode == PROFILE) || (wantedMode == FITTED && currentMode == PROFILE)) {
-            //findPeak then centroidize
             effectiveMode = wantedMode;
-            //if (fileType == pwiz::msdata::MS_ABI_WIFF_format) {
             computeCentroids<mz_t, int_t>(s, results);
-            //} else {
-            //    findPeaks<mz_t, int_t>(s, results, fileType, peakPickerParams);
-            //}
         } else {
             // current is CENTROID nothing to do
             effectiveMode = CENTROID;
