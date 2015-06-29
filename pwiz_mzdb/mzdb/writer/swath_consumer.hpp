@@ -97,7 +97,9 @@ private:
             int bbFirstMs1ScanID = m_cycles.front()->parentSpectrum->id;
             //int bbFirstMs2ScanID = m_cycles.front()->getBeginId();
 
-
+            for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
+                ms1Spectra.push_back( (*it)->parentSpectrum);
+            }
 
             //handle first level
             progressionCount += ms1Spectra.size();
@@ -112,7 +114,7 @@ private:
 
             //insert scans using mzSpectrumInserter, insert cycle consecutively
             for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
-                ms1Spectra.push_back( (*it)->parentSpectrum);
+                //ms1Spectra.push_back( (*it)->parentSpectrum);
                 this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID, &firstBBSpectrumIDBySpectrumID);
             }
 
