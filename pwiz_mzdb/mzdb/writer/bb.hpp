@@ -220,11 +220,13 @@ public:
     void asByteArray(vector<byte>& v, map<int, DataMode>& dataModes) const {
         vector<pair<int, int> > o;
         this->iterationOrder(o);
-        //auto indexes = set<int>();
+        set<int> indexes = set<int>();
         for (size_t i = 0; i < o.size(); ++i) {
             const auto& p = o[i];
             const int& idx = p.second;
-
+            if (indexes.find(idx) != indexes.end())
+                throw runtime_error("Duplicate indexes");
+            indexes.insert(idx);
             auto& dm = dataModes[idx];
             if (p.first == 1) {
                 // high res mode
@@ -254,6 +256,7 @@ public:
     template<typename mz_t, typename int_t>
     inline static void insertCentroidToBinaryVector(vector<byte>& v, int idx,
                                                     map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& w)  {
+
         auto& peaks = w[idx];
         put<int>(idx, v);
         put<int>(peaks.size(), v);

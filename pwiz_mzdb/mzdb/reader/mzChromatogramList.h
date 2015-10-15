@@ -8,6 +8,7 @@
 
 namespace mzdb {
 
+
 class mzChromatogramList : public pwiz::msdata::ChromatogramListBase{
 
     MzDBFile* _mzdb;

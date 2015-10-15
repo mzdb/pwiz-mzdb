@@ -25,7 +25,7 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& s,
                       mzPeakFinderUtils::PeakPickerParams& params) {
 
     if (!s || s == nullptr) {
-        LOG(ERROR) << "Spectrum pointer is null";
+//        LOG(ERROR) << "Spectrum pointer is null";
     }
 
     const vector<double>& mzs = s->getMZArray()->data;
@@ -34,7 +34,7 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& s,
     if (mzs.empty() || ints.empty()) {
         //--- actually, it can happen in practical cases, when  a
         //--- large file is processed
-        LOG(WARNING) << "Empty spectrum which is obviously unusual !";
+//        LOG(WARNING) << "Empty spectrum which is obviously unusual !";
         return;
     }
 
