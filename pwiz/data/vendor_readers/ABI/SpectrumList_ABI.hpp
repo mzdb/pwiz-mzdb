@@ -19,6 +19,8 @@
 // limitations under the License.
 //
 
+#ifndef _SPECTRUMLIST_ABI_
+#define _SPECTRUMLIST_ABI_
 
 #include "pwiz/utility/misc/Export.hpp"
 #include "pwiz/data/msdata/SpectrumListBase.hpp"
@@ -95,3 +97,5 @@ class PWIZ_API_DECL SpectrumList_ABI : public SpectrumListBase
 } // detail
 } // msdata
 } // pwiz
+
+#endif
