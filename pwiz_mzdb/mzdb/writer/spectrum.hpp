@@ -159,12 +159,16 @@ struct PWIZ_API_DECL mzSpectrum {
      * @return effective mode
      */
     inline DataMode getEffectiveMode(DataMode wantedMode) {
-        const pwiz::msdata::CVParam& isCentroided = spectrum->cvParam(pwiz::msdata::MS_centroid_spectrum);
-        DataMode currentMode = ( isCentroided.empty() ) ? PROFILE: CENTROID;
+        // this way does not work...
+//        const pwiz::msdata::CVParam& isCentroided = spectrum->cvParam(pwiz::msdata::MS_centroid_spectrum);
+//        DataMode currentMode = ( isCentroided.empty() ) ? PROFILE: CENTROID;
+
+        DataMode currentMode = spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
+
         DataMode effectiveMode;
         if (wantedMode == PROFILE && currentMode == PROFILE) {
             effectiveMode = PROFILE;
-        } else if ((wantedMode == CENTROID && currentMode == PROFILE) || (wantedMode == FITTED && currentMode == PROFILE)) {//findPeak then centroidize}
+        } else if ((wantedMode == CENTROID && currentMode == PROFILE) || (wantedMode == FITTED && currentMode == PROFILE)) {
             effectiveMode = wantedMode;
         } else { // current is CENTROID nothing to do
             effectiveMode = CENTROID;
