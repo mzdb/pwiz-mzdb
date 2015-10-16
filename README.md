@@ -124,9 +124,9 @@ reader.readMzDB(msdata);
 
 SpectrumListPtr sl = msdata.run.spectrumListPtr; // fetch spectrumList
 for (size_t i=0; i < sl.size(); ++i) {
-	// fetch spectrum, second argument is for getting spectrum data points
-	// it has no effect on the actual implementation, always return a spectrum
-	// with mz/intensity arrays
+	// fetch spectrum, second argument is for getting or not (i.e. fetch only metadata) 
+	// spectrum data points, it has no effect on the actual implementation, always 
+	// return a spectrum with mz/intensity arrays
 	SpectrumPtr s = sl.spectrum(i, true);
 	
 	//...do something else
@@ -145,7 +145,6 @@ MzDBFile mzdb(filename);
 mzDBReader reader(mzdb); //build a mzdbreader object
 MSData msdata; // build empty Pwiz msdata object
 
-// the following will build a custom SpectrumList, ready for iteration
 reader.readMzDB(msdata);
 vector<mzScan*> results; // mzScan is a simple object containing vector members 'mz' and 'intensities'
 reader.extractRunSlice(mzmin, mzmax, msLevel, results);
@@ -163,7 +162,6 @@ MzDBFile mzdb(filename);
 mzDBReader reader(mzdb); //build a mzdbreader object
 MSData msdata; // build empty Pwiz msdata object
 
-// the following will build a custom SpectrumList, ready for iteration
 reader.readMzDB(msdata);
 vector<mzScan*> results; // mzScan is a simple object containing vector members 'mz' and 'intensities'
 
