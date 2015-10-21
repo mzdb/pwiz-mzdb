@@ -86,7 +86,7 @@ Recent ongoing developement where only tested on Windows using MSVC 2010 Ultimat
 Compilation on Linux may require some code corrections for the moment. We plan to be cross-platform very soon.
 
 In order to build with *bjam*:
-* Unzip pwiz-mzdb-lib.zip file (containing project dependencies as static compiled libraries) located in <code>project_root/pwiz_mzdb/mzdb/lib</code> directory. (You can also download it [here](https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.8/pwiz-mzdb-lib.zip) if not existing)
+* Unzip pwiz-mzdb-lib.zip file (containing project dependencies as static compiled libraries) located in <code>project_root/pwiz_mzdb/mzdb/lib</code> directory. (You can also download it [here](https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.8/pwiz-mzdb-lib.zip) if not exist)
 * Then run the following command from the project root: <br/>
 <code>quickbuild -j8 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses</code>
 
