@@ -82,15 +82,16 @@ TODO
 
 #### Build from command line
 
-Recent ongoing developement where only tested on Windows using MSVC 2010.
+Recent ongoing developement where only tested on Windows using MSVC 2010 Ultimate version. 
 Compilation on Linux may require some code corrections for the moment. We plan to be cross-platform very soon.
 
 In order to build with *bjam*:
-
-* Download project dependencies as static compiled libraries: [pwiz-mzdb-lib](https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.8/pwiz-mzdb-lib.zip)
-* Unzip this file in the directory <code>project_root/pwiz_mzdb/mzdb/lib</code>
+* Unzip pwiz-mzdb-lib.zip file (containing project dependencies as static compiled libraries) located in <code>project_root/pwiz_mzdb/mzdb/lib</code> directory. (You can also download it [here](https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.8/pwiz-mzdb-lib.zip) if not existing)
 * Then run the following command from the project root: <br/>
 <code>quickbuild -j8 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses</code>
+
+raw2mzdb.exe file is generated in : 
+<code>project_root/build-nt-x86\pwiz_mzdb\msvc-10.0\release\address-model-64\asynch-exceptions-on\build-no\link-static\threading-multi</code>. (TO FIX) If <code>libgflags.dll</code> and <code>libglog.dll</code> files are missing in this directory, copy them from <code>project_root/pwiz_mzdb/mzdb/lib</code>. 
 
 #### Project structure
 
