@@ -90,7 +90,7 @@ In order to build with *bjam*:
 * Then run the following command from the project root: <br/>
 <code>quickbuild -j8 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses</code>
 
-raw2mzdb.exe file is generated in : 
+**raw2mzdb.exe** file is generated in : 
 <code>project_root/build-nt-x86\pwiz_mzdb\msvc-10.0\release\address-model-64\asynch-exceptions-on\build-no\link-static\threading-multi</code>. (TO FIX) If <code>libgflags.dll</code> and <code>libglog.dll</code> files are missing in this directory, copy them from <code>project_root/pwiz_mzdb/mzdb/lib</code>. 
 
 #### Project structure
