@@ -85,6 +85,13 @@ TODO
 Recent ongoing developement where only tested on Windows using MSVC 2010 Ultimate version. 
 Compilation on Linux may require some code corrections for the moment. We plan to be cross-platform very soon.
 
+After installing Visual Studio, check following points : 
+- Visual Studio path is added to system environment path : *C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin* 
+- If you are using 64-bit operationg system : allow the cross compilation : 
+	- open commandline : Win+R, tape *cmd*
+	- go to *Microsoft Visual Studio 10.0\VC* : <code>cd C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC</code>
+	- execute <code>vcvarsall.bat x86_amd64</code> , you should have *Setting environment for using Microsoft Visual Studio 2010 x64 cross tools.* message. 
+
 In order to build with *bjam*:
 * Unzip pwiz-mzdb-lib.zip file (containing project dependencies as static compiled libraries) located in <code>project_root/pwiz_mzdb/mzdb/lib</code> directory. (You can also download it [here](https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.8/pwiz-mzdb-lib.zip) if not exist)
 * Then run the following command from the project root: <br/>
