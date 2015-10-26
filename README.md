@@ -87,8 +87,8 @@ Compilation on Linux may require some code corrections for the moment. We plan t
 
 After installing Visual Studio, check following points : 
 - Visual Studio path is added to system environment path : *C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin* 
-- If you are using 64-bit operationg system : allow the cross compilation : 
-	- open commandline : Win+R, tape *cmd*
+- If you are using 64-bit operating system : allow the cross compilation : 
+	- open commandline : Win+R, type *cmd*
 	- go to *Microsoft Visual Studio 10.0\VC* : <code>cd C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC</code>
 	- execute <code>vcvarsall.bat x86_amd64</code> , you should have *Setting environment for using Microsoft Visual Studio 2010 x64 cross tools.* message. 
 
