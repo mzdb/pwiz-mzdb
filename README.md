@@ -90,7 +90,7 @@ After installing Visual Studio, check following points :
 - If you are using 64-bit operating system : allow the cross compilation : 
 	- open commandline : Win+R, type *cmd*
 	- go to *Microsoft Visual Studio 10.0\VC* : <code>cd C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC</code>
-	- execute <code>vcvarsall.bat x86_amd64</code> , you should have *Setting environment for using Microsoft Visual Studio 2010 x64 cross tools.* message. 
+	- execute <code>vcvarsall.bat x86_amd64</code> , you should have <code>Setting environment for using Microsoft Visual Studio 2010 x64 cross tools.</code> message. 
 
 In order to build with *bjam*:
 * Unzip pwiz-mzdb-lib.zip file (containing project dependencies as static compiled libraries) located in <code>project_root/pwiz_mzdb/mzdb/lib</code> directory. (You can also download it [here](https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.8/pwiz-mzdb-lib.zip) if not exist)
