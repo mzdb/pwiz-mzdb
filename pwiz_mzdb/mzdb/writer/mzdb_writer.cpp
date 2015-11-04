@@ -853,7 +853,23 @@ void mzDBWriter::insertMetaData() {
     m_paramsCollecter.updateCVMap(run);
     m_paramsCollecter.updateUserMap(run);
 
-    string& runString = ISerializer::serialize(run, m_serializer);
+    string& runTemp = ISerializer::serialize(run, m_serializer);
+
+    // Add MS prefix to param_tree column in run table
+    string runForAddMS = runTemp.c_str();
+    if (!runForAddMS.empty()){
+        string strCvRef("cvRef=\"");
+        string strAccession("accession=\"");
+        size_t foundPositionCvRef = runForAddMS.find(strCvRef);
+        size_t foundPositionAccession = runForAddMS.find(strAccession);
+        while (foundPositionCvRef != string::npos && foundPositionAccession != string::npos && runForAddMS.substr(foundPositionCvRef+7, 2) == "MS"){ // add to all accession values
+            runForAddMS.insert(foundPositionAccession+11,"MS:");
+
+            foundPositionCvRef = runForAddMS.find(strCvRef, foundPositionCvRef+1);
+            foundPositionAccession = runForAddMS.find(strAccession, foundPositionAccession+1);
+        }
+    }
+    string &runString = runForAddMS; // assign to final run string
     sqlite3_bind_text(m_mzdbFile.stmt, 3, runString.c_str(), runString.length(), SQLITE_STATIC);
 
     // NULL is for shared param tree as it is not defined for the moment
