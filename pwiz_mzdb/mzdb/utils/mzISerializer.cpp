@@ -116,16 +116,28 @@ void getUserParams(const ParamContainer& object, xml_node& doc) {
 
 
 
-string& serialize(const ParamContainer& e, xml_string_writer &writer) {
+string serialize(const ParamContainer& e, xml_string_writer &writer) {
     xml_document doc;
     auto n = doc.append_child(PARAMS_STR);
     getCvParams(e, n);
     getUserParams(e, n);
     doc.print(writer, "  ");//, "\t", format_raw | format_no_declaration); //no namespace no charriot char
-    return writer.getResult();
-}
 
-
+	// Add "MS:" prefix 
+    string runForAddMS = writer.getResult();
+    if (!runForAddMS.empty()){
+        string strCvRef("cvRef=\"");
+        string strAccession("accession=\"");
+        size_t foundPositionCvRef = runForAddMS.find(strCvRef);
+        size_t foundPositionAccession = runForAddMS.find(strAccession);
+        while (foundPositionCvRef != string::npos && foundPositionAccession != string::npos && runForAddMS.substr(foundPositionCvRef+7, 2) == "MS" && runForAddMS.substr(foundPositionAccession+11, 3) != "MS:"){ // add to all accession values
+            runForAddMS.insert(foundPositionAccession+11,"MS:");
+            foundPositionCvRef = runForAddMS.find(strCvRef, foundPositionCvRef+1);
+            foundPositionAccession = runForAddMS.find(strAccession, foundPositionAccession+1);
+        }
+    }
+    string& writerFixMS = runForAddMS;
+    return runForAddMS;
 }
 
 

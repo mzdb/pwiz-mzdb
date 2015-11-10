@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+/**
+  * @file mzdb_writer.hpp
+  * @brief Main class to performing the conversion
+  * @author Marc Dubois marc.dubois@ipbs.fr
+  */
 //author marc.dubois@ipbs.fr
 
 #ifndef __MZDBWRITER__

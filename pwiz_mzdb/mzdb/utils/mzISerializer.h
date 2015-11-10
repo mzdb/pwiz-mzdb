@@ -1,3 +1,9 @@
+/**
+  * @file mzISerializer.h
+  * @brief Static functions to handle serialization of cvParam to xml chunk to be stored in _param_tree_ column
+  * @author Marc Dubois marc.dubois@ipbs.fr
+  */
+
 #ifndef MZSERIALIZERINTERFACE_H
 #define MZSERIALIZERINTERFACE_H
 
@@ -30,7 +36,7 @@ struct xml_string_writer : pugi::xml_writer {
         result = string(static_cast<const char*> (data), size);
     }
 
-    string& getResult() {return result;}
+    string getResult() {return result;}
 };
 
 
@@ -54,7 +60,8 @@ void getUserParams(const pwiz::msdata::ParamContainer&, pugi::xml_node& doc);
  *
  * @return string result of the serialization
  */
-string& serialize(const pwiz::msdata::ParamContainer&, xml_string_writer &);
+string serialize(const pwiz::msdata::ParamContainer&, xml_string_writer &);
+
 
 }//end serialization
 
