@@ -4,13 +4,10 @@ lib mzdb_utils
     lz4.c
     lz4hc.c
     [ glob cwtlib/*.cpp ]
-    #[ glob glog/*.cc ]
 
 : #requirments
     <include>.
     <include>../../../glog
-    #<include>../glog
-    #<include>./glog
     <include>./cwtlib
     <library>../../../pwiz/data/msdata
     <library>../../../pwiz/analysis/spectrum_processing
@@ -18,12 +15,10 @@ lib mzdb_utils
     <library>../lib/pugixml
     <library>../lib/sqlite3
 
-: <variant>release <link>static <cxxflags>"/Ox /Gy /GA"                  #/Gr" #/GF #default-build
+: <variant>release <link>static <cxxflags>"/Ox /Gy /GA"
 
 : #usage-requirments
     <include>.
-    #<include>../../../glog
-    #<include>../glog
     <library>../../../pwiz/data/msdata
     <library>../../../pwiz/analysis/spectrum_processing
     <library>../../../pwiz/analysis/peakdetect
