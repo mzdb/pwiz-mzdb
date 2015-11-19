@@ -853,6 +853,7 @@ void mzDBWriter::insertMetaData() {
     m_paramsCollecter.updateCVMap(run);
     m_paramsCollecter.updateUserMap(run);
 
+    string& runString = ISerializer::serialize(run, m_serializer);
     sqlite3_bind_text(m_mzdbFile.stmt, 3, runString.c_str(), runString.length(), SQLITE_STATIC);
 
     // NULL is for shared param tree as it is not defined for the moment
