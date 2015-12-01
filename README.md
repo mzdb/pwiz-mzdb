@@ -102,12 +102,13 @@ In order to build with *bjam*:
 
 #### Project structure
 
-TODO
+See [wiki](https://github.com/mzdb/pwiz-mzdb/wiki)
 
-#### Project dependencies
-
+#### Project dependencies(headers already included in the root directory)
+* PWIZ of course
 * [Ceres](http://ceres-solver.org/)
 * [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page)
+* [glog](https://github.com/google/glog)
 
 #### IDE setup
 
