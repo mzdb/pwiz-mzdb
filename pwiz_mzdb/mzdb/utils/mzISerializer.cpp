@@ -142,3 +142,4 @@ string serialize(const ParamContainer& e, xml_string_writer &writer) {
 
 
 }
+}
