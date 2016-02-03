@@ -42,6 +42,39 @@ private:
 
     PeakPickerPolicy m_peakPicker;
 
+    /**
+     * @brief _checkCycleNumber
+     * checks if cycle number matches the "real" cycle number given in the spectrum title
+     *
+     * @param filetype origin file type (titles are differents for each file type)
+     * @param spectrumTitle in which the good cycle number may be found
+     * @param cycleNumber, the computed cycle number that may be wrong
+     */
+    void _checkCycleNumber(pwiz::msdata::CVID filetype, string spectrumTitle, int& cycleNumber) {
+        // add a special case for ABSciex files
+        if(filetype == pwiz::msdata::MS_ABI_WIFF_format) {
+            std::regex e ("cycle=(\\d+)");
+            std::smatch match;
+            if (std::regex_search(spectrumTitle, match, e) && match.size() > 0) {
+                // real cycle extracted from title
+                // if the spray gets lost, the spectra will not be written in the wiff file and the cycles wont be a list from 1 to the end
+                int cycle = std::stoi(match.str(1));
+                if(cycle != cycleNumber) {
+                    LOG(INFO) << "ABU cycle changed from " << cycleNumber << " to " << cycle << "\n";
+                    cycleNumber = cycle;
+                }
+            }
+        }
+    }
+
+    /**
+     * @brief _peakPickAndPush
+     * performs peak-picking then push it to the queue
+     *
+     * @param cycle, cycle number
+     * @param filetype origin file type
+     * @param params for peak picking algorithm
+     */
     void _peakPickAndPush(SpectraContainerUPtr& cycle, pwiz::msdata::CVID filetype,
                           mzPeakFinderUtils::PeakPickerParams& params) {
         this->m_peakPicker.start<h_mz_t, h_int_t, l_mz_t, l_int_t>(cycle, filetype, params);
@@ -53,6 +86,16 @@ private:
     }
 
 
+    /**
+     * Read all spectra from data file, performs peak-picking and push cycle objects
+     * into the queue
+     *
+     * @param levelsToCentroid
+     * @param spectrumList
+     * @param nscans
+     * @param filetype
+     * @param params
+     */
     void _produce(
             pwiz::util::IntegerSet& levelsToCentroid,
             SpectrumListType* spectrumList,
@@ -75,6 +118,7 @@ private:
 
             if (msLevel == 1 ) {
                 ++cycleCount;
+                this->_checkCycleNumber(filetype, spectrum->id, cycleCount);
                 currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum);
                 if (cycle) {
                     //peak picks only ms == 2
