@@ -5,6 +5,7 @@
 #include <math.h>
 #include <set>
 
+#include <regex>
 
 #include "pwiz/data/msdata/MSData.hpp"
 #include "pwiz/analysis/peakdetect/PeakFamilyDetectorFT.hpp"
@@ -283,6 +284,32 @@ inline static double precursorMzOf(const pwiz::msdata::SpectrumPtr &s) {
     return si.cvParam(pwiz::msdata::MS_selected_ion_m_z).valueAs<double>();
 }
 
+
+/**
+ * @brief checkCycleNumber
+ * checks if cycle number matches the "real" cycle number given in the spectrum title
+ *
+ * @param filetype origin file type (titles are differents for each file type)
+ * @param spectrumTitle in which the good cycle number may be found
+ * @param cycleNumber, the computed cycle number that may be wrong
+ */
+inline void checkCycleNumber(pwiz::msdata::CVID filetype, string spectrumTitle, int& cycleNumber) {
+    // add a special case for ABSciex files
+    if(filetype == pwiz::msdata::MS_ABI_WIFF_format) {
+        std::regex e ("cycle=(\\d+)");
+        std::smatch match;
+        if (std::regex_search(spectrumTitle, match, e) && match.size() > 0) {
+            // real cycle extracted from title
+            // if the spray gets lost, the spectra will not be written in the wiff file and the cycles wont be a list from 1 to the end
+            int cycle = std::stoi(match.str(1));
+            if(cycle != cycleNumber) {
+                //printf("Cycle changed from "+cycleNumber+" to "+cycle+"\n");
+                printf("Cycle changed from %d to %d\n", cycleNumber, cycle);
+                cycleNumber = cycle;
+            }
+        }
+    }
+}
 } // end namespace PWIZ HELPER
 
 

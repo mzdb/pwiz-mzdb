@@ -87,51 +87,74 @@ private:
 
             }
 
-            SpectraContainerUPtr lastContainer = std::move(m_cycles.back());
+            if(!toBeBroken) {
+                SpectraContainerUPtr lastContainer = std::move(m_cycles.back());
+    
+                if (! m_cycles.empty())
+                    m_cycles.erase(m_cycles.end() - 1);
+    
+                vector<HighResSpectrumSPtr> ms1Spectra;
+    
+                int bbFirstMs1ScanID = m_cycles.front()->parentSpectrum->id;
+                //int bbFirstMs2ScanID = m_cycles.front()->getBeginId();
+    
+                for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
+                    ms1Spectra.push_back( (*it)->parentSpectrum);
+                }
+    
+                //handle first level
+                progressionCount += ms1Spectra.size();
+                this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(1, //msLevel
+                                                                           bbMzWidthByMsLevel[1],
+                                                                           ms1Spectra, //highresspectra
+                                                                           vector<LowResSpectrumSPtr>(), //empty lowres spectra
+                                                                           runSlices[1]);
+    
+                map<int, int> firstBBSpectrumIDBySpectrumID;
+                this->_buildMSnBB(bbMzWidthByMsLevel, progressionCount, runSlices, firstBBSpectrumIDBySpectrumID);
+    
+                //insert scans using mzSpectrumInserter, insert cycle consecutively
+                for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
+                    //ms1Spectra.push_back( (*it)->parentSpectrum);
+                    this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID, &firstBBSpectrumIDBySpectrumID);
+                }
+    
+    
+                m_cycles.clear();
+                m_cycles.push_back(std::move(lastContainer));
+    
+                // progression update computing the new progression
+                int newPercent = (int) (((float) progressionCount / nscans * 100));
+                if (newPercent == lastPercent + 2) {
+                    printProgBar(newPercent);
+                    lastPercent = newPercent;
+                }
+    
+                if (progressionCount >= nscans ) {
+                    //LOG(INFO) << "Inserter consumer finished: reaches final progression";
+                    break;
+                }
 
-            if (! m_cycles.empty())
-                m_cycles.erase(m_cycles.end() - 1);
-
-            vector<HighResSpectrumSPtr> ms1Spectra;
-
-            int bbFirstMs1ScanID = m_cycles.front()->parentSpectrum->id;
-            //int bbFirstMs2ScanID = m_cycles.front()->getBeginId();
-
-            for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
-                ms1Spectra.push_back( (*it)->parentSpectrum);
-            }
-
-            //handle first level
-            progressionCount += ms1Spectra.size();
-            this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(1, //msLevel
-                                                                       bbMzWidthByMsLevel[1],
-                                                                       ms1Spectra, //highresspectra
-                                                                       vector<LowResSpectrumSPtr>(), //empty lowres spectra
-                                                                       runSlices[1]);
-
-            map<int, int> firstBBSpectrumIDBySpectrumID;
-            this->_buildMSnBB(bbMzWidthByMsLevel, progressionCount, runSlices, firstBBSpectrumIDBySpectrumID);
-
-            //insert scans using mzSpectrumInserter, insert cycle consecutively
-            for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
-                //ms1Spectra.push_back( (*it)->parentSpectrum);
-                this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID, &firstBBSpectrumIDBySpectrumID);
-            }
-
-
-            m_cycles.clear();
-            m_cycles.push_back(std::move(lastContainer));
-
-            // progression update computing the new progression
-            int newPercent = (int) (((float) progressionCount / nscans * 100));
-            if (newPercent == lastPercent + 2) {
-                printProgBar(newPercent);
-                lastPercent = newPercent;
-            }
-
-            if (progressionCount >= nscans ) {
-                //LOG(INFO) << "Inserter consumer finished: reaches final progression";
-                break;
+            } else {
+                
+                // last loop
+                
+                vector<HighResSpectrumSPtr> ms1Spectra;
+                int bbFirstMs1ScanID = m_cycles.front()->parentSpectrum->id;
+                for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
+                    ms1Spectra.push_back( (*it)->parentSpectrum);
+                }
+                //handle first level
+                progressionCount += ms1Spectra.size();
+                this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(1, bbMzWidthByMsLevel[1], ms1Spectra, vector<LowResSpectrumSPtr>(), runSlices[1]);
+                
+                map<int, int> firstBBSpectrumIDBySpectrumID;
+                this->_buildMSnBB(bbMzWidthByMsLevel, progressionCount, runSlices, firstBBSpectrumIDBySpectrumID);
+                
+                for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
+                    this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID, &firstBBSpectrumIDBySpectrumID);
+                }
+                m_cycles.clear();
             }
 
         }

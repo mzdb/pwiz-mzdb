@@ -15,6 +15,8 @@
 #include "bb_inserter.hpp"
 #include "spectrumlist_policy.h"
 
+#include "../../utils/mzUtils.hpp"
+
 using namespace std;
 
 namespace mzdb {
@@ -145,6 +147,7 @@ public:
 
             if (msLevel == 1 ) {
                 ++cycleCount;
+                PwizHelper::checkCycleNumber(filetype, spectrum->id, cycleCount);
                 currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum);
             }
 

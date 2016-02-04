@@ -9,6 +9,8 @@
 #include "cycle_obj.hpp"
 #include "spectrumlist_policy.h"
 
+#include "../../utils/mzUtils.hpp"
+
 using namespace std;
 
 namespace mzdb {
@@ -42,6 +44,14 @@ private:
 
     PeakPickerPolicy m_peakPicker;
 
+    /**
+     * @brief _peakPickAndPush
+     * performs peak-picking then push it to the queue
+     *
+     * @param cycle, cycle number
+     * @param filetype origin file type
+     * @param params for peak picking algorithm
+     */
     void _peakPickAndPush(SpectraContainerUPtr& cycle, pwiz::msdata::CVID filetype,
                           mzPeakFinderUtils::PeakPickerParams& params) {
         this->m_peakPicker.start<h_mz_t, h_int_t, l_mz_t, l_int_t>(cycle, filetype, params);
@@ -53,6 +63,16 @@ private:
     }
 
 
+    /**
+     * Read all spectra from data file, performs peak-picking and push cycle objects
+     * into the queue
+     *
+     * @param levelsToCentroid
+     * @param spectrumList
+     * @param nscans
+     * @param filetype
+     * @param params
+     */
     void _produce(
             pwiz::util::IntegerSet& levelsToCentroid,
             SpectrumListType* spectrumList,
@@ -75,6 +95,7 @@ private:
 
             if (msLevel == 1 ) {
                 ++cycleCount;
+                PwizHelper::checkCycleNumber(filetype, spectrum->id, cycleCount);
                 currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum);
                 if (cycle) {
                     //peak picks only ms == 2
