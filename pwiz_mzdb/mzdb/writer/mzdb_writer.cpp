@@ -46,8 +46,11 @@ void mzDBWriter::buildDataEncodingRowByID() {
     }
 
     if (hasDataMode(FITTED)) {
-        DataEncoding d(-1, FITTED, HIGH_RES_PEAK);
-        m_dataEncodingByID[id] = d;
+        DataEncoding d1(-1, FITTED, HIGH_RES_PEAK);
+        DataEncoding d2(-1, FITTED, LOW_RES_PEAK);
+        m_dataEncodingByID[id] = d1;
+        ++id;
+        m_dataEncodingByID[id] = d2;
         ++id;
     }
 

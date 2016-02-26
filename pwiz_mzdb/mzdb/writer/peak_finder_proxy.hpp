@@ -105,35 +105,12 @@ public:
                                  pwiz::msdata::CVID fileType,
                                  mzPeakFinderUtils::PeakPickerParams& peakPickerParams) {
 
-        //const pwiz::msdata::CVParam isCentroided = s->cvParam(pwiz::msdata::MS_centroid_spectrum);
-        //isCentroided.cvid == pwiz::msdata::CVID_Unknown) ? PROFILE: CENTROID;
-
-        DataMode currentMode = s->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
-
-        DataMode effectiveMode;
-        if (wantedMode == PROFILE && currentMode == PROFILE) {
-            effectiveMode = PROFILE;
-            // just construct data points
-            computeCentroids<mz_t, int_t>(s, results);
-        } else if (wantedMode == PROFILE && currentMode == CENTROID) {
-
+        DataMode effectiveMode = getDataMode(s, wantedMode);
+        if (wantedMode == PROFILE && effectiveMode == CENTROID) {
             auto msLevel = s->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
-            throw runtime_error("WantedMode PROFILE whereas currentMode is CENTROID for msLevel <"
-                                + boost::lexical_cast<string>(msLevel) + ">. Please change it to FITTED or CENTROID.");
-
-        } else if (wantedMode == FITTED && currentMode == CENTROID) {
-            // WARNING changing behavior here
-            effectiveMode = FITTED;
-            computeCentroids<mz_t, int_t>(s, results);
-
-        } else if ((wantedMode == CENTROID && currentMode == PROFILE) || (wantedMode == FITTED && currentMode == PROFILE)) {
-            effectiveMode = wantedMode;
-            computeCentroids<mz_t, int_t>(s, results);
-        } else {
-            // current is CENTROID nothing to do
-            effectiveMode = CENTROID;
-            computeCentroids<mz_t, int_t>(s, results);
+            throw runtime_error("WantedMode PROFILE whereas currentMode is CENTROID for msLevel <" + boost::lexical_cast<string>(msLevel) + ">. Please change it to FITTED or CENTROID.");
         }
+        computeCentroids<mz_t, int_t>(s, results);
         return effectiveMode;
     }
 
