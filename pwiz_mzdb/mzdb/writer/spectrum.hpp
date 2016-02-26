@@ -163,17 +163,7 @@ struct PWIZ_API_DECL mzSpectrum {
 //        const pwiz::msdata::CVParam& isCentroided = spectrum->cvParam(pwiz::msdata::MS_centroid_spectrum);
 //        DataMode currentMode = ( isCentroided.empty() ) ? PROFILE: CENTROID;
 
-        DataMode currentMode = spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
-
-        DataMode effectiveMode;
-        if (wantedMode == PROFILE && currentMode == PROFILE) {
-            effectiveMode = PROFILE;
-        } else if ((wantedMode == CENTROID && currentMode == PROFILE) || (wantedMode == FITTED && currentMode == PROFILE)) {
-            effectiveMode = wantedMode;
-        } else { // current is CENTROID nothing to do
-            effectiveMode = CENTROID;
-        }
-        return effectiveMode;
+        return getDataMode(spectrum, wantedMode);
     }
 
 

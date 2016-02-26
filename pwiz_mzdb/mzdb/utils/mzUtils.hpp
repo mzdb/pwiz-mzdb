@@ -346,16 +346,9 @@ static inline string getActivationCode(const pwiz::msdata::Activation& a) {
  */
 static DataMode getDataMode( const pwiz::msdata::SpectrumPtr s, DataMode wantedMode)  {
 
-    const pwiz::msdata::CVParam& isCentroided = s->cvParam(pwiz::msdata::MS_centroid_spectrum);
-    DataMode currentMode = !isCentroided.empty() ? CENTROID : PROFILE;
-    DataMode effectiveMode;
-    if (wantedMode == PROFILE && currentMode == PROFILE) {
-        effectiveMode = PROFILE;
-    } else if ((wantedMode == CENTROID && currentMode == PROFILE) ||
-                 (wantedMode == FITTED && currentMode == PROFILE)) {
-        effectiveMode = wantedMode;
-    } else {
-        // current is CENTROID nothing to do
+    DataMode currentMode = s->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
+    DataMode effectiveMode = wantedMode;
+    if (currentMode == CENTROID && wantedMode == PROFILE) {
         effectiveMode = CENTROID;
     }
     return effectiveMode;
