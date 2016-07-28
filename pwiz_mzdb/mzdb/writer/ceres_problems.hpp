@@ -170,6 +170,7 @@ class ProblemSolver {
 
 public:
 
+    // centroids_ used to be empty, now contains centroids
      inline ProblemSolver(const vector<mz_t>& x_,
                           const vector<int_t>& y_,
                           vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids_): centroids(centroids_), xData(x_), yData(y_) {
@@ -180,6 +181,7 @@ public:
      * @param output optimized centroids
      * @param options @see getDefaultOptions()
      */
+     // output used to contain input centroids
     void solve(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& output, ceres::Solver::Options options = getDefaultOptions()) {
 
         ceres::Problem problem;
@@ -187,59 +189,59 @@ public:
         vector<double> data;
         //lwhms.reserve(centroids.size()); rwhms.reserve(centroids.size());
         //vector<double> as, bs, cs, aps, bps, cps;
-
+        
         /** fill init parameters*/
         for (size_t i = 0; i < centroids.size(); ++i) {
             auto c = centroids[i];
             double intensity = c->intensity;
             double lwhm = c->lwhm;
             double rwhm = c->rwhm;
-
+            
             data.push_back(intensity);
             data.push_back( (lwhm * 2.0) / SIGMA_FACTOR ); //enter sigma directly
             data.push_back( (rwhm * 2.0) / SIGMA_FACTOR );
         }
-
+        
         /** add a cost function for each point */
         if (centroids.size() > 10 ) {
-			for (size_t i = 0; i < centroids.size(); ++i) {
-					output.push_back( centroids[i] );
+            for (size_t i = 0; i < centroids.size(); ++i) {
+                output.push_back( centroids[i] );
             }
         } else {
-			for (size_t i = 0; i < xData.size(); ++i) {
-				ceres::CostFunction* costFunction = AutoDiffCostFunctionFactory::buildCostFunction<GaussianFittingCentroids<mz_t, int_t>, mz_t, int_t>(centroids, xData[i], yData[i]);
-				problem.AddResidualBlock( costFunction, NULL, &data[0]);
-			}
-
-			/** solve the problem */
-			ceres::Solver::Summary summary;
-			ceres::Solve(options, &problem, &summary);
-
-
-			/** fill the result values*/
-			for (size_t i = 0; i < centroids.size(); ++i) {
+            for (size_t i = 0; i < xData.size(); ++i) {
+                ceres::CostFunction* costFunction = AutoDiffCostFunctionFactory::buildCostFunction<GaussianFittingCentroids<mz_t, int_t>, mz_t, int_t>(centroids, xData[i], yData[i]);
+                problem.AddResidualBlock( costFunction, NULL, &data[0]);
+            }
+            
+            /** solve the problem */
+            ceres::Solver::Summary summary;
+            ceres::Solve(options, &problem, &summary);
+            
+            
+            /** fill the result values*/
+            for (size_t i = 0; i < centroids.size(); ++i) {
                 auto c = centroids[i];
-
-				double intensity = data[i*3];
-				double lwhm = (data[i*3+1] * SIGMA_FACTOR) / 2.0;
-				double rwhm = (data[i*3+2] * SIGMA_FACTOR) / 2.0;
-
-				//boundConstraints
-				//100ppm
+                
+                double intensity = data[i*3];
+                double lwhm = (data[i*3+1] * SIGMA_FACTOR) / 2.0;
+                double rwhm = (data[i*3+2] * SIGMA_FACTOR) / 2.0;
+                
+                //boundConstraints
+                //100ppm
                 double maxhwhm = (c->mz / (c->mz * 100.0)) / 2.0;
-
+                
                 if ( isFiniteNumber<double>(lwhm) && lwhm > 0 && abs(lwhm - c->lwhm) < (c->lwhm * 0.5) && lwhm < maxhwhm )
-					c->lwhm = lwhm;
-
+                    c->lwhm = lwhm;
+                
                 if ( isFiniteNumber<double>(rwhm) && rwhm > 0 && abs(rwhm - c->rwhm) < (c->rwhm * 0.5 ) && rwhm < maxhwhm)
-					c->rwhm = rwhm;
-
+                    c->rwhm = rwhm;
+                
                 //if (centroids.size() > 1) {
                 if (isFiniteNumber<double>(intensity) && intensity > 0 && abs(intensity - c->intensity) < (c->intensity * 0.5))
-					c->intensity = intensity;
-				//}*/
-				output.push_back(c);
-			}
+                    c->intensity = intensity;
+                //}*/
+                output.push_back(c);
+            }
         }
         //centroids.clear();
     }

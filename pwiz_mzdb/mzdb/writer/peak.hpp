@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-//author marc.dubois@ipbs.fr
+/*
+ * @file peak.hpp
+ * @brief Contains Peaks and Centroids classes
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
 
 #ifndef __MZPEAK__
 #define __MZPEAK__
@@ -194,7 +199,7 @@ public:
      * The first centroid mz and intensity approximation
      * are estimated using a Parabola fitting (mathematical formula taken from MaxQuant paper)
      */
-    PWIZ_API_DECL CentroidSPtr _computeCentroid() const{
+    PWIZ_API_DECL CentroidSPtr _computeFittedCentroid() const{
 
         if (_mzData.empty() || _intData.empty()) {
             throw exception("Can not compute centroid: Empty data");
@@ -202,6 +207,7 @@ public:
 
         auto _centroid = std::make_shared<Centroid<mz_t, int_t> >();
         _centroid->rt = PwizHelper::rtOf(_spectrum);
+        if(_centroid->rt == 0) LOG(ERROR) << "Can not find RT for spectrum " << _spectrum->id;
         int nbDataPoints = _mzData.size();
         int apexPos = apexIndex();
         // Check that apex pos is a valid value
@@ -309,6 +315,59 @@ public:
         //if (! mzMath::isFiniteNumber<mz_t>(_centroid->mz))
         //   printf("ERROR mz centroid is not a finite number: %f\n", _centroid->mz);
 
+        return _centroid;
+    }
+
+    /**
+     * Computes centroid from data points.
+     *
+     * The first centroid mz and intensity approximation
+     * are estimated using a Parabola fitting (mathematical formula taken from MaxQuant paper)
+     */
+    PWIZ_API_DECL CentroidSPtr _computeCentroid() const{
+
+        if (_mzData.empty() || _intData.empty()) {
+            throw exception("Can not compute centroid: Empty data");
+        }
+
+        auto _centroid = std::make_shared<Centroid<mz_t, int_t> >();
+        _centroid->rt = PwizHelper::rtOf(_spectrum);
+        if(_centroid->rt == 0) LOG(ERROR) << "Can not find RT for spectrum " << _spectrum->id;
+        int nbDataPoints = _mzData.size();
+        int apexPos = apexIndex();
+        // Check that apex pos is a valid value
+
+        if (apexPos < 0 || apexPos >= nbDataPoints) {
+            throw exception("Invalid apex position");
+            //return 0;
+        }
+
+        //set the background
+        const int_t& maxIntensity = _intData[apexPos];
+
+        _centroid->intensity = maxIntensity;
+        int nbPointsLeft = apexPos;
+        int nbPointsRight = nbDataPoints - (apexPos + 1);
+
+        if (_mzData.size() >= 3) {
+            if (nbPointsLeft != 0 && nbPointsRight != 0 ) {
+                //assume this is a symmetric peak
+                vector<mz_t> apexMzs;
+                vector<int_t> apexIntensities;
+                for (int p = apexPos - 1; p <= apexPos + 1; p++) {
+                    apexMzs.push_back(_mzData[p]);
+                    apexIntensities.push_back(_intData[p]);
+                }
+                _centroid->mz = mzMath::gaussianCentroidApex<mz_t, int_t>(apexMzs, apexIntensities);
+            } else {
+                _centroid->mz = _mzData[apexPos];
+            }
+        } else {
+            //unable to compute anything
+            _centroid->mz = _mzData[apexPos];
+        }
+        if (! mzMath::isFiniteNumber<mz_t>(_centroid->mz))
+            _centroid->mz = _mzData[apexPos];
         return _centroid;
     }
 

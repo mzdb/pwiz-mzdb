@@ -1,3 +1,26 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * @file prod_cons_builder.hpp
+ * @brief In charge of building adapted `producers` and `consumers` in order to handle conversion.
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
+
 #ifndef PCBUILDER_HPP
 #define PCBUILDER_HPP
 
@@ -211,7 +234,9 @@ public:
               pwiz::msdata::CVID rawFileFormat, //will be deprecated
               int mode,
               map<int, DataMode>& dataModeByMsLevel,
-              map<int, DataEncoding>& dataEncodingByID):
+              //map<int, DataEncoding>& dataEncodingByID,
+              vector<DataEncoding> dataEncodings,
+              bool safeMode):
         //producers
         mDiaThermoProducer(nullptr),
         mDdaThermoProducer(nullptr),
@@ -252,35 +277,35 @@ public:
     {
 
         if (mode == 1) {
-            mDiaThermoProducer = unique_ptr<DIAThermoProducer>(new DIAThermoProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mDdaThermoProducer = unique_ptr<DDAThermoProducer>(new DDAThermoProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mDiaThermoConsumer = unique_ptr<DIAThermoConsumer>(new DIAThermoConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
-            mDdaThermoConsumer = unique_ptr<DDAThermoConsumer>(new DDAThermoConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
+            mDiaThermoProducer = unique_ptr<DIAThermoProducer>(new DIAThermoProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDdaThermoProducer = unique_ptr<DDAThermoProducer>(new DDAThermoProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDiaThermoConsumer = unique_ptr<DIAThermoConsumer>(new DIAThermoConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
+            mDdaThermoConsumer = unique_ptr<DDAThermoConsumer>(new DDAThermoConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         } else if (mode == 2) {
-            mDiaBrukerProducer = unique_ptr<DIABrukerProducer>(new DIABrukerProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mDdaBrukerProducer = unique_ptr<DDABrukerProducer>(new DDABrukerProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mDiaBrukerConsumer = unique_ptr<DIABrukerConsumer>(new DIABrukerConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
-            mDdaBrukerConsumer = unique_ptr<DDABrukerConsumer>(new DDABrukerConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
+            mDiaBrukerProducer = unique_ptr<DIABrukerProducer>(new DIABrukerProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDdaBrukerProducer = unique_ptr<DDABrukerProducer>(new DDABrukerProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDiaBrukerConsumer = unique_ptr<DIABrukerConsumer>(new DIABrukerConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
+            mDdaBrukerConsumer = unique_ptr<DDABrukerConsumer>(new DDABrukerConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         } else if (mode == 3) {
-            mSwathABIProducer = unique_ptr<SwathABIProducer>(new SwathABIProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mDdaABIProducer = unique_ptr<DDAABIProducer>(new DDAABIProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mSwathABIConsumer = unique_ptr<SwathABIConsumer>(new SwathABIConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
-            mDdaABIConsumer = unique_ptr<DDAABIConsumer>(new DDAABIConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
+            mSwathABIProducer = unique_ptr<SwathABIProducer>(new SwathABIProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDdaABIProducer = unique_ptr<DDAABIProducer>(new DDAABIProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mSwathABIConsumer = unique_ptr<SwathABIConsumer>(new SwathABIConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
+            mDdaABIConsumer = unique_ptr<DDAABIConsumer>(new DDAABIConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         } else if (mode == 4) {
-            mDiaAgilentProducer = unique_ptr<DIAAgilentProducer>(new DIAAgilentProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mDdaAgilentProducer = unique_ptr<DDAAgilentProducer>(new DDAAgilentProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mDiaAgilentConsumer = unique_ptr<DIAAgilentConsumer>(new DIAAgilentConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
-            mDdaAgilentConsumer = unique_ptr<DDAAgilentConsumer>(new DDAAgilentConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
+            mDiaAgilentProducer = unique_ptr<DIAAgilentProducer>(new DIAAgilentProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDdaAgilentProducer = unique_ptr<DDAAgilentProducer>(new DDAAgilentProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDiaAgilentConsumer = unique_ptr<DIAAgilentConsumer>(new DIAAgilentConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
+            mDdaAgilentConsumer = unique_ptr<DDAAgilentConsumer>(new DDAAgilentConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         } else if (mode == 5) {
-            mDiaABI_T2DProducer = unique_ptr<DIAABI_T2DProducer>(new DIAABI_T2DProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mDdaABI_T2DProducer = unique_ptr<DDAABI_T2DProducer>(new DDAABI_T2DProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mDiaABI_T2DConsumer = unique_ptr<DIAABI_T2DConsumer>(new DIAABI_T2DConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
-            mDdaABI_T2DConsumer = unique_ptr<DDAABI_T2DConsumer>(new DDAABI_T2DConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
+            mDiaABI_T2DProducer = unique_ptr<DIAABI_T2DProducer>(new DIAABI_T2DProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDdaABI_T2DProducer = unique_ptr<DDAABI_T2DProducer>(new DDAABI_T2DProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDiaABI_T2DConsumer = unique_ptr<DIAABI_T2DConsumer>(new DIAABI_T2DConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
+            mDdaABI_T2DConsumer = unique_ptr<DDAABI_T2DConsumer>(new DDAABI_T2DConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         } else {
-            mSwathGenericProducer = unique_ptr<SwathGenericProducer>(new SwathGenericProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mDdaGenericProducer = unique_ptr<DDAGenericProducer>(new DDAGenericProducer(queue, mzdbFile.name, dataModeByMsLevel));
-            mSwathGenericConsumer = unique_ptr<SwathGenericConsumer>(new SwathGenericConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
-            mDdaGenericConsumer = unique_ptr<DDAGenericConsumer>(new DDAGenericConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID));
+            mSwathGenericProducer = unique_ptr<SwathGenericProducer>(new SwathGenericProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDdaGenericProducer = unique_ptr<DDAGenericProducer>(new DDAGenericProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mSwathGenericConsumer = unique_ptr<SwathGenericConsumer>(new SwathGenericConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
+            mDdaGenericConsumer = unique_ptr<DDAGenericConsumer>(new DDAGenericConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         }
 
     }
@@ -288,45 +313,41 @@ public:
     /** DIA thermo producer */
     inline boost::thread getDIAThermoProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListThermo* spectrumList,
-                                                    pair<int, int>& nscans,
+                                                    pair<int, int>& cycleRange,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
-        return this->mDiaThermoProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           nscans, filetype, params);
+        return this->mDiaThermoProducer->getProducerThread(levelsToCentroid, spectrumList, cycleRange, filetype, params);
     }
 
     /** DDA thermo producer  */
     inline  boost::thread getDDAThermoProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                      SpectrumListThermo* spectrumList,
-                                                     pair<int, int>& nscans,
+                                                     pair<int, int>& cycleRange,
                                                      map<int, double>& bbWidthManager,
                                                      pwiz::msdata::CVID filetype,
                                                      mzPeakFinderUtils::PeakPickerParams& params) {
-        return this->mDdaThermoProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           nscans, bbWidthManager, filetype,
-                                                           params);
+        return this->mDdaThermoProducer->getProducerThread(levelsToCentroid, spectrumList, cycleRange, bbWidthManager, filetype, params);
     }
 
 
     /** bruker producer */
     inline boost::thread getDIABrukerProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListBruker* spectrumList,
-                                                    pair<int, int>& nscans,
+                                                    pair<int, int>& cycleRange,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
-        return this->mDiaBrukerProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           nscans, filetype, params);
+        return this->mDiaBrukerProducer->getProducerThread(levelsToCentroid, spectrumList, cycleRange, filetype, params);
     }
 
     /** bruker producer  */
     inline  boost::thread getDDABrukerProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                      SpectrumListBruker* spectrumList,
-                                                     pair<int, int>& nscans,
+                                                     pair<int, int>& cycleRange,
                                                      map<int, double>& bbWidthManager,
                                                      pwiz::msdata::CVID filetype,
                                                      mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDdaBrukerProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           nscans, bbWidthManager, filetype,
+                                                           cycleRange, bbWidthManager, filetype,
                                                            params);
     }
 
@@ -334,45 +355,45 @@ public:
     /** DDA ABI producer */
     inline  boost::thread getDDAABIProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                   SpectrumListABI* spectrumList,
-                                                  pair<int, int>& nscans,
+                                                  pair<int, int>& cycleRange,
                                                   map<int, double>& bbWidthManager,
                                                   pwiz::msdata::CVID filetype,
                                                   mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDdaABIProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                        nscans, bbWidthManager, filetype,
+                                                        cycleRange, bbWidthManager, filetype,
                                                         params);
     }
 
     /** SWATH ABI producer */
     inline  boost::thread getSwathABIProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListABI* spectrumList,
-                                                    pair<int, int>& nscans,
+                                                    pair<int, int>& cycleRange,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mSwathABIProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                          nscans, filetype, params);
+                                                          cycleRange, filetype, params);
     }
 
 
     /** DIA agilent producer */
     inline boost::thread getDIAAgilentProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListAgilent* spectrumList,
-                                                    pair<int, int>& nscans,
+                                                    pair<int, int>& cycleRange,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDiaAgilentProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           nscans, filetype, params);
+                                                           cycleRange, filetype, params);
     }
 
     /** DDA agilent producer  */
     inline  boost::thread getDDAAgilentProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                      SpectrumListAgilent* spectrumList,
-                                                     pair<int, int>& nscans,
+                                                     pair<int, int>& cycleRange,
                                                      map<int, double>& bbWidthManager,
                                                      pwiz::msdata::CVID filetype,
                                                      mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDdaAgilentProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           nscans, bbWidthManager, filetype,
+                                                           cycleRange, bbWidthManager, filetype,
                                                            params);
     }
 
@@ -380,22 +401,22 @@ public:
     /** DIA abi t2D producer */
     inline boost::thread getDIAABI_T2DProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListABI_T2D* spectrumList,
-                                                    pair<int, int>& nscans,
+                                                    pair<int, int>& cycleRange,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDiaABI_T2DProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           nscans, filetype, params);
+                                                           cycleRange, filetype, params);
     }
 
     /** DDA abi t2d producer  */
     inline  boost::thread getDDAABI_T2DProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                      SpectrumListABI_T2D* spectrumList,
-                                                     pair<int, int>& nscans,
+                                                     pair<int, int>& cycleRange,
                                                      map<int, double>& bbWidthManager,
                                                      pwiz::msdata::CVID filetype,
                                                      mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDdaABI_T2DProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           nscans, bbWidthManager, filetype,
+                                                           cycleRange, bbWidthManager, filetype,
                                                            params);
     }
 
@@ -403,23 +424,22 @@ public:
     /** */
     inline  boost::thread getSwathGenericProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                         SpectrumList* spectrumList,
-                                                        pair<int, int>& nscans,
+                                                        pair<int, int>& cycleRange,
                                                         pwiz::msdata::CVID filetype,
                                                         mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mSwathGenericProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                              nscans, filetype, params);
+                                                              cycleRange, filetype, params);
     }
 
     /** */
     inline  boost::thread getDDAGenericProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                       SpectrumList* spectrumList,
-                                                      pair<int, int>& nscans,
+                                                      pair<int, int>& cycleRange,
                                                       map<int, double>& bbWidthManager,
                                                       pwiz::msdata::CVID filetype,
                                                       mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDdaGenericProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                            nscans, bbWidthManager, filetype,
-                                                            params);
+                                                            cycleRange, bbWidthManager, filetype, params);
     }
 
     //consumers
@@ -430,9 +450,9 @@ public:
                                                      double& ms1RtWidth,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int nscans ) {
+                                                     int cycleRange ) {
         return this->mDiaThermoConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
-                                                           runSlices, progressionCount, nscans);
+                                                           runSlices, progressionCount, cycleRange);
     }
 
     /** */
@@ -441,9 +461,9 @@ public:
                                                      map<int, double>& bbMzWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int nscans ) {
+                                                     int cycleRange ) {
         return this->mDdaThermoConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                           runSlices, progressionCount, nscans);
+                                                           runSlices, progressionCount, cycleRange);
     }
 
 
@@ -454,9 +474,9 @@ public:
                                                      double& ms1RtWidth,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int nscans ) {
+                                                     int cycleRange ) {
         return this->mDiaBrukerConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
-                                                           runSlices, progressionCount, nscans);
+                                                           runSlices, progressionCount, cycleRange);
     }
 
     /** dda bruker consumer */
@@ -465,9 +485,9 @@ public:
                                                      map<int, double>& bbMzWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int nscans ) {
+                                                     int cycleRange ) {
         return this->mDdaBrukerConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                           runSlices, progressionCount, nscans);
+                                                           runSlices, progressionCount, cycleRange);
     }
 
 
@@ -478,9 +498,9 @@ public:
                                                   map<int, double>& bbMzWidthByMsLevel,
                                                   map<int, map<int, int> >& runSlices,
                                                   int& progressionCount,
-                                                  int nscans ) {
+                                                  int cycleRange ) {
         return this->mDdaABIConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                        runSlices, progressionCount, nscans);
+                                                        runSlices, progressionCount, cycleRange);
     }
 
     /** swath abi consumer */
@@ -490,9 +510,9 @@ public:
                                                     double& ms1RtWidth,
                                                     map<int, map<int, int> >& runSlices,
                                                     int& progressionCount,
-                                                    int nscans ) {
+                                                    int cycleRange ) {
         return this->mSwathABIConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
-                                                          runSlices, progressionCount, nscans);
+                                                          runSlices, progressionCount, cycleRange);
     }
 
     /** dia agilent */
@@ -502,9 +522,9 @@ public:
                                                      double& ms1RtWidth,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int nscans ) {
+                                                     int cycleRange ) {
         return this->mDiaAgilentConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
-                                                           runSlices, progressionCount, nscans);
+                                                           runSlices, progressionCount, cycleRange);
     }
 
     /** dda agilent */
@@ -513,9 +533,9 @@ public:
                                                      map<int, double>& bbMzWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int nscans ) {
+                                                     int cycleRange ) {
         return this->mDdaAgilentConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                           runSlices, progressionCount, nscans);
+                                                           runSlices, progressionCount, cycleRange);
     }
 
     /** dia abi t2D */
@@ -525,9 +545,9 @@ public:
                                                      double& ms1RtWidth,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int nscans ) {
+                                                     int cycleRange ) {
         return this->mDiaABI_T2DConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
-                                                           runSlices, progressionCount, nscans);
+                                                           runSlices, progressionCount, cycleRange);
     }
 
     /** dda abi t2D */
@@ -536,9 +556,9 @@ public:
                                                      map<int, double>& bbMzWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int nscans ) {
+                                                     int cycleRange ) {
         return this->mDdaABI_T2DConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                           runSlices, progressionCount, nscans);
+                                                           runSlices, progressionCount, cycleRange);
     }
 
 
@@ -549,9 +569,9 @@ public:
                                                         double& ms1RtWidth,
                                                         map<int, map<int, int> >& runSlices,
                                                         int& progressionCount,
-                                                        int nscans ) {
+                                                        int cycleRange ) {
         return this->mSwathGenericConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
-                                                              runSlices, progressionCount, nscans);
+                                                              runSlices, progressionCount, cycleRange);
     }
 
     /** */
@@ -560,9 +580,9 @@ public:
                                                       map<int, double>& bbMzWidthByMsLevel,
                                                       map<int, map<int, int> >& runSlices,
                                                       int& progressionCount,
-                                                      int nscans ) {
+                                                      int cycleRange ) {
         return this->mDdaGenericConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                            runSlices, progressionCount, nscans);
+                                                            runSlices, progressionCount, cycleRange);
     }
 
 };

@@ -1,3 +1,26 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * @file spectrum_inserter.h
+ * @brief Insert spectrum into mzDB file
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
+
 #ifndef MZSPECTRUMINSERTER_H
 #define MZSPECTRUMINSERTER_H
 
@@ -11,6 +34,8 @@
 #include "params_collecter.h"
 #include "spectrum.hpp"
 #include "../utils/mzISerializer.h"
+
+#include <unordered_map>
 
 
 namespace mzdb {
@@ -42,11 +67,22 @@ private:
 
     /// map mslevel dataMode
     /// @see DataMode
-    map<int, DataMode>& mDataModeByMsLevel;
+    //map<int, DataMode>& mDataModeByMsLevel;
 
     /// map db id, DataEncoding, useful to retrieve db data encoding id
     /// @see DataEncoding
-    map<int, DataEncoding>& mDataEncodingByID;
+    //map<int, DataEncoding>& mDataEncodingByID;
+    
+    vector<DataEncoding> mDataEncodings;
+    
+
+    // map of original modes per msLevel (what mode are in the input file)
+    unordered_map<int, DataMode> originalModesByMsLevel;
+    // map of effective modes per msLevel (what mode are really used)
+    unordered_map<int, DataMode> effectiveModesByMsLevel;
+    // map to know the number of spectra per ms level
+    unordered_map<int, int> nbSpectraByMsLevel;
+
 
     /**
      * @brief findDataEncodingID
@@ -62,14 +98,71 @@ private:
         PeakEncoding pe = inHighRes ? HIGH_RES_PEAK : LOW_RES_PEAK;
         if (inHighRes && noLoss)
             pe = NO_LOSS_PEAK;
-
-        for (auto it = mDataEncodingByID.begin(); it != mDataEncodingByID.end(); ++it) {
-            DataEncoding de = it->second;
-            if (de.mode == mode && pe == de.peakEncoding)
-                return it->first;
+        
+        // loop on each possible data encoding
+        for (auto d = mDataEncodings.begin(); d != mDataEncodings.end(); ++d) {
+            DataEncoding de = (*d);
+            // one and only one must match
+            if(d->mode == mode && pe == d->peakEncoding) {
+                // if it hasnt been inserted in the mzDB file yet, add it !
+                if(!d->hasBeenInserted) {
+                    sqlite3_exec(mMzdbFile.db, d->buildSQL().c_str(), 0, 0, 0);
+                    // the result of sqlite3_exec is not tested because it says that it failed even when it succeeded :S
+                    d->setHasBeenInserted(true);
+                }
+                return d->id;
+            }
         }
+        LOG(ERROR) << "Data encoding not found for findDataEncodingID(" << modeToString(mode) << ", " << inHighRes << ", " << noLoss << ")";
         return 1;
         //throw exception("Can not determine the good data encoding ID");
+    }
+
+    /**
+     * @brief insertFakeScan
+     * Insert empty spectrum object into the mzDB file
+     *
+     * @param spectrum
+     * @param bbFirstScanId
+     */
+    template<typename mz_t, typename int_t>
+    void insertFakeScan(std::shared_ptr<mzSpectrum<mz_t, int_t> >& spectrum, int bbFirstScanId) {
+
+        const auto& spec = spectrum->spectrum;
+
+        int msLevel = 1;
+        // Prepare stmt
+        const char* sql = "INSERT INTO tmp_spectrum  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+        sqlite3_prepare_v2(mMzdbFile.db, sql, -1, &(mMzdbFile.stmt), 0);
+        sqlite3_bind_int(mMzdbFile.stmt, 1, spectrum->id); //ID could be autoincrement [PK] [NOT NULL]
+        sqlite3_bind_int(mMzdbFile.stmt, 2, spectrum->id); //initial_id [NOT NULL]
+        sqlite3_bind_text(mMzdbFile.stmt, 3, "", 0, SQLITE_STATIC); //title [NOT NULL]
+        sqlite3_bind_int(mMzdbFile.stmt, 4, spectrum->cycle); //cycle [NOT NULL]
+        sqlite3_bind_double(mMzdbFile.stmt, 5, 0); //time [NOT NULL]
+        sqlite3_bind_int(mMzdbFile.stmt, 6, msLevel); //msLevel [NOT NULL]
+        sqlite3_bind_text(mMzdbFile.stmt, 7, "", 0, SQLITE_STATIC); //activation_type [NOT NULL]
+        sqlite3_bind_double(mMzdbFile.stmt, 8, 0.0); //tic [NOT NULL]
+        sqlite3_bind_double(mMzdbFile.stmt, 9, 0.0); //base peak mz [NOT NULL]
+        sqlite3_bind_double(mMzdbFile.stmt, 10, 0.0); //base peak intensity [NOT NULL]
+        sqlite3_bind_null(mMzdbFile.stmt, 11); //precursor mz [NULL]
+        sqlite3_bind_null(mMzdbFile.stmt, 12); //precursor charge [NULL]
+        sqlite3_bind_int(mMzdbFile.stmt, 13, 0); //datapointscount [NOT NULL]
+        sqlite3_bind_text(mMzdbFile.stmt, 14, "", 0, SQLITE_STATIC); //spectrum paramtree [NOT NULL]
+        sqlite3_bind_null(mMzdbFile.stmt, 15); //scan list [NULL]
+        sqlite3_bind_null(mMzdbFile.stmt, 16); //precursor list [NULL]
+        sqlite3_bind_null(mMzdbFile.stmt, 17); //product list [NULL]
+        sqlite3_bind_null(mMzdbFile.stmt, 18); //shared param tree id [FK] [NULL]
+        sqlite3_bind_null(mMzdbFile.stmt, 19); //instrument config id [FK] [NULL]
+        sqlite3_bind_null(mMzdbFile.stmt, 20); //source file id [FK] [NULL]
+        sqlite3_bind_int(mMzdbFile.stmt, 21, 1); //run id default to 1 [FK] [NOT NULL]
+        sqlite3_bind_null(mMzdbFile.stmt, 22); //data proc id [FK] [NULL]
+        sqlite3_bind_int(mMzdbFile.stmt, 23, 1); //data enc id [FK] [NOT NULL]
+        sqlite3_bind_int(mMzdbFile.stmt, 24, bbFirstScanId); //bb first spec id [FK] [NOT NULL]
+
+        //finalize statement
+        sqlite3_step(mMzdbFile.stmt);
+        sqlite3_finalize(mMzdbFile.stmt);
+        mMzdbFile.stmt = 0;
     }
 
 public:
@@ -86,22 +179,37 @@ public:
     mzSpectrumInserter(MzDBFile& mzdb,
                        mzParamsCollecter& pc,
                        pwiz::msdata::CVID rawFileFormat,
-                       map<int, DataMode>& dataModeByMsLevel,
-                       map<int, DataEncoding>& dataEncodingByID) :
+                       //map<int, DataMode>& dataModeByMsLevel,
+                       //map<int, DataEncoding>& dataEncodingByID) :
+                       vector<DataEncoding> dataEncodings):
 
         mMzdbFile(mzdb),
         mParamsCollecter(pc),
         mRawFileFormat(rawFileFormat),
-        mDataModeByMsLevel(dataModeByMsLevel),
-        mDataEncodingByID(dataEncodingByID) {
+        //mDataModeByMsLevel(dataModeByMsLevel),
+        //mDataEncodingByID(dataEncodingByID) {
+        mDataEncodings(dataEncodings) {
 
         if (mRawFileFormat == pwiz::msdata::MS_ABI_WIFF_format)
             mWiffFile = pwiz::vendor_api::ABI::WiffFile::create(mMzdbFile.name);
     } // end ctor
-
+    
+    //void printUsedDataEncodings() {
+    //    for (auto d = mDataEncodings.begin(); d != mDataEncodings.end(); ++d) {
+    //        if(d->hasBeenInserted) {
+    //            LOG(INFO) << "mode " << d->mode << " peakEncoding " << d->peakEncoding << "\n";
+    //        }
+    //    }
+    //}
+    
+    //vector<DataEncoding> getUpdatedDataEncodings() {
+    //    return mDataEncodings;
+    //}
+    
     /**
      * @brief insertScan
      * Insert spectrum object into the mzDB file
+     * this->insertScan<h_mz_t, h_int_t>(parentSpectrum, i, bbFirstScanIDMS1, parentSpectrum, msdata, serializer);
      */
     template<typename mz_t, typename int_t, typename h_mz_t, typename h_int_t>
     void insertScan(std::shared_ptr<mzSpectrum<mz_t, int_t> >& spectrum,
@@ -120,7 +228,14 @@ public:
         const auto& spec = spectrum->spectrum;
 
         if (! spec || spec == nullptr) {
-            LOG(ERROR) << "null pwiz spectrum. Recovering has failed";
+            //LOG(ERROR) << "null pwiz spectrum. Recovering has failed";
+            //return;
+            if(idxInCycle == 1) {
+                LOG(ERROR) << "null pwiz spectrum. Adding a fake spectrum for cycle " << idxInCycle;
+                insertFakeScan(spectrum, bbFirstScanId);
+            } else {
+                LOG(ERROR) << "null pwiz spectrum. Recovering has failed";
+            }
             return;
         }
 
@@ -163,7 +278,10 @@ public:
         sqlite3_bind_int(mMzdbFile.stmt, 4, spectrum->cycle);
 
         //time
-        sqlite3_bind_double(mMzdbFile.stmt, 5, PwizHelper::rtOf(spec));
+        //sqlite3_bind_double(mMzdbFile.stmt, 5, PwizHelper::rtOf(spec));
+        float rt = PwizHelper::rtOf(spec);
+        if(rt == 0) LOG(ERROR) << "Can not find RT for spectrum " << spec->id;
+        sqlite3_bind_double(mMzdbFile.stmt, 5, rt);
 
         //msLevel
         sqlite3_bind_int(mMzdbFile.stmt, 6, msLevel);
@@ -332,7 +450,8 @@ public:
         sqlite3_bind_int(mMzdbFile.stmt, 22, 1); //dataProcessingIndex(msdata, spec->dataProcessingPtr));
 
         //data enc id
-        DataMode effectiveMode = spectrum->getEffectiveMode(mDataModeByMsLevel[msLevel]);
+        //DataMode effectiveMode = mDataModeByMsLevel[msLevel];
+        DataMode effectiveMode = spectrum->getEffectiveMode();
         sqlite3_bind_int(mMzdbFile.stmt, 23, this->findDataEncodingID(effectiveMode, isInHighRes, mMzdbFile.noLoss));
 
         //bb first spec id
@@ -342,6 +461,15 @@ public:
         sqlite3_step(mMzdbFile.stmt);
         sqlite3_finalize(mMzdbFile.stmt);
         mMzdbFile.stmt = 0;
+        
+        originalModesByMsLevel.insert (std::make_pair<int, DataMode>(msLevel, spectrum->getOriginalMode()));
+        effectiveModesByMsLevel.insert (std::make_pair<int, DataMode>(msLevel, effectiveMode));
+        auto it = nbSpectraByMsLevel.find(msLevel);
+        if(it == nbSpectraByMsLevel.end()) {
+            nbSpectraByMsLevel.insert (std::make_pair<int, int>(msLevel, 1));
+        } else {
+            it->second = it->second + 1;
+        }
     }
 
     //insert several scans
@@ -426,6 +554,52 @@ public:
             }
         }
         return 1; //by default one sourcefile exist ;
+    }
+    
+    void printGlobalInformation() {
+        // at the end of the consuming (only one instance of it), write a description of what have been seen and done
+        if(nbSpectraByMsLevel.size() > 0) {
+            int msLevel = 1;
+            std::stringstream summary;
+            summary << "\n\n************ Summary of the conversion ************\n\n";
+            summary << "Created file: " << mMzdbFile.outputFilename << "\n";
+            summary << "MS\tInput   \tOutput  \tNb spectra\n";
+            // used to be 'while(true)' but just in case (hoping we won't reach 100 ms levels soon !!)
+            // this is just to be sure to print all levels in the right order
+            while(msLevel < 100) {
+                auto originalMode = originalModesByMsLevel.find(msLevel);
+                if(originalMode != originalModesByMsLevel.end()) {
+                    auto effectiveMode = effectiveModesByMsLevel.find(msLevel);
+                    if(effectiveMode != originalModesByMsLevel.end()) {
+                        auto nbSpectra = nbSpectraByMsLevel.find(msLevel);
+                        if(nbSpectra != nbSpectraByMsLevel.end()) {
+                            // exploded printing in order to add the right amount of space character
+                            // otherwise, it does not print well in the output
+                            summary << "MS" << msLevel << "\t";
+                            if(originalMode->second == PROFILE) {
+                                summary << "PROFILE ";
+                            } else {
+                                summary << "CENTROID";
+                            }
+                            summary << "\t";
+                            if(effectiveMode->second == PROFILE) {
+                                summary << "PROFILE ";
+                            } else if(effectiveMode->second == FITTED) {
+                                summary << "FITTED  ";
+                            } else {
+                                summary << "CENTROID";
+                            }
+                            summary << "\t" << nbSpectra->second << "\n";
+                        }
+                    }
+                    msLevel++;
+                } else {
+                    break;
+                }
+            }
+            summary << "\n\n";
+            LOG(INFO) << summary.str();
+        }
     }
 
 }; //end class

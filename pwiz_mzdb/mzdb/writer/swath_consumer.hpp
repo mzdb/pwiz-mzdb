@@ -1,3 +1,26 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * @file swath_consumer.hpp
+ * @brief Read cycle objects from queue, create and insert data in the mzDB file
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
+
 #ifndef MZSWATHCONSUMER_HPP
 #define MZSWATHCONSUMER_HPP
 
@@ -51,7 +74,6 @@ private:
     const double swathStart;
 
     bool m_isSwathIsolationWindowComputed;
-
 
     //-----------------------------------------------------------------------------------------------------------
     void _consume( pwiz::msdata::MSDataPtr msdata,
@@ -119,7 +141,6 @@ private:
                     this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID, &firstBBSpectrumIDBySpectrumID);
                 }
     
-    
                 m_cycles.clear();
                 m_cycles.push_back(std::move(lastContainer));
     
@@ -138,7 +159,6 @@ private:
             } else {
                 
                 // last loop
-                
                 vector<HighResSpectrumSPtr> ms1Spectra;
                 int bbFirstMs1ScanID = m_cycles.front()->parentSpectrum->id;
                 for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
@@ -276,13 +296,17 @@ public:
                      MzDBFile& mzdbFile,
                      mzParamsCollecter& paramsCollecter,
                      pwiz::msdata::CVID rawFileFormat,
-                     map<int, DataMode>& dataModeByMsLevel,
-                     map<int, DataEncoding>& dataEncodingByID):
+                     vector<DataEncoding> dataEncodings):
         QueueingPolicy(queue),
-        mzSpectrumInserter(mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID),
+        mzSpectrumInserter(mzdbFile, paramsCollecter, rawFileFormat, dataEncodings),
         mzBBInserter(mzdbFile), m_swathIsolationWindow(0.0), m_isSwathIsolationWindowComputed(false), swathStart(400.0) {
 
         m_isolationWindowStarts.push_back(this->swathStart);
+    }
+        
+    ~mzSwathConsumer() {
+        // at the end of the consuming (only one instance of it), write a description of what have been seen and done
+        printGlobalInformation();
     }
 
     boost::thread getConsumerThread(pwiz::msdata::MSDataPtr msdata,

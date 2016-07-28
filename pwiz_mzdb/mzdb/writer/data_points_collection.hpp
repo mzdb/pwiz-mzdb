@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-//author marc.dubois@ipbs.fr
+/*
+ * @file data_points_collection.hpp
+ * @brief Datastructure especially used for Thermo peak picking. A data points collection is constituted primarly by data points beteen to series of `0` in Thermo  raw files
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
 
 #ifndef DATAPOINTSCOLLECTION_HPP
 #define DATAPOINTSCOLLECTION_HPP
@@ -62,25 +67,17 @@ private:
     template<class type>
     vector<PeakUPtr>& _detectPeaks( const vector<type>& data, mzPeakFinderUtils::PeakPickerParams& params) {
 
-        // --- no detection performed if max_element < threshold ---
-        //LOG(INFO) << "baseline:" << params.baseline <<", noise :" << params.noise <<", minSNR: "<< params.minSNR;
-        //if ( ( *std::max_element(data.begin(), data.end()) - params.baseline)  / params.noise < params.minSNR) {
-        //    return this->detectedPeaks;
-        //}
-
-
-        //---find all local maxima
+        //---find all local maxima (meaning indexes of all points with a less intense point on the left and on the right)
         vector<mz_uint> maxIndexes;
-
         mzPeakFinderUtils::findLocalMaxima< vector<type> >( data, maxIndexes,  -1e9);
-
         if (maxIndexes.empty()) {
             return detectedPeaks;
         }
 
         //---find all surrounding minima around this maxima
+        // for each value in maxIndexes, search in data the first point with a more intense point on the left and on the right
+        // results are in peaksIndexes, each item contains .apex, .leftMin, .rightMin (all are indexes from data vector)
         vector<mzPeakFinderUtils::PeakAsMaximaMinimaIndexes> peaksIndexes;
-
         mzPeakFinderUtils::findLocalMinima< vector<type> >( maxIndexes, data, peaksIndexes );
 
         //---generate peak corresponding to all indexes
@@ -102,7 +99,7 @@ private:
                 this->detectedPeaks.push_back( std::move(p));
             }
         } else {
-            printf("Empty stuff!");
+            LOG(WARNING) << "Empty stuff!";
         }
 
     }
@@ -113,7 +110,6 @@ private:
       * @param params
       */
      void _createPeakForIndexes( mzPeakFinderUtils::PeakAsMaximaMinimaIndexes& peakIndexes, mzPeakFinderUtils::PeakPickerParams& params ) {
-
 
         if (peakIndexes.isMissingOnlyLeft()) {
             //---missing left part of the peak, building apex and rightMin
@@ -146,7 +142,7 @@ private:
         } else if (peakIndexes.isMissingBothLeftRight() ) {
             //---in that case dont know what to do
             // does not build a peak from these peak indexes
-            printf("Do know how to handle one peak\n");
+            LOG(WARNING) << "Do not know how to handle one peak";
             return;
         } else {
             //---usual case
@@ -165,18 +161,63 @@ private:
 
         }
     }
+    
+    template<class type>
+    void _setDetectedPeaks(vector<std::shared_ptr<Centroid<mz_t, int_t> > >&givenCentroids, const vector<type>& adaptedIntData, mzPeakFinderUtils::PeakPickerParams& params) {
 
-    /**
-     * @brief _peaksToCentroids
-     * @param centroids
-     */
+        // find in mzData the ids matching the given centroids (or the closest ones)
+        // givenCentroids should contain only a few items, and all items should have a mz within mzData
+        vector<mz_uint> maxIndexes;
+        size_t j = 1; // start at item 2
+        for(size_t i = 0; i < givenCentroids.size(); i++) {
+            std::shared_ptr<Centroid<mz_t, int_t> > c = givenCentroids[i];
+            while(j < mzData.size()) {
+                if(c->mz >= mzData[j-1] && c->mz <= mzData[j]) {
+                    // push the closest item
+                    if(c->mz - mzData[j-1] > mzData[j] - c->mz) {
+                        maxIndexes.push_back(j);
+                    } else {
+                        maxIndexes.push_back(j-1);
+                    }
+                    break;
+                }
+                j++;
+            }
+        }
+        if (maxIndexes.empty()) {
+            return;
+        }
+
+        //---find all surrounding minima around this maxima
+        // for each value in maxIndexes, search in adaptedIntData the first point with a more intense point on the left and on the right
+        // results are in peaksIndexes, each item contains .apex, .leftMin, .rightMin (all are indexes from adaptedIntData vector)
+        vector<mzPeakFinderUtils::PeakAsMaximaMinimaIndexes> peaksIndexes;
+        mzPeakFinderUtils::findLocalMinima< vector<type> >( maxIndexes, adaptedIntData, peaksIndexes );
+
+        //---generate peak corresponding to all indexes
+        for (auto it = peaksIndexes.begin(); it != peaksIndexes.end(); ++it)
+            this->_createPeakForIndexes( *it, params);
+        
+    }
+    
+    void _peaksToFittedCentroids(vector<std::shared_ptr<Centroid<mz_t, int_t> > >&centroids) {
+        std::for_each(this->detectedPeaks.begin(), this->detectedPeaks.end(), [&centroids](PeakUPtr& peak) {
+            try {
+                auto c = peak->_computeFittedCentroid();
+                centroids.push_back(c);
+            } catch (exception& e) {
+                LOG(ERROR) << e.what();
+            }
+        });
+    }
+
     void _peaksToCentroids(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids) {
         std::for_each(this->detectedPeaks.begin(), this->detectedPeaks.end(), [&centroids](PeakUPtr& peak) {
             try {
                 auto c = peak->_computeCentroid();
                 centroids.push_back(c);
             } catch (exception& e) {
-                printf(e.what());
+                LOG(ERROR) << e.what();
             }
         });
     }
@@ -188,7 +229,16 @@ public:
      * @return
      */
     inline bool isComputed() const{ return !detectedPeaks.empty(); }
-
+    
+    /**
+     * @brief
+     * Takes this->intData and extract the peaks from it:
+     * example: if intData[0, 10, 50, 40, 90, 20, 50], then we get [(0, 3), (3, 5), (5, 6)] (as list of indexes)
+     * Then create a mzPeak for each peak (ex: with mzData[0->3], intData[0->3] and spectrum reference)
+     * All mzPeaks objects are added to detectedPeaks
+     * Peaks in detectedPeaks contains exactly one local maxima (no more no less !)
+     * @return detectedPeaks
+     */
     vector<PeakUPtr>& detectPeaks(mzPeakFinderUtils::PeakPickerParams& params, mzPeakFinderUtils::USE_CWT opt) {
         if (opt == mzPeakFinderUtils::CWT_ENABLED)
             return _detectPeaksCWT(params);
@@ -222,6 +272,19 @@ public:
     }
 
     /**
+     *
+     */
+    void setDetectedPeaks(vector<std::shared_ptr<Centroid<mz_t, int_t> > > &givenCentroids, mzPeakFinderUtils::PeakPickerParams& params, mzPeakFinderUtils::USE_CWT opt) {
+        if (opt == mzPeakFinderUtils::CWT_ENABLED) {
+            vector<double> cwtCoeffs;
+            mzPeakFinderUtils::cwt<int_t>( this->intData, params.fwhm, cwtCoeffs);
+            _setDetectedPeaks<double>(givenCentroids, cwtCoeffs, params);
+        } else {
+            _setDetectedPeaks<int_t>(givenCentroids, intData, params);
+        }
+    }
+
+    /**
      * @brief filterOnSNR
      * @param snr
      */
@@ -240,32 +303,47 @@ public:
     /**
      * @brief optimize
      * @param params
+     * First, calls _peaksToCentroids:
+     *  For each peak in detectedPeaks compute centroid and puts the result in an empty vector
+     *  Computing centroid means generating a curve based on the peak's datapoints
+     *  And then using mathematical functions to retrieve the apex and the left and right fwhm
      */
-    void optimize( vector<std::shared_ptr<Centroid<mz_t, int_t> > >&centroids, unsigned char optimizationOpt) {
-        if ( this->detectedPeaks.empty() ) {
-            printf("[optimize] : No peak detected !\n");
+    void optimize(
+        vector<std::shared_ptr<Centroid<mz_t, int_t> > >&optimizedCentroids,
+        unsigned char optimizationOpt,
+        bool computeFWHM = true
+    ) {
+        if (this->detectedPeaks.empty() ) {
+            //LOG(WARNING) << "no peaks detected, optimization is skipped";
             return;
         }
-
-        //--- optimize all detected peak 's  width and intensity
-       if ( optimizationOpt & mzPeakFinderUtils::GAUSS_OPTIMIZATION ) {
-           printf("Opt gauss\n");
-            vector<std::shared_ptr<Centroid<mz_t, int_t> > > cs;
-
-            this->_peaksToCentroids(cs);
-            ProblemSolver<mz_t, int_t> problem(this->mzData, this->intData, cs);
-            problem.solve(centroids);
+        
+        // Convert detectedpeaks into inputCentroids
+        vector<std::shared_ptr<Centroid<mz_t, int_t> > > inputCentroids;
+        if(computeFWHM)
+            this->_peaksToFittedCentroids(inputCentroids);
+        else
+            this->_peaksToCentroids(inputCentroids);
 
         //--- no optimization requested, much faster with relatively good result
-        } else if ( optimizationOpt == mzPeakFinderUtils::NO_OPTIMIZATION) {
-           this->_peaksToCentroids(centroids);
-
+        if ( optimizationOpt == mzPeakFinderUtils::NO_OPTIMIZATION) {
+            optimizedCentroids = inputCentroids;
+        }
+        //--- optimize all detected peak 's  width and intensity
+        else if ( optimizationOpt == mzPeakFinderUtils::GAUSS_OPTIMIZATION ) {
+            ProblemSolver<mz_t, int_t> problem(this->mzData, this->intData, inputCentroids);
+            problem.solve(optimizedCentroids);
         } else {
            throw exception("Unknown optimization option ! \n");
         }
-
     }
-
+    
+    bool containsMz(mz_t mz) {
+        if(mzData.size() == 0) return false;
+        if(mzData[0] > mz) return false;
+        if(mzData[mzData.size()] < mz) return false;
+        return true;
+    }
 
     /**
      * @brief DataPointsCollection constructor

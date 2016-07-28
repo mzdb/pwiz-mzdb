@@ -1,3 +1,26 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * @file peak_finder_utils.hpp
+ * @brief Contains functions used by the local peakpicking algorithm
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
+
 #ifndef MZABSTRACTPEAKFINDER_H
 #define MZABSTRACTPEAKFINDER_H
 
@@ -248,9 +271,11 @@ static void optimizeCeres(const vector<double>& mzData,
             //printf("gauss optimization");
             vector<Centroid<mz_t, int_t>*> cs;
             for (size_t k = 0; k < peaks.size(); ++k) {
-                Centroid<mz_t, int_t>* c = peaks[k]->_computeCentroid();
-                if (! c)
-                    printf("[findPeak Thermo] : null pointer\n");
+                Centroid<mz_t, int_t>* c = peaks[k]->_computeFittedCentroid();
+                if (! c) {
+                    LOG(ERROR) << "[findPeak Thermo] : null pointer";
+                    //printf("[findPeak Thermo] : null pointer\n");
+                }
                 cs.push_back(c);
             }
             ProblemSolver<mz_t, int_t> problem(mzData, intData, cs);
@@ -258,7 +283,7 @@ static void optimizeCeres(const vector<double>& mzData,
             //no optimization requested, much faster with relatively good result
         } else if ( op & NO_OPTIMIZATION) {
             for (size_t k = 0; k < peaks.size(); ++k) {
-                Centroid<mz_t, int_t>* c =  peaks[k]->_computeCentroid();
+                Centroid<mz_t, int_t>* c =  peaks[k]->_computeFittedCentroid();
                 if (c)
                     centroids.push_back(c);
             }
@@ -324,8 +349,10 @@ template<class type>
 static void cwt(const vector<type>& intensities, double& fwhm, vector<double>& result) {
 
     if (intensities.empty()) {
-        printf("Empty spectrum no chance !");
-        exit(0);
+        //printf("Empty spectrum no chance !");
+        //exit(0);
+        LOG(FATAL) << "Empty spectrum no chance !";
+        exit(EXIT_FAILURE);
     }
 
     //make a copy of size power of 2
@@ -342,7 +369,8 @@ static void cwt(const vector<type>& intensities, double& fwhm, vector<double>& r
         cwtlib::LinearRangeFunctor scales( fwhm, 3 * fwhm, 2 * fwhm); //perform only  at one scale ? ->to test
         wt = cwtlib::CWTalgorithm::cwtft(s, scales, cwtlib::MexicanHat(), "Youpi");
     } catch(exception& e) {
-        printf("%s\n", e.what());
+        //printf("%s\n", e.what());
+        LOG(ERROR) << e.what();
     }
 
     //fill result

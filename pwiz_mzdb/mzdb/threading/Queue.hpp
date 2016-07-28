@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-//author marc.dubois@ipbs.fr
-
 /*
- * Simple blocking queue using boost::mutex and boost::condition variable
- * This a multi-producer multi-consumer implementation
+ * @file Queue.hpp
+ * @brief Simple blocking queue using boost::mutex and boost::condition variable. This a multi-producer multi-consumer implementation
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
  */
-
 
 #ifndef __QUEUE__
 #define __QUEUE__
@@ -63,10 +62,6 @@ public:
         while ( buf.empty() && ! m_isClosed ) {
             cond.wait(lock);
         }
-
-        //if (buf.empty() && m_isClosed) { // other thread are waiting
-        //    return 0;
-        //}
 
         ret = std::move(buf.front());
         buf.pop_front(); //remove the cycle collection which is invalidated

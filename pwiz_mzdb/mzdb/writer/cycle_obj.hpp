@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-//author marc.dubois@ipbs.fr
+/*
+ * @file cycle_obj.hpp
+ * @brief Cycle object used especially in DDA/DIA producers. Basically, a cycle object can contain low AND high resolution spectra.
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
 
 #ifndef __MZ_CYCLE_OBJECT__
 #define __MZ_CYCLE_OBJECT__

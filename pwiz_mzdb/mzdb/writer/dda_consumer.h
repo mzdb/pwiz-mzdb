@@ -1,3 +1,26 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * @file dda_consumer.h
+ * @brief Read cycle objects from queue, create and insert data in the mzDB file
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
+
 #ifndef MZDDACONSUMER_H
 #define MZDDACONSUMER_H
 
@@ -38,6 +61,9 @@ class mzDDAConsumer:  QueueingPolicy, mzSpectrumInserter, mzBBInserter {
     typedef  std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > HighResSpectrumSPtr;
     typedef  std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > LowResSpectrumSPtr;
 
+private:
+    // list of all possible data encodings, those who are really used will be inserted on the fly in spectrum_inserter.h
+    vector<DataEncoding> m_dataEncodings;
 public:
 
     /**
@@ -64,10 +90,11 @@ public:
 
             if ( cycleCollection == nullptr ) {
                 //LOG(WARNING) << "Inserter finished to null pointer\n";
-                continue;
-                //break;
+                //continue;
+                break;
             }
 
+            // TODO check if spectra are correctly inserted (spectrum values are distinguished for PROFILE and CENTROID/FITTED)
             this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(cycleCollection, msdata, serializer);
 
             vector<std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > > highResSpectra;
@@ -78,6 +105,7 @@ public:
 
             const int& msLevel = cycleCollection->msLevel;
 
+            // TODO check if spectra are correctly inserted (spectrum values are distinguished for PROFILE and CENTROID/FITTED)
             this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(msLevel, bbMzWidthByMsLevel[msLevel],
                                                                        highResSpectra, lowResSpectra, runSlices[msLevel]);
 
@@ -99,11 +127,16 @@ public:
                   MzDBFile& mzdbFile,
                   mzParamsCollecter& paramsCollecter,
                   pwiz::msdata::CVID rawFileFormat,
-                  map<int, DataMode>& dataModeByMsLevel,
-                  map<int, DataEncoding>& dataEncodingByID):
+                  vector<DataEncoding> dataEncodings):
+        m_dataEncodings(dataEncodings),
         QueueingPolicy(queue),
-        mzSpectrumInserter(mzdbFile, paramsCollecter, rawFileFormat, dataModeByMsLevel, dataEncodingByID),
+        mzSpectrumInserter(mzdbFile, paramsCollecter, rawFileFormat, dataEncodings),
         mzBBInserter(mzdbFile) {}
+        
+    ~mzDDAConsumer() {
+        // at the end of the consuming (only one instance of it), write a description of what have been seen and done
+        printGlobalInformation();
+    }
 
     /// return thread, need call join
     boost::thread getConsumerThread(pwiz::msdata::MSDataPtr msdata,

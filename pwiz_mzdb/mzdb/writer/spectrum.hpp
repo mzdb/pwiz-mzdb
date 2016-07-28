@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
-//author marc.dubois@ipbs.fr
+/*
+ * @file spectrum.hpp
+ * @brief Represents a spectrum object
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
+
 #ifndef MZSPECTRUM_H
 #define	MZSPECTRUM_H
 
@@ -62,8 +68,11 @@ struct PWIZ_API_DECL mzSpectrum {
     /// retention time in seconds
     float retentionTime;
 
-    /// efftive storage mode
+    /// effective storage mode
     DataMode effectiveMode;
+
+    /// actual mode in raw file
+    DataMode originalMode;
 
     /// isInHighRes true if ms1 or HCD ms2 scan false otherwise
     bool isInHighRes, isInserted;
@@ -107,6 +116,32 @@ struct PWIZ_API_DECL mzSpectrum {
         _precursorMz(0.0),
         _msLevel(0) {
     }
+    
+    inline mzSpectrum(
+        int id_,
+        int cycle_,
+        const pwiz::msdata::SpectrumPtr& s,
+        const pwiz::msdata::SpectrumPtr& cs // spectrum containing centroids
+    ) :
+        id(id_),
+        cycle(cycle_),
+        spectrum(s),
+        retentionTime(0.0),
+        isInHighRes(true),
+        isInserted(false),
+        _precursorCharge(0),
+        _precursorMz(0.0),
+        _msLevel(0) {
+        // setup peaks vector
+        if (cs != NULL) {
+            // effectiveMode != PROFILE
+            spectrumToMzDbPeaks(cs, peaks); // fills this.peaks with peaks centroided with vendors algorithms (TODO check if it's true !)
+        } else {
+            // effectiveMode == PROFILE
+            spectrumToMzDbPeaks(s, peaks); // fils this.peaks with input peaks
+        }
+        // at this  point, this.peaks cannot be empty
+    }
 
     ///copy ctor
     mzSpectrum(const mzSpectrum<mz_t, int_t>& p) {
@@ -122,6 +157,7 @@ struct PWIZ_API_DECL mzSpectrum {
         id = p.id;
         cycle = p.cycle;
         effectiveMode = p.effectiveMode;
+        originalMode = p.originalMode;
         spectrum = p.spectrum;
     }
 
@@ -138,35 +174,87 @@ struct PWIZ_API_DECL mzSpectrum {
             id = p.id;
             cycle = p.cycle;
             effectiveMode = p.effectiveMode;
+            originalMode = p.originalMode;
             spectrum = p.spectrum;
         }
         return *this;
     }
-
-    /*~mzSpectrum() {
-        for (size_t i = 0; i < peaks.size(); ++i) {
-            delete peaks[i];
-            //peaks[i] = 0;
-        }
-        peaks.clear();
-        //mzSpectrum::deleteCount ++;
-    }*/
-
+    
     /**
-     * return the effective dataMode roughly equivalent to the wanted mode
-     *
-     * @param wantedMode
-     * @return effective mode
+     * Converts a proteowizard spectrum to mzdb peaks and fills this.peaks
+     * When no peak picking is needed, we convert each data points into a centroid object.
      */
-    inline DataMode getEffectiveMode(DataMode wantedMode) {
-        // this way does not work...
-//        const pwiz::msdata::CVParam& isCentroided = spectrum->cvParam(pwiz::msdata::MS_centroid_spectrum);
-//        DataMode currentMode = ( isCentroided.empty() ) ? PROFILE: CENTROID;
+    inline void spectrumToMzDbPeaks(const pwiz::msdata::SpectrumPtr &s,
+                                    vector<std::shared_ptr<Centroid<mz_t, int_t> > >& results) {
+        /*turn into centroids objects */
+        vector<pwiz::msdata::MZIntensityPair> pairs;
+        s->getMZIntensityPairs(pairs);
 
-        return getDataMode(spectrum, wantedMode);
+        //---following lines remove all zeros of the intensity array
+//        pairs.erase(std::remove_if(pairs.begin(), pairs.end(), [](const pwiz::msdata::MZIntensityPair& p) { return p.intensity == (int_t)0.0; }),
+//                    pairs.end());
+
+        results.resize(pairs.size());
+        float rt = static_cast<float>(s->scanList.scans[0].cvParam(pwiz::msdata::MS_scan_start_time).timeInSeconds());
+
+        // std::transform will apply the given function to the specified range [pairs.begin -> pairs.end]
+        // the result of the function will be put in this.peaks, represented by an iterator on its first element
+        std::transform(pairs.begin(), pairs.end(), results.begin(), [&rt, s](pwiz::msdata::MZIntensityPair& p) -> std::shared_ptr<Centroid<mz_t, int_t> > {
+            mz_t mz = (mz_t)p.mz; //std::move((mz_t)p.mz);
+            int_t ints = (int_t)p.intensity; //std::move((int_t)p.intensity);
+            return std::make_shared<Centroid<mz_t, int_t> >(mz, ints, rt);
+        });
     }
-
-
+    
+    ///**
+    // * Converts a proteowizard spectrum to mzdb peaks and fills this.peaks
+    // * When no peak picking is needed, we convert each data points into a centroid object.
+    // * When peak picking has been done but not correctly, call the in-house peakpicking algorithm
+    // */
+    //inline void spectrumToMzDbPeaks_recalculateIfNeeded(const pwiz::msdata::SpectrumPtr &originalSpectrum, const pwiz::msdata::SpectrumPtr &centroidedSpectrum) {
+    //    if (centroidedSpectrum != NULL) { // effectiveMode != PROFILE
+    //        // TODO check if centroids have to be recalculated
+    //        // original spectrum has to be in profile mode (TODO not sure how it should work in this case: centroidedSpectrum==NULL or not ?)
+    //        bool hasBeenCorrected = false;
+    //        if(originalSpectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum)) {
+    //            // TODO: not sure if it's possible, but we should check that centroids exist at all (centroidSpectrum==null && !centroidSpectrum->getIntensityArray()->empty())
+    //            size_t nbProfileIntensities = originalSpectrum->getIntensityArray()->data.size();
+    //            size_t nbCentroidIntensities = centroidedSpectrum->getIntensityArray()->data.size();
+    //            // second condition: same number of data_points in both vectors
+    //            if(nbProfileIntensities == nbCentroidIntensities) {
+    //                // first get the list of peaks
+    //                const vector<double>& mzs = originalSpectrum->getMZArray()->data;
+    //                const vector<double>& ints = originalSpectrum->getIntensityArray()->data;
+    //                const vector<mz_t> nmzs(mzs.begin(), mzs.end());
+    //                const vector<int_t> nints(ints.begin(), ints.end());
+    //                // set the peakpicking parameters
+    //                mzPeakFinderUtils::PeakPickerParams peakPickerParams;
+    //                peakPickerParams.adaptiveBaselineAndNoise = true;
+    //                peakPickerParams.optimizationOpt = mzPeakFinderUtils::NO_OPTIMIZATION;
+    //                peakPickerParams.minSNR = 0.0;
+    //                peakPickerParams.fwhm = TOF_FWHM;
+    //                // then run the peak detection
+    //                DataPointsCollection<mz_t, int_t> spectrumData(nmzs, nints, centroidedSpectrum);
+    //                spectrumData._detectPeaksCWT(peakPickerParams);
+    //                vector<std::shared_ptr<Centroid<mz_t, int_t> > > tempPeaks;
+    //                spectrumData.peaksToCentroids(tempPeaks);
+    //                if(tempPeaks.size() > 1) {
+    //                    peaks = tempPeaks;
+    //                    hasBeenCorrected = true;
+    //                } else {
+    //                    hasBeenCorrected = false;
+    //                }
+    //            }
+    //        }
+    //        if (!hasBeenCorrected) {
+    //            // fill this.peaks with peaks centroided with vendors algorithms
+    //            spectrumToMzDbPeaks(centroidedSpectrum, peaks);
+    //        }
+    //    } else { // effectiveMode == PROFILE
+    //        // fill this.peaks with peaks centroided with vendors algorithms
+    //        spectrumToMzDbPeaks(originalSpectrum, peaks);
+    //    }
+    //}
 
     /**
       * Perform peak picking, fill peaks member et set the member
@@ -176,22 +264,38 @@ struct PWIZ_API_DECL mzSpectrum {
       * @param ppa CVID representing filetype
       * @param peak picking params object
       */
-    inline void doPeakPicking(DataMode m, pwiz::msdata::CVID ppa, mzPeakFinderUtils::PeakPickerParams& params) {
-        effectiveMode = mzPeakFinderProxy::computePeaks(spectrum, peaks, m, ppa, params);
+    inline void doPeakPicking(DataMode wantedMode, pwiz::msdata::CVID ppa, mzPeakFinderUtils::PeakPickerParams& params, bool safeMode) {
+        // check wantedMode
+        originalMode = spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
+        if(originalMode == CENTROID && wantedMode != CENTROID) {
+            if(safeMode) {
+                effectiveMode = CENTROID;
+            } else {
+                //LOG(ERROR) << "Error: MS" << _msLevel << " is " << modeToString(originalMode) << " and cannot be turned into " << modeToString(wantedMode);
+                exitOnError("Current file contains centroid data that cannot be turned into profile/fitted data");
+                //throw runtime_error("Current file contains centroid data that cannot be turned into profile/fitted data");
+            }
+        } else {
+            effectiveMode = wantedMode;
+        }
+
+        if (effectiveMode != PROFILE) {
+            mzPeakFinderProxy::computeCentroidsWidths<mz_t, int_t>(spectrum, peaks, ppa, params, effectiveMode);
+        }
     }
 
     //------------------------------------------------------------------------------------------------
     //Wrapper functions to reach commons SpectrumPtr attributes
 
-    inline int initialPointsCount() const throw() {return spectrum->defaultArrayLength;}
+    //inline int initialPointsCount() const throw() {return spectrum->defaultArrayLength;}
 
     /**
      * return #mass peaks after fitting process
      * @return
      */
     inline int nbPeaks() const throw(){
-        if (effectiveMode != FITTED)
-            return initialPointsCount();
+        //if (effectiveMode != FITTED)
+        //    return initialPointsCount();
         return peaks.size();
     }
 
@@ -199,6 +303,22 @@ struct PWIZ_API_DECL mzSpectrum {
         if (! _msLevel)
             _msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
         return _msLevel;
+    }
+    
+    inline DataMode getOriginalMode() {
+        if(! originalMode) {
+            // really ?? it should not happen !!!
+            originalMode = CENTROID;
+        }
+        return originalMode;
+    }
+    
+    inline DataMode getEffectiveMode() {
+        if(! effectiveMode) {
+            // really ?? it should not happen !!!
+            effectiveMode = CENTROID;
+        }
+        return effectiveMode;
     }
 
     //kind of lazy attribute
@@ -518,7 +638,7 @@ struct PWIZ_API_DECL mzSpectrum {
 
         auto it = std::lower_bound(centroids.begin(), centroids.end(), mz, [](CentroidSPtr& a, double d){
                 return a->mz < d;
-    });
+        });
 
         //checks
         if (it == centroids.end()) {

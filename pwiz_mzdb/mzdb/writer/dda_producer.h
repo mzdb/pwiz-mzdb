@@ -1,3 +1,26 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * @file dda_producer.h
+ * @brief Read spectra from file, run peakpicking algorithm and push the spectra in the cycle objects
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
+
 #ifndef MZDDAPRODUCER_H
 #define MZDDAPRODUCER_H
 
@@ -11,9 +34,6 @@
 #include "pwiz/utility/misc/IntegerSet.hpp"
 
 #include "cycle_obj.hpp"
-#include "spectrum_inserter.h"
-#include "bb_inserter.hpp"
-#include "spectrumlist_policy.h"
 
 #include "../../utils/mzUtils.hpp"
 
@@ -56,6 +76,9 @@ private:
 
     ///ms levels encountered
     set<int> m_msLevels;
+    
+    /// DataMode for each MS level
+    map<int, DataMode> m_dataModeByMsLevel;
 
     /**
      * @brief _peakPickAndPush
@@ -82,18 +105,24 @@ private:
      * @param isInHighRes
      * @param spec
      */
-    void _addSpectrum(SpectraContainerUPtr& cycle, int scanCount, int cycleCount, bool isInHighRes, pwiz::msdata::SpectrumPtr spec) {
+    void _addSpectrum(
+        SpectraContainerUPtr& cycle,
+        int scanCount,
+        int cycleCount,
+        bool isInHighRes,
+        pwiz::msdata::SpectrumPtr spec,
+        pwiz::msdata::SpectrumPtr centroidSpec
+    ) {
         if (isInHighRes) {
-            auto s = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spec);
+            auto s = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spec, centroidSpec);
             s->isInHighRes = isInHighRes;
             cycle->addHighResSpectrum(s);
         } else {
-            auto s = std::make_shared<mzSpectrum<l_mz_t, l_int_t> >(scanCount, cycleCount, spec);
+            auto s = std::make_shared<mzSpectrum<l_mz_t, l_int_t> >(scanCount, cycleCount, spec, centroidSpec);
             s->isInHighRes = isInHighRes;
             cycle->addLowResSpectrum(s);
         }
     }
-
 
 public:
 
@@ -110,7 +139,7 @@ public:
      */
     void _produce(pwiz::util::IntegerSet& levelsToCentroid,
                   SpectrumListType* spectrumList,
-                  pair<int, int>& nscans,
+                  pair<int, int>& cycleRange,
                   map<int, double>& bbRtWidth,
                   pwiz::msdata::CVID filetype,
                   mzPeakFinderUtils::PeakPickerParams& params) {
@@ -121,34 +150,53 @@ public:
         unordered_map<int, SpectraContainerUPtr> spectraByMsLevel;
         HighResSpectrumSPtr currMs1(nullptr);
 
-        for (size_t i = nscans.first; i < nscans.second; ++i) {
+        size_t size = spectrumList->size();
+        for(size_t i = 0; i < spectrumList->size(); i++) {
+            scanCount = i + 1;
             pwiz::msdata::SpectrumPtr spectrum;
-
+            pwiz::msdata::SpectrumPtr centroidSpectrum;
+            int msLevel;
             try {
-                spectrum =  mzdb::getSpectrum<SpectrumListType>(spectrumList, i, true, levelsToCentroid);
+                // Retrieve the input spectrum as is
+                spectrum = spectrumList->spectrum(i, true); // size_t index, bool getBinaryData
+                // Retrieve the MS level
+                msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
+                m_msLevels.insert(msLevel);
+                // Retrieve the effective mode
+                DataMode wantedMode = m_dataModeByMsLevel[msLevel];
+                // If effective mode is not profile
+                if (wantedMode != PROFILE) {
+                    // The content of the retrieved spectrum depends on the levelsToCentroid settings
+                    // If the set is empty then we will get a PROFILE spectrum
+                    // Else we will obtain a CENTROID spectrum if its msLevel belongs to levelsToCentroid
+                    centroidSpectrum = mzdb::getSpectrum<SpectrumListType>(spectrumList, i, true, levelsToCentroid);
+                }
+            } catch (runtime_error& e) {
+                LOG(ERROR) << "Runtime exception: " << e.what();
             } catch (exception& e) {
-                //WARNING how to know about cycle ? MS1, MS2
-                LOG(ERROR) << "\nCatch an exception: %s. Skipping scan" << e.what();
-                scanCount++;
+                LOG(ERROR) << "Catch an exception: " << e.what();
+                LOG(ERROR) << "Skipping scan";
                 continue;
             } catch(...) {
                 LOG(ERROR) << "\nCatch an unknown exception. Trying to recover...";
-                scanCount++;
                 continue;
             }
 
-            const int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
-            m_msLevels.insert(msLevel);
-
-            const float rt = PwizHelper::rtOf(spectrum);
-
-            //method comes from MetadataExtractionPolicy inheritage
-            bool isInHighRes = this->isInHighRes(spectrum);
-
+            // increment cycle number
             if (msLevel == 1 ) {
-                ++cycleCount;
-                PwizHelper::checkCycleNumber(filetype, spectrum->id, cycleCount);
-                currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum);
+                PwizHelper::checkCycleNumber(filetype, spectrum->id, ++cycleCount);
+            }
+            
+            // do not process if the cycle is not asked
+            if(cycleCount < cycleRange.first) {
+                continue;
+            } else if(cycleRange.second != 0 && cycleCount > cycleRange.second) {
+                break;
+            }
+            
+            // set new precursor
+            if (msLevel == 1 ) {
+                currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum);
             }
 
             //init
@@ -157,56 +205,38 @@ public:
                 spectraCollection->parentSpectrum = currMs1;
                 spectraByMsLevel[msLevel] = std::move(spectraCollection);
             }
-
+            auto& bbRtWidthBound = bbRtWidth[msLevel];
+            const float rt = PwizHelper::rtOf(spectrum);
+            if(rt == 0) LOG(ERROR) << "Can not find RT for spectrum " << spectrum->id;
+            bool isInHighRes = this->isInHighRes(spectrum);
+            bool added = false;
 
             //get a reference to the unique pointer corresponding to the current mslevel
             auto& container = spectraByMsLevel[msLevel];
 
-
-            //check if the bounding box is well sized. If yes, launch peak-picking and add it to the queue
-            auto& bbRtWidthBound = bbRtWidth[msLevel];
-
-            bool added = false;
-
-
             if (container->empty() ) {
-                this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum);
-                ++scanCount;
+                this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum);
                 added = true;
             }
 
+            //check if the bounding box is well sized. If yes, launch peak-picking and add it to the queue
             if ( (rt - container->getBeginRt()) >= bbRtWidthBound)  {
-
                 this->_peakPickAndPush(container, filetype, params);
-
-
-//                this->put(container); //std::move(container));
-
-
                 //---create a new container
                 SpectraContainerUPtr c(new SpectraContainer(msLevel));
-
                 //set its parent
                 c->parentSpectrum = currMs1;
-
                 //check if already been added
                 if (!added) {
-                    this->_addSpectrum(c, scanCount, cycleCount, isInHighRes, spectrum);
-                    ++scanCount;
+                    this->_addSpectrum(c, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum);
                 }
-
                 spectraByMsLevel[msLevel] = std::move(c);
-
             } else {
                 if (!added) {
-                    this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum);
-                    ++scanCount;
+                    this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum);
                 }
             }
-
-
         } // end for
-
 
         //handles ending, i.e non finished cycles
         for(int i = 1; i <= spectraByMsLevel.size(); ++i) {
@@ -236,11 +266,14 @@ public:
      * @param dataModeByMsLevel
      */
     mzDDAProducer( typename QueueingPolicy::QueueType& queue,
-                   std::string& mzdbPath,
-                   map<int, DataMode>& dataModeByMsLevel):
+                   MzDBFile& mzdbFile,
+                   map<int, DataMode>& dataModeByMsLevel,
+                   bool safeMode):
         QueueingPolicy(queue),
-        MetadataExtractionPolicy(mzdbPath),
-        m_peakPicker(dataModeByMsLevel) {}
+        MetadataExtractionPolicy(mzdbFile.name),
+        m_peakPicker(dataModeByMsLevel, safeMode),
+        m_dataModeByMsLevel(dataModeByMsLevel) {
+        }
 
     /**
      * @brief getProducerThread
@@ -254,7 +287,7 @@ public:
      */
     boost::thread getProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                     SpectrumListType* spectrumList,
-                                    pair<int, int>& nscans,
+                                    pair<int, int>& cycleRange,
                                     map<int, double>& bbWidthManager,
                                     pwiz::msdata::CVID filetype,
                                     mzPeakFinderUtils::PeakPickerParams& params) {
@@ -267,7 +300,7 @@ public:
                              this,
                              std::ref(levelsToCentroid),
                              spectrumList,
-                             nscans,
+                             cycleRange,
                              std::ref(bbWidthManager),
                              filetype,
                              std::ref(params)
