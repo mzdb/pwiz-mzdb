@@ -1,3 +1,26 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * @file mzDBFile.h
+ * @brief Contains `sqlite3 db and statement` pointers plus some helping metadata about the current conversion.
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
+
 #ifndef MZDBFILE_H
 #define MZDBFILE_H
 
@@ -58,8 +81,13 @@ struct MzDBFile : public pwiz::msdata::ParamContainer {
     /// i.e. m/z encoded 64 bits and intensity 64 bits
     bool noLoss;
 
-    /// mzDB filename
+    ///// mzDB filename
+    //std::string name;
+    /// input filename
     std::string name;
+    
+    /// output filename
+    std::string outputFilename;
 
     /// Pointer to the sqlite DB
     struct sqlite3* db;
@@ -85,6 +113,7 @@ struct MzDBFile : public pwiz::msdata::ParamContainer {
      * @param noLoss if true noLoss conversion, by default is set to false
      */
     MzDBFile(string& _name, float _bbHeight, float _bbHeightMsn, float _bbWidth, float _bbWidthMsn, bool noLoss=false);
+    MzDBFile(string& _name, string& _outputFilename, float _bbHeight, float _bbHeightMsn, float _bbWidth, float _bbWidthMsn, bool noLoss=false);
 
     /**
      * Close properly sqlite db connection and statement

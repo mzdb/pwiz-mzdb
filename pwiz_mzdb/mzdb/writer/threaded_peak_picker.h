@@ -1,3 +1,26 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * @file threaded_peak_picker.h
+ * @brief Performs peak-picking of several spectra using several threads.
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
+
 #ifndef MULTITHREADEDPEAKPICKER_H
 #define MULTITHREADEDPEAKPICKER_H
 
@@ -23,7 +46,8 @@ private:
 
     /// wanted DataMode for each msLevel wanted by the user.
     map<int, DataMode>& m_dataModeByMsLevel;
-
+    
+    bool m_safeMode;
 
     /**
      * Launches peak picking for each spectrum in its own thread.
@@ -41,7 +65,7 @@ private:
             boost::thread_group g;
             size_t counter = ( N - j < maxNbThreads ) ? N - j : maxNbThreads;
             for (size_t i = 0; i < counter; ++i) {
-                g.create_thread(std::bind(&mzSpectrum<mz_t, int_t>::doPeakPicking, spectra.at(j + i), m, filetype, params));
+                g.create_thread(std::bind(&mzSpectrum<mz_t, int_t>::doPeakPicking, spectra.at(j + i), m, filetype, params, m_safeMode));
             }
             g.join_all();
         }
@@ -69,7 +93,10 @@ private:
 
 public:
     /* constructor */
-    inline mzMultiThreadedPeakPicker (map<int, DataMode>& dataModeByMsLevel): m_dataModeByMsLevel(dataModeByMsLevel) {}
+    //inline mzMultiThreadedPeakPicker (map<int, DataMode>& dataModeByMsLevel): m_dataModeByMsLevel(dataModeByMsLevel) {}
+    inline mzMultiThreadedPeakPicker (map<int, DataMode>& dataModeByMsLevel, bool safeMode):
+        m_dataModeByMsLevel(dataModeByMsLevel),
+        m_safeMode(safeMode) {}
 
 
     inline map<int, DataMode>& getDataModeByMsLevel() {
@@ -85,7 +112,7 @@ public:
     inline void start(unique_ptr<mzSpectraContainer<h_mz_t, h_int_t, l_mz_t, l_int_t> >& cycleObject,
                       pwiz::msdata::CVID filetype,
                       mzPeakFinderUtils::PeakPickerParams& params) {
-
+        
         vector<std::shared_ptr<mzSpectrum<h_mz_t, h_int_t> > > highResSpectra;
         vector<std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > > lowResSpectra;
 

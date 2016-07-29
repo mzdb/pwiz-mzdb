@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 
-//author marc.dubois@ipbs.fr
+/*
+ * @file raw2mzDB.cpp
+ * @brief Start file with the main function
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
 
 #include <algorithm>
 #include <cstdio>
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define  GLOG_NO_ABBREVIATED_SEVERITIES
 
@@ -37,13 +45,15 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <tchar.h>
+#include <psapi.h>
 #endif
 
 using namespace std;
 using namespace mzdb;
 using namespace GetOpt;
 using namespace pwiz::msdata;
-
+namespace fs = boost::filesystem;
 
 //#ifdef _WIN32
 //void trans_func( unsigned int u, EXCEPTION_POINTERS* pExp ){
@@ -52,13 +62,46 @@ using namespace pwiz::msdata;
 //}
 //#endif
 
+/*
+ * Piece of code provided by Microsoft MSDN: https://msdn.microsoft.com/en-us/library/ms682621(VS.85).aspx
+ * it lists the dlls currently loaded
+ * it has been added when Andrea Kalaitzakis and Veronique Dupierris asked for a way to check on the fly if all required dlls are loaded
+ * in order to tell the end user which dll is missing (or even better, which software should be installed)
+ */
+int PrintModules(DWORD processID) {
+    HMODULE hMods[1024];
+    HANDLE hProcess;
+    DWORD cbNeeded;
+
+    // Print the process identifier.
+    printf("\nProcess ID: %u\n", processID);
+    // Get a handle to the process.
+    hProcess = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID );
+    if (NULL == hProcess) return 1;
+
+    // Get a list of all the modules in this process.
+    if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded)) {
+        for (unsigned int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
+            TCHAR szModName[MAX_PATH];
+            // Get the full path to the module's file.
+            if (GetModuleFileNameEx(hProcess, hMods[i], szModName, sizeof(szModName) / sizeof(TCHAR))) {
+                // Print the module name and handle value.
+                _tprintf(TEXT("\t%s (0x%08X)\n"), szModName, hMods[i]);
+            }
+        }
+    }
+    // Release the handle to the process.
+    CloseHandle(hProcess);
+    return 0;
+}
 
 /// Warning, calling this function will delete a previous mzdb file.
 int deleteIfExists(const string &filename) {
 
     if (std::ifstream(filename.c_str())) {
         //file exist
-        printf("\n");
+        //printf("\n");
+        LOG(WARNING) << "";
         LOG(WARNING) << "Found file with the same name";
         LOG(WARNING) << "Delete...";
         if (remove(filename.c_str()) != 0) {
@@ -93,54 +136,22 @@ inline bool exists (const std::string& name) {
     }   
 }
 
-pair<int, int> parseRange2(string& range) {
-    if (range != "") {
-        if (range.size() > 3) {
-            LOG(ERROR) << "Error in parsing command line";
-            exit(EXIT_FAILURE);
-        }
-        else if (range.size() == 1) {
-            int p;
-            try {
-                p = boost::lexical_cast<int>(range);
-            } catch (boost::bad_lexical_cast &) {
-                LOG(ERROR) << "Error, index must be an integer";
-                exit(EXIT_FAILURE);
-            }
-            return make_pair<int, int>(0, p);
-
-        }
-        else if (range.size() == 3) {
-            vector<string> splitted;
-            boost::split(splitted, range, boost::is_any_of("-"));
-            int p1 = 0, p2 = 0;
-            try {
-                p1 = boost::lexical_cast<int>(splitted[0]);
-                p2 = boost::lexical_cast<int>(splitted[1]);
-            } catch (boost::bad_lexical_cast &) {
-                LOG(ERROR) << "Error, the two indexes must be integers";
-                exit(EXIT_FAILURE);
-            }
-            if (p1 <= p2) {
-                return make_pair<int, int>(p1, p2);
+pair<int, int> parseCycleRange(string& range) {
+    size_t min = 0, max = 0;
+    std::smatch sm;
+    std::regex e("^([0-9]*)-([0-9]*)$");
+    std::regex_match (range, sm, e);
+    if (sm.size() == 3) { // sm contains { range, item 1, item 2 }
+        try {
+            if(sm[1] != "") min = stoi(sm[1]);
+            if(sm[2] != "") max = stoi(sm[2]);
+            if(min < max || max == 0) {
+                // TODO what if min == 1 ? does it mean first or second ?
+                return make_pair<int, int>(min, max);
             } else {
-                LOG(ERROR) << "Error index 2 greater than index 1";
-                exit(EXIT_FAILURE);
+                LOG(ERROR) << "Error, max index (" << max << ") cannot be lower than min index (" << min << ")";
             }
-        }
-
-        else if (range.size() == 2) {
-            vector<string> splitted;
-            boost::split(splitted, range, boost::is_any_of("-"));
-            int p1 = 0;
-            try {
-                p1 = boost::lexical_cast<int>(splitted[0]);
-                return make_pair<int, int>(p1, 0);
-            } catch(boost::bad_lexical_cast &) {
-                LOG(ERROR) << "Error, index must be integer";
-                exit(EXIT_FAILURE);
-            }
-        }
+        } catch (...) {} // should never come here because regex has already checked that values where integers
     }
     return make_pair<int, int>(0,0);
 }
@@ -149,13 +160,14 @@ pair<int, int> parseRange2(string& range) {
 void parseRange(string& range, DataMode mode,
                          map<int, DataMode>& results,
                          vector<int>& modifiedIndex, const string& help) {
-    if (range != "") {
+	if (range != "") {
         if (range.size() > 3) {
             LOG(ERROR) << "Error in parsing command line";
             std::cout << help << endl;
             exit(EXIT_FAILURE);
         }
         else if (range.size() == 1) {
+            // example: -p 1
             int p;
             try {
                 p = boost::lexical_cast<int>(range);
@@ -169,6 +181,7 @@ void parseRange(string& range, DataMode mode,
 
         }
         else if (range.size() == 3) {
+            // example: -p 1-2
             vector<string> splitted;
             boost::split(splitted, range, boost::is_any_of("-"));
             int p1 = 0, p2 = 0;
@@ -191,8 +204,10 @@ void parseRange(string& range, DataMode mode,
                 exit(EXIT_FAILURE);
             }
         }
-
+        // TODO remove this functionnality because MAX_MS is not known yet
         else if (range.size() == 2) {
+            int MAX_MS = 2; // ABU added just to make it work
+            // example: -p 1-
             vector<string> splitted;
             boost::split(splitted, range, boost::is_any_of("-"));
             int p1 = 0;
@@ -215,17 +230,115 @@ void parseRange(string& range, DataMode mode,
     }
 }
 
+string getExecutableDirectory(string argv0) {
+    //boost::filesystem::path argv0AsPath = argv0;
+    //boost::filesystem::path exePath = boost::filesystem::system_complete(argv0AsPath);
+    fs::path argv0AsPath = argv0;
+    fs::path exePath = fs::system_complete(argv0AsPath);
+    return exePath.parent_path().string();
+}
+
+string getBuildDate(string argv0) {
+    string exePath = getExecutableDirectory(argv0);
+    string filename = exePath + "/build.txt";
+    std::ifstream fin( filename.c_str() );
+    string date;
+    if(fin) {
+        getline(fin, date); // read only first line
+    } else {
+        // try to get raw2mzDB.exe creation date ? No, date may change for some reason and it would be a false information
+        date = "";
+    }
+    return date;
+}
+
+std::string toLower(std::string input) {
+    std::locale locale;
+    std::string output = "";
+    for (std::string::size_type i = 0; i < input.length(); i++)
+        output += std::tolower(input[i], locale);
+    return output;
+}
+
+bool fileExists(std::string inputFileName, bool quitIfFileDoesNotExist, const string& help) {
+    // transform the path into a boost file object and test if it exists
+    fs::path bFileName(inputFileName);
+    if(!fs::exists(bFileName)) {
+        // file does not exist
+        if(quitIfFileDoesNotExist) {
+            LOG(ERROR) << "File '" << inputFileName << "' does not exist. Exiting.";
+            std::cout << help << std::endl;
+            exit(EXIT_FAILURE);
+        } else return false; // file does not exists but it's just informational
+    } else return true; // file exists
+}
+
+void checkInputFile(std::string &inputFileName, const string& help) {
+    // check that file exists, quit if not
+    fileExists(inputFileName, true, help);
+    // declare variables for the tests
+    std::string lc_inputFileName = toLower(inputFileName);
+    fs::path bFileName(inputFileName);
+    // if it's a .d folder, check that the associated analysis.baf file also exists and point to it
+    if(fs::is_directory(bFileName)) {
+        if(std::regex_match(lc_inputFileName, std::regex(".*\\.d$"))) {
+            // TODO what about Agilent files ?
+            if(fileExists(inputFileName + "/analysis.baf", false, help)) {
+                inputFileName = inputFileName + "/analysis.baf"; // Bruker file format
+            //} else if(fileExists(inputFileName + "/Analysis.yep", false, help)) {
+            //    inputFileName = inputFileName + "/Analysis.yep"; // Bruker file format
+            }
+        //} else if(std::regex_match(lc_inputFileName, std::regex(".*\\.raw$"))) {
+        //    // else if Waters raw folder ?
+        //} else {
+        }
+    } else {
+        // if it's a wiff file, check that the associated wiff.scan file also exists
+        if(std::regex_match(lc_inputFileName, std::regex(".*\\.wiff$"))) {
+            fileExists(inputFileName + ".scan", true, help);
+        } else if(std::regex_match(lc_inputFileName, std::regex(".*\\.wiff.scan$"))) {
+            // if it's a wiff.scan file, check that the associated wiff file also exists and point to it
+            inputFileName = inputFileName.substr(0, inputFileName.length() - 5);
+        }
+    }
+    // final check with the potentially modified file name
+    fileExists(inputFileName, true, help);
+}
+
+void checkOutputFile(std::string &outputFileName, std::string &inputFileName) {
+    // if no output file name has been given, use input file name
+    if (outputFileName == "") outputFileName = inputFileName;
+    // if input data is a Bruker .d directory, then only keep .d directory name
+    if(std::regex_match(toLower(outputFileName), std::regex(".*analysis.baf$"))) {
+        outputFileName = outputFileName.substr(0, outputFileName.length() - 13);
+    }
+    // add the mzDB extension if needed
+    if(!std::regex_match(toLower(outputFileName), std::regex(".*\\.mzdb$"))) {
+        outputFileName = outputFileName + ".mzDB";
+    }
+    // if a file with the same name already exist, delete it !
+    int res = deleteIfExists(outputFileName);
+    if (res == 1) {
+        //should never pass here
+        exit(EXIT_FAILURE);
+    }
+}
+
 /// Starting point !
 int main(int argc, char* argv[]) {
+    
+    // list of loaded dlls
+    //PrintModules(GetCurrentProcessId());
 
     //google::InitGoogleLogging(argv[0]);
+    //FLAGS_logbufsecs = 0; // DEBUG ONLY !! use this to print log messages instantly, it will probably slow everything... (does not seem to work...)
 
 //    #ifdef _WIN32
 //        //set se translator
 //        LOG(INFO) << "Setting custom translator for SEH exception.";
 //        _set_se_translator(trans_func);
 //    #endif
-    string filename = "", centroid = "", profile = "", fitted = "", namefile = "", serialization = "xml", scanRangeStr="";
+    string filename = "", centroid = "", profile = "", fitted = "", outputFileName = "", serialization = "xml", cycleRangeStr="";
     bool compress = false;
     //double ppm = 20.0;
 
@@ -238,23 +351,22 @@ int main(int argc, char* argv[]) {
     bool noLoss = false;
 
     //---force data storage as dia
-    bool dia=false;
+    string acquisitionMode = "AUTO";
+
+    bool safeMode=false;
 
     int peakPickingAlgo = 0, nscans = 0, nbCycles = 3, maxNbThreads = 1;
 
 
     // filling several helping maps
     map<int, DataMode> dataModeByMsLevel;
-    map<int, string> dataModes;
 
     //init results by default a Ms1 is fitted others are centroided
     //keys of dataMode are the sizes of structures in bytes,  so
     //this not really portable
     dataModeByMsLevel[1] = FITTED;
-    dataModes[1] = "PROFILE";
-    dataModes[20] = "FITTED";
-    dataModes[12] = "CENTROID";
 
+    int MAX_MS = 2; // ABU added this just to make it work
     for (size_t i = 2; i <= MAX_MS; ++i) {
         dataModeByMsLevel[i] = CENTROID;
     }
@@ -271,11 +383,12 @@ int main(int argc, char* argv[]) {
                   "\t-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s\n"
                   "\t-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da \n"
                   "\t-m, --bbMzWidthMSn : bounding box height for msn in Da, default: 10000Da \n"
-                  "\t--dia : will force the conversion in DIA mode\n"
+                  "\t-a, --acquisition : dda, dia or auto (converter will try to determine if the analysis is DIA or DDA), default: auto\n"
                   //"\t--bufferSize : low value (min 2) will enforce the program to use less memory (max 50), default: 3\n"
                   // "\t--max_nb_threads : maximum nb_threads to use, default: nb processors on the machine\n"
                   "\t--no_loss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
-                  "\t--nscans : nb scans to convert into the mzDB file (max: number of scans in the rawfile)\n"
+                  "\t--cycles : only convert the selected range of cycles, eg: 1-10 (first ten cycles) or 10- (from cycle 10 to the end) ; using this option will disable progress information\n"
+                  "\t-s, --safe_mode : use centroid mode if the requested mode is not available\n"
                   "\t-h --help : show help";
 
 
@@ -289,11 +402,11 @@ int main(int argc, char* argv[]) {
     ops >> Option('t', "bbTimeWidthMSn", bbWidthMSn);
     ops >> Option('m', "bbMzWidthMSn", bbHeightMSn);
     //ops >> Option('s', "serialize", serialization);
-    ops >> Option('o', "output", namefile);
-    //ops >> Option('n', "nscans", nscans);
-    ops >> Option('n', "nscans", scanRangeStr);
+    ops >> Option('o', "output", outputFileName);
+    ops >> Option('n', "cycles", cycleRangeStr);
     ops >> OptionPresent("no_loss", noLoss);
-    ops >> OptionPresent("dia", dia);
+    ops >> Option('a', "acquisition", acquisitionMode);
+    ops >> OptionPresent('s', "safe_mode", safeMode);
 
     //std::cout << "dia:" << dia << std::endl;
     //ops >> Option("ppm", ppm);
@@ -310,12 +423,9 @@ int main(int argc, char* argv[]) {
         std::cout << help << std::endl;
         exit(EXIT_FAILURE);
     }
-
-    if (! exists(filename)) {
-        LOG(ERROR) << "Filepath does not exist.Exiting.";
-        std::cout << help << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    
+    // check input file name, change it if necessary (ie. XXX.wiff.scan file given instead of XXX.wiff file, or XXX.d folder instead of XXX.d/analysis.baf)
+    checkInputFile(filename, help);
 
     if (!filename.size()) {
         LOG(ERROR) << "empty raw filename ! Exiting...";
@@ -330,15 +440,11 @@ int main(int argc, char* argv[]) {
     }
 #endif
 
-    int res = deleteIfExists(filename + ".mzDB");
-    if (res == 1) {
-        //should never pass here
-      exit(EXIT_FAILURE);
-    }
-
+    // check output file name, use input file name if missing, make sure to have the right extension, delete former file if any
+    checkOutputFile(outputFileName, filename);
 
     //--- overriding default encoding to `fitted` for DIA mslevel 2
-    if (dia) {
+    if(boost::to_upper_copy(acquisitionMode) == "DIA") {
         dataModeByMsLevel[2] = FITTED;
 
         if (bbHeightMSn != 10000 || bbWidthMSn != 0) {
@@ -359,30 +465,36 @@ int main(int argc, char* argv[]) {
     parseRange(fitted, FITTED, dataModeByMsLevel, modifiedIndex, help);
     parseRange(centroid, CENTROID, dataModeByMsLevel, modifiedIndex, help);
 
-    pair<int, int> scanRange = parseRange2(scanRangeStr);
-
-    //auto scanR = parseRange2(scanRange);
+    pair<int, int> cycleRange = parseCycleRange(cycleRangeStr);
 
     //---print gathered informations
-    std::cout << "\nWhat I understood :\n";
-    std::cout << "Treating: " << filename << "\n";
+    std::stringstream summary;
+    summary << "\n\n************ Summary of the parameters ************\n\n";
+    summary << "Treating file: " << filename << "\n";
     for (auto it = dataModeByMsLevel.begin(); it != dataModeByMsLevel.end(); ++it) {
-        std::cout << "ms " << it->first << " => selected Mode: " << dataModes[(int) it->second] << "\n";
+        summary << "ms " << it->first << " => selected Mode: " << modeToString(it->second) << "\n";
     }
-    std::cout << "\n";
+    
+    if(cycleRange.first > 1 || cycleRange.second != 0) {
+        summary << "Converting cycles from ";
+        if(cycleRange.first == 0) summary << "first"; else summary << "#" << cycleRange.first;
+        summary << " to ";
+        if(cycleRange.second == 0) summary << "last"; else summary << "#" << cycleRange.second;
+        summary << "\n";
+    }
+    summary << "\n";
 
+    summary << "Bounding box dimensions:\n";
+    summary << "MS 1\t" << "m/z: " << bbHeight << " Da, retention time: " << bbWidth << "sec\n";
+    summary << "MS n\t" << "m/z: " << bbHeightMSn << " Da, retention time: " << bbWidthMSn << "sec\n";
 
-    std::cout << "Bounding box dimensions:\n";
-    std::cout << "MS 1\t" << "m/z: " << bbHeight << " Da, retention time: " << bbWidth << "sec\n";
-    std::cout << "MS n\t" << "m/z: " << bbHeightMSn << " Da, retention time: " << bbWidthMSn << "sec\n";
-
-    std::cout << "\n";
+    summary << "\n";
+    LOG(INFO) << summary.str();
     //end parsing commandline
 
-
-    //--- Sarting launching code
+    //--- Starting launching code
     //create a mzDBFile
-    MzDBFile f(filename, bbHeight, bbHeightMSn, bbWidth, bbWidthMSn, noLoss);
+    MzDBFile f(filename, outputFileName, bbHeight, bbHeightMSn, bbWidth, bbWidthMSn, noLoss);
 
     //---pwiz file detection
     ReaderPtr readers(new FullReaderList);
@@ -402,8 +514,13 @@ int main(int argc, char* argv[]) {
     auto& msData = msdList[0];
     auto originFileFormat = pwiz::msdata::identifyFileFormat(readers, f.name);
 
-    mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, compress);
+    // TODO add a check on the content of the raw file
+    // make sure right now that dataModeByMsLevel is correct
+    // that way, the user will know what he will get
+    // it will take some time due to the reading of the raw file
 
+    mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, getBuildDate(argv[0]), compress, safeMode);
+    
     //---insert metadata
     try {
         writer.checkMetaData();
@@ -415,9 +532,11 @@ int main(int argc, char* argv[]) {
     }
 
     //---check swath mode
-    if (dia)
+    if(boost::to_upper_copy(acquisitionMode) == "DIA") {
         writer.setSwathAcquisition(true);
-    else {
+    } else if(boost::to_upper_copy(acquisitionMode) == "DDA") {
+        writer.setSwathAcquisition(false);
+    } else {
         try {
             writer.isSwathAcquisition();
         } catch (exception& e) {
@@ -438,18 +557,19 @@ int main(int argc, char* argv[]) {
     try {
         if (noLoss) {
             //LOG(INFO) << "No-loss mode encoding: all ms Mz-64, all ms Int-64";
-            writer.writeNoLossMzDB(namefile, scanRange, nbCycles, p);
+            writer.writeNoLossMzDB(outputFileName, cycleRange, nbCycles, p);
         } else {
             if (false) { // If msInstrument only good at ms1
                 //LOG(INFO) << "ms1 Mz-64, all ms Int-32 encoding";
-                writer.writeMzDBMzMs1Hi(namefile, scanRange, nbCycles, p);
+                writer.writeMzDBMzMs1Hi(outputFileName, cycleRange, nbCycles, p);
             } else {
                 //LOG(INFO) << "all ms Mz-64, all ms Int-32 encoding";
-                writer.writeMzDBMzHi(namefile, scanRange, nbCycles, p);
+                writer.writeMzDBMzHi(outputFileName, cycleRange, nbCycles, p);
             }
         }
-
+        
         LOG(INFO) << "Checking run slices numbers";
+        // check if run slice numbers are sorted according to ms_level and begin_mz
         writer.checkAndFixRunSliceNumberAnId();
 
     } catch (exception& e) {

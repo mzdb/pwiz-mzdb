@@ -1,3 +1,26 @@
+/*
+ * Copyright 2014 CNRS.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * @file mzUtils.hpp
+ * @brief Global dependency regrouping functions used by many classes
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
+
 #ifndef MZUTILS_HPP
 #define MZUTILS_HPP
 
@@ -119,6 +142,8 @@ namespace mzdb {
 
 #define MZ2PPM(mz, ppm) mz * 1e6 / ppm;
 
+/* versionning */
+#define BUILD_VERSION "build_version"
 
 /**useful typedef */
 typedef unsigned char byte;
@@ -179,6 +204,8 @@ struct DataEncoding {
 
     ///compression
     string compression;
+    
+    bool hasBeenInserted;
 
     /**
      * DataEncoding of one or several spectrum(a)
@@ -187,7 +214,12 @@ struct DataEncoding {
      * @param pe_ @see PeakEncoding
      * @param compression default to `none`, no compression applied
      */
-    DataEncoding(int id_, DataMode mode_, PeakEncoding pe_) : id(id), mode(mode_), peakEncoding(pe_), compression("none") {}
+    DataEncoding(int id_, DataMode mode_, PeakEncoding pe_) :
+        id(id_),
+        mode(mode_),
+        peakEncoding(pe_),
+        compression("none"),
+        hasBeenInserted(false) {}
 
     ///Default constructor
     DataEncoding(){}
@@ -211,7 +243,12 @@ struct DataEncoding {
         else if (mode == CENTROID)
             mode_str = "centroid";
 
-        return "INSERT INTO data_encoding VALUES (NULL, '" + mode_str + "', '"+ compression + "', 'little_endian', "+ mzPrec + ", " + intPrec + ", NULL);";
+        //return "INSERT INTO data_encoding VALUES (NULL, '" + mode_str + "', '"+ compression + "', 'little_endian', "+ mzPrec + ", " + intPrec + ", NULL);";
+        return "INSERT INTO data_encoding VALUES (" + std::to_string(static_cast<long long>(id)) + ", '" + mode_str + "', '"+ compression + "', 'little_endian', "+ mzPrec + ", " + intPrec + ", NULL);";
+    }
+    
+    void setHasBeenInserted(bool _hasBeenInserted) {
+        hasBeenInserted = _hasBeenInserted;
     }
 };
 
@@ -262,7 +299,7 @@ namespace PwizHelper {
 inline static float rtOf(const pwiz::msdata::SpectrumPtr& s) {
     pwiz::msdata::Scan* scan = !s->scanList.empty() ? &s->scanList.scans[0] : 0;
     if (! scan) {
-        printf("\nCan not find RT of one spectrum !\n");
+        //printf("\nCan not find RT of one spectrum !\n");
         return 0;
     }
     pwiz::msdata::CVParam scanTimeParam = scan ? scan->cvParam(pwiz::msdata::MS_scan_start_time) : pwiz::msdata::CVParam();
@@ -303,8 +340,7 @@ inline void checkCycleNumber(pwiz::msdata::CVID filetype, string spectrumTitle, 
             // if the spray gets lost, the spectra will not be written in the wiff file and the cycles wont be a list from 1 to the end
             int cycle = std::stoi(match.str(1));
             if(cycle != cycleNumber) {
-                //printf("Cycle changed from "+cycleNumber+" to "+cycle+"\n");
-                printf("Cycle changed from %d to %d\n", cycleNumber, cycle);
+                //printf("Cycle changed from %d to %d\n", cycleNumber, cycle);
                 cycleNumber = cycle;
             }
         }
@@ -334,6 +370,12 @@ static inline string getActivationCode(const pwiz::msdata::Activation& a) {
 }
 
 
+inline string modeToString(DataMode m) {
+    if(m == PROFILE)  return "PROFILE";
+    if(m == CENTROID) return "CENTROID";
+    if(m == FITTED)   return "FITTED";
+    return "<unknown datamode>";
+}
 /**
  * return the effective dataMode given a pwiz spectrum
  * Most of the time it corresponds to the wantedMode except for
@@ -342,17 +384,49 @@ static inline string getActivationCode(const pwiz::msdata::Activation& a) {
  *
  * @param s:pwiz::msdata::SpectrumPtr
  * @param wantedMode: DataMode dataMode wanted by the user for this msLevel
+ * @param safeMode: if true, fall back to centroid mode if requested mode is not available
  * @return effective DataMode
  */
-static DataMode getDataMode( const pwiz::msdata::SpectrumPtr s, DataMode wantedMode)  {
-
-    DataMode currentMode = s->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
-    DataMode effectiveMode = wantedMode;
-    if (currentMode == CENTROID && wantedMode == PROFILE) {
-        effectiveMode = CENTROID;
-    }
-    return effectiveMode;
-}
+//static DataMode getDataMode( const pwiz::msdata::SpectrumPtr s, DataMode wantedMode, bool safeMode)  {
+//
+//    //const pwiz::msdata::CVParam& isCentroided = s->cvParam(pwiz::msdata::MS_centroid_spectrum);
+//    //DataMode currentMode = !isCentroided.empty() ? CENTROID : PROFILE;
+//    //DataMode effectiveMode;
+//    //if (wantedMode == PROFILE && currentMode == PROFILE) {
+//    //    effectiveMode = PROFILE;
+//    //} else if ((wantedMode == CENTROID && currentMode == PROFILE) ||
+//    //             (wantedMode == FITTED && currentMode == PROFILE)) {
+//    //    effectiveMode = wantedMode;
+//    //} else {
+//    //    // current is CENTROID nothing to do
+//    //    effectiveMode = CENTROID;
+//    //}
+//    
+//    //DataMode currentMode = s->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
+//    //DataMode effectiveMode = wantedMode;
+//    //if (currentMode == CENTROID && wantedMode == PROFILE) {
+//    //    effectiveMode = CENTROID;
+//    //}
+//    //if(effectiveMode == 0) {
+//    //    effectiveMode = CENTROID;
+//    //}
+//    //return effectiveMode;
+//
+//    // what we have in the raw file
+//    DataMode currentMode = s->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
+//    // what the user requested
+//    DataMode effectiveMode = wantedMode;
+//    // profile or fitted data cannot be obtained from centroid data
+//    if(currentMode == CENTROID && wantedMode != CENTROID) {
+//        if(safeMode) {
+//            effectiveMode = CENTROID;
+//        } else {
+//            //printf("Current file contains centroid data that cannot be turned into profile/fitted data\n");
+//            throw runtime_error("Current file contains centroid data that cannot be turned into profile/fitted data");
+//        }
+//    }
+//    return effectiveMode;
+//}
 
 
 
@@ -505,6 +579,30 @@ inline static void printProgBar(int percent) {
     }
     std::cout << "\r" "[" << bar << "] ";
     std::cout << percent << "%     " << std::flush;
+    if(percent >= 100)
+        std::cout << "\n";
+}
+
+//inline static string getDateAsYyyyMmDd() {
+//		time_t t;
+//		struct tm* tm;
+//		char fdate[9];
+//		time(&t);
+//		tm = localtime(&t);
+//		strftime(fdate, sizeof fdate, "%Y%m%d", tm);
+//		return fdate;
+//}
+
+inline static void exitOnError(std::string message) {
+    // print the message in such a way that user cannot think it's ok
+    // the message should be really informative, for the user as well as the IT support
+    // it seems complicated to get the caller function name in a portable way, so for now just set a really informative error message !
+    printf("\nMZDB Failure !!!\n");
+    printf("Error: %s\n\n", message.c_str());
+    // delete the mzDB file if possible
+    
+    // exit without a runtime_error
+    exit(EXIT_FAILURE);
 }
 
 }//end namespace

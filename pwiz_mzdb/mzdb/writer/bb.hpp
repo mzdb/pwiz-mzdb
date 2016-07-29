@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-//author marc.dubois@ipbs.fr
-
 /*
-BoundingBox class
-use to store minmz, maxmz, minrt, maxrt
+ * @file bb.hpp
+ * @brief BoundingBox class used to store minmz, maxmz, minrt, maxrt
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
  */
 
 #ifndef __BB__
@@ -224,8 +224,9 @@ public:
         for (size_t i = 0; i < o.size(); ++i) {
             const auto& p = o[i];
             const int& idx = p.second;
-            if (indexes.find(idx) != indexes.end())
+            if (indexes.find(idx) != indexes.end()) {
                 throw runtime_error("Duplicate indexes");
+            }
             indexes.insert(idx);
             auto& dm = dataModes[idx];
             if (p.first == 1) {

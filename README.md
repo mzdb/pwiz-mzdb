@@ -20,6 +20,46 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 
 Current stable version is 0.9.7.
 
+### Release 0.9.10
+
+New features:
+- [ ] [MS-Numpress](https://github.com/ms-numpress/ms-numpress) compression algorithm support
+- [ ] Integration of the project with existing msconvert tool
+- [ ] add an option to filter spectra upon retention time
+
+Improvements
+- [ ] add FK constraints
+- [ ] replace blobs with vectors
+- [ ] replace table bounding_blo_msn_rtree with table msn_layer
+- [ ] update proteowizard libraries ?
+
+Bug fixes:
+- [ ] check MS3 analyses
+- [ ] ~~add missing CvTerms~~ (not present in Pwiz Msdata object, neither in converted mzML files)
+- see issues for more informations
+
+### Release 0.9.9
+
+New features:
+- [x] FITTED mode is fully functional for Thermo, AB Sciex and Bruker analysis
+- [x] Safe mode added : fall back to centroid if requested mode is not possible (ie. centroid -> profile)
+- [x] --cycles option in the command line to convert a subset of the input file
+- [x] Build number is added
+- [ ] [MS-Numpress](https://github.com/ms-numpress/ms-numpress) compression algorithm support
+- [ ] Integration of the project with existing msconvert tool
+
+Improvements
+- [x] Using QTofPeakpicker algorithm for AB Sciex data
+- [x] Added a summary at the end of the conversion
+- [x] --dia option has been replaced by -a or --acquisition option, user can tell if the analysis is DDA, DIA or let the converter determine it
+- [x] Better input and output file verification (convert AB Sciex data by calling .wiff or .wiff.scan files, convert Bruker data by calling .d directory)
+
+Bug fixes:
+- [x] Wrong data peak count
+- [x] Algorithm to check DDA/DIA is now working on Thermo, AB Sciex and Bruker analysis
+- [ ] ~~add missing CvTerms~~ (not present in Pwiz Msdata object, neither in converted mzML files)
+- see issues for more informations
+
 ### Release 0.9.8
 
 New features:
@@ -40,16 +80,6 @@ Bug fixes:
 - [ ] ~~add missing CvTerms~~ (not present in Pwiz Msdata object, neither in converted mzML files)
 - see issues for more informations 
 
-### Release 0.9.9
-
-New features:
-- [ ] [MS-Numpress](https://github.com/ms-numpress/ms-numpress) compression algorithm support
-- [ ] Integration of the project with existing msconvert tool
-
-### Next releases
-
-Next will releases will be number 0.9.10 then 0.9.1x until we reach the expected feature coverage of the converter and the required stability.
-
 ## Users
 
 ### Convert vendor raw files into mzDB files
@@ -57,8 +87,7 @@ Next will releases will be number 0.9.10 then 0.9.1x until we reach the expected
 #### Download and setup
 
 * Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.7-beta.1/pwiz_mzdb_0.9.7.zip">zip archive</a>
-* For conversion of Thermo raw files, install the <a href="http://sjsupport.thermofinnigan.com/public/detail.asp?id=703">MSFileReader</a>. It will install all necessary C++ redistribuables.
-* Ensure your regional settings parameters are '.' for the decimal symbol and ',' for the list separator
+* Raw2mzDB has the same requirements as ProteoWizard, otherwise install the following: .NET Framework 3.5 SP1, .NET Framework 4.0, MSVC 2008 SP1 (x86), MSVC 2012, MSVC 2013 (http://proteowizard.sourceforge.net/user_installation_simple.shtml)
 
 #### Command line usage
 
@@ -96,9 +125,10 @@ In order to build with *bjam*:
 * Unzip pwiz-mzdb-lib.zip file (containing project dependencies as static compiled libraries) located in <code>project_root/pwiz_mzdb/mzdb/lib</code> directory. (You can also download it [here](https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.8/pwiz-mzdb-lib.zip) if not exist)
 * Then run the following command from the project root: <br/>
 <code>quickbuild -j8 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses</code>
+* Use --incremental to speed up the compilation process
 
-**raw2mzdb.exe** file is generated in : 
-<code>project_root/build-nt-x86\pwiz_mzdb\msvc-10.0\release\address-model-64\asynch-exceptions-on\build-no\link-static\threading-multi</code>. (TO FIX) If <code>libgflags.dll</code> and <code>libglog.dll</code> files are missing in this directory, copy them from <code>project_root/pwiz_mzdb/mzdb/lib</code>. 
+**raw2mzdb.exe** file is generated in :
+<code>project_root/pwiz_mzdb/target</code>
 
 #### Project structure
 

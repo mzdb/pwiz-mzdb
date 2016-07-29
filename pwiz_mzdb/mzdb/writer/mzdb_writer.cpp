@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-//author marc.dubois@ipbs.fr
+/*
+ * @file mzdb_writer.cpp
+ * @brief Main class to performing the conversion
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
 
 #include "wchar.h"
 #include "string.h"
@@ -25,42 +30,26 @@
 #include "mzdb_writer.hpp"
 #include "version.h"
 
-
 using namespace std;
 using namespace pwiz::msdata;
 
 namespace mzdb {
 
 void mzDBWriter::buildDataEncodingRowByID() {
-    int id = 1;
-    bool hasProfileMode = hasDataMode(PROFILE);
-    
-    if (hasProfileMode && m_mzdbFile.noLoss) {
-        DataEncoding d(-1, PROFILE, NO_LOSS_PEAK);
-        m_dataEncodingByID[id] = d;
-        ++id;
-    } else if (hasProfileMode && ! m_mzdbFile.noLoss) {
-        DataEncoding d(-1, PROFILE, HIGH_RES_PEAK);
-        m_dataEncodingByID[id] = d;
-        ++id;
-    }
-
-    if (hasDataMode(FITTED)) {
-        DataEncoding d1(-1, FITTED, HIGH_RES_PEAK);
-        DataEncoding d2(-1, FITTED, LOW_RES_PEAK);
-        m_dataEncodingByID[id] = d1;
-        ++id;
-        m_dataEncodingByID[id] = d2;
-        ++id;
-    }
-
-    if (hasDataMode(CENTROID)) {
-        DataEncoding d1(-1, CENTROID, HIGH_RES_PEAK);
-        DataEncoding d2(-1, CENTROID, LOW_RES_PEAK);
-        m_dataEncodingByID[id] = d1;
-        ++id;
-        m_dataEncodingByID[id] = d2;
-    }
+    DataEncoding deProfileNoLoss(1, PROFILE, NO_LOSS_PEAK);
+    m_dataEncodings.push_back(deProfileNoLoss);
+    DataEncoding deProfileHighResPeak(2, PROFILE, HIGH_RES_PEAK);
+    m_dataEncodings.push_back(deProfileHighResPeak);
+    DataEncoding deProfileLowResPeak(3, PROFILE, LOW_RES_PEAK);
+    m_dataEncodings.push_back(deProfileLowResPeak);
+    DataEncoding deFittedHighResPeak(4, FITTED, HIGH_RES_PEAK);
+    m_dataEncodings.push_back(deFittedHighResPeak);
+    DataEncoding deFittedLowResPeak(5, FITTED, LOW_RES_PEAK);
+    m_dataEncodings.push_back(deFittedLowResPeak);
+    DataEncoding deCentroidHighResPeak(6, CENTROID, HIGH_RES_PEAK);
+    m_dataEncodings.push_back(deCentroidHighResPeak);
+    DataEncoding deCentroidLowResPeak(7, CENTROID, LOW_RES_PEAK);
+    m_dataEncodings.push_back(deCentroidLowResPeak);
 }
 
 
@@ -395,6 +384,7 @@ void mzDBWriter::createIndexes() {
                          "CREATE INDEX spectrum_bb_first_spectrum_id_idx ON spectrum (bb_first_spectrum_id ASC);"
                          , 0, 0, 0);
     m_mzdbFile.stmt = 0;
+    //LOG(INFO) << "sqlite3_exec return code: '" << r << "'";
     if (r != SQLITE_OK) {
         LOG(WARNING) << "WARNING: could not set up properly table indexes\nPerformance will strongly affected !";
     }
@@ -479,7 +469,9 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
                                      MSDataPtr msdata,
                                      CVID originFileFormat,
                                      map<int, DataMode>& dataModeByMsLevel,
-                                     bool compress):
+                                     string buildDate,
+                                     bool compress,
+                                     bool safeMode):
     m_mzdbFile(f),
     m_dataModeByMsLevel(dataModeByMsLevel),
     m_originFileFormat(originFileFormat),
@@ -488,15 +480,21 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
 
     m_Mode(0),
     m_PreferPeakPickingVendor(true),
+    
+    // store build date
+    m_buildDate(buildDate),
 
     // booleans determining if using compression (generally not a good idea for thermo rawfiles)
     // but interesting when converting Wiff files. swathMode: Enable or disable the swath mode
     m_compress(compress),
     m_swathMode(false),
+    
+    m_safeMode(safeMode),
 
     //various counter
     m_progressionCounter(0),
-    m_emptyPrecCount(0) {
+    m_emptyPrecCount(0),
+    max_ms_level(2) {
 
     //determine spectrumListPtr real type
     pwiz::msdata::SpectrumListPtr spectrumList = m_msdata->run.spectrumListPtr;
@@ -505,7 +503,7 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
 
     //implementation goes here
     m_metadataExtractor = std::move(this->getMetadataExtractor());
-
+    
     this->buildDataEncodingRowByID();
 }
 
@@ -546,6 +544,15 @@ void mzDBWriter::insertMetaData() {
                 UserParam(IS_LOSSLESS_STR, b, XML_BOOLEAN));
     m_mzdbFile.userParams.push_back(
                 UserParam(ORIGIN_FILE_FORMAT_STR, cvTermInfo(this->m_originFileFormat).name, XML_STRING) );
+    // adding a full build version, such as "raw2mzDB 0.9.8 2016-06-03 08:54:16.719122700 +0000"
+    // for some unknown reasons, inserting the date alone will not work as expected and only "2016" will be inserted
+    // it's probably considered as a number until the first non-number character
+    string buildVersion = "raw2mzDB ";
+    buildVersion += SOFT_VERSION_STR;
+    if(!m_buildDate.empty()) {
+        buildVersion += " " + m_buildDate;
+    }
+    m_mzdbFile.userParams.push_back(UserParam(BUILD_VERSION, buildVersion, XML_STRING));
 
     m_mzdbFile.userParams.push_back( this->m_metadataExtractor->getExtraDataAsUserText());
 
@@ -622,12 +629,13 @@ void mzDBWriter::insertMetaData() {
 
     //-----------------------------------------------------------------------------------------------------------
     //DATAENCODING
-    for (auto it = m_dataEncodingByID.begin(); it != m_dataEncodingByID .end(); ++it) {
-        auto dataEncodingRow = it->second;
-        int r = sqlite3_exec(m_mzdbFile.db, dataEncodingRow.buildSQL().c_str(), 0, 0, 0);
-        if (r != SQLITE_OK)
-            LOG(ERROR) << "Error inserting dataEncoding row";
-    }
+    // are now inserted on the fly
+    //for (auto it = m_dataEncodingByID.begin(); it != m_dataEncodingByID .end(); ++it) {
+    //    auto dataEncodingRow = it->second;
+    //    int r = sqlite3_exec(m_mzdbFile.db, dataEncodingRow.buildSQL().c_str(), 0, 0, 0);
+    //    if (r != SQLITE_OK)
+    //        LOG(ERROR) << "Error inserting dataEncoding row";
+    //}
 
     //-----------------------------------------------------------------------------------------------------------
     //SOFTWARE
@@ -1009,56 +1017,155 @@ void mzDBWriter::checkAndFixRunSliceNumberAnId() {
     }
 }
 
+/**
+* @brief checkRequestedDataModes
+* Make sure to use the right data modes and avoid cases where PROFILE data has been requested when input file only contains CENTROID data
+* Note: I can use this function to determine the real MAX_MS value
+*/
+//void mzDBWriter::checkRequestedDataModes(bool safeMode) {
+//    LOG(INFO) << "Check requested data modes";
+//    
+//    pwiz::msdata::SpectrumListPtr spectrumList = m_msdata->run.spectrumListPtr;
+//    int spectrumListSize = spectrumList->size();
+//    std::map<int, DataMode> msLevelsChecked;
+//    bool throwRuntimeError = false;
+//    
+//    // for each spectrum
+//    for (int i = 0; i < spectrumListSize;  ++i) {
+//        pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(i, false);
+//        // get its ms level (usually 1 or 2)
+//        const int& msLevel = spectrum->cvParam(MS_ms_level).valueAs<int>();
+//        // only check once each ms level
+//        if(!msLevelsChecked[msLevel]) {
+//            // get the current mode for this spectrum
+//            DataMode currentMode = spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
+//            //LOG(INFO) << "Found a spectrum at msLevel " << msLevel << "with DataMode " << currentMode;
+//            // get the requested mode for this ms level, if it's not in the map (maybe MS3 data ?) make it a CENTROID
+//            DataMode wantedMode = CENTROID;
+//            if(m_dataModeByMsLevel.find(msLevel) != m_dataModeByMsLevel.end()) {
+//                wantedMode = m_dataModeByMsLevel[msLevel];
+//            } else {
+//                LOG(INFO) << "Unexpected MS level, using CENTROID parameter...";
+//            }
+//            // check if it's possible
+//            if(currentMode == CENTROID && wantedMode != CENTROID) {
+//                if(safeMode) {
+//                    LOG(INFO) << "Safe mode: using CENTROID instead for MSLEVEL " << msLevel;
+//                    m_dataModeByMsLevel[msLevel] = CENTROID;
+//                } else {
+//                    LOG(ERROR) << "Error: MS" << msLevel << " is " << modeToString(currentMode) << " and cannot be turned into " << modeToString(wantedMode);
+//                    // throw the error at the end, so the user can see what he has in the file and adjust parameters
+//                    throwRuntimeError = true;
+//                    //throw runtime_error("Current file contains centroid data that cannot be turned into profile/fitted data");
+//                }
+//            }
+//            // add the ms level to the list of checked ms levels
+//            msLevelsChecked[msLevel] = currentMode;
+//            if(msLevel > max_ms_level)
+//                max_ms_level = msLevel;
+//        }
+//    }
+//    
+//    std::cout << "\nWhat I found :\n";
+//    for (auto it = msLevelsChecked.begin(); it != msLevelsChecked.end(); ++it) {
+//        std::cout << "ms " << it->first << " => current Mode: " << modeToString(it->second) << "\n";
+//    }
+//    
+//    if(throwRuntimeError) {
+//        throw runtime_error("Current file contains centroid data that cannot be turned into profile/fitted data");
+//    }
+//}
 
-bool mzDBWriter::isSwathAcquisition() {
-    LOG(INFO) << "DDA / Swath test...";
+int mzDBWriter::getMaxMsLevel() {
+    return max_ms_level;
+}
 
+/**
+ * @brief isSwathAcquisition
+ * Checks if the current analysis is DIA or DDA (default is DDA)
+ *
+ * How to tell if an analysis is DIA or DDA ?
+ * In case of a DIA analysis, the CVParam MS_isolation_window_target_m_z has to be set
+ * CVParams MS_isolation_window_lower_offset and MS_isolation_window_upper_offset may also be set depending on the file format
+ * DDA analysis may have such information, but they should not be reproducible
+ * In a DIA analysis, all MS/MS for one MS spectrum should have the same targets
+ *
+ */
+void mzDBWriter::isSwathAcquisition() {
+    // do not enter the procedure if the analysis cannot be treated
+    if(m_Mode == 4) {
+        LOG(INFO) << "DDA/DIA detection is not operational for the current file, fallback to DDA mode";
+        return;
+    }
+    
+    LOG(INFO) << "DDA / DIA test";
+    
     pwiz::msdata::SpectrumListPtr spectrumList = m_msdata->run.spectrumListPtr;
     int spectrumListSize = spectrumList->size();
-
-    double lastMz = 0;
-    int ms1CountWithAtLeastNMs2 = 0;
-    int ms2Count = 0;
-    int cycle = 0;
-    bool ms1Found = false;
-
-
-    for (int i = 0; i < spectrumListSize;  ++i) {
-        // do not get binary data (second parameter) in order to be as fast as possible
-        pwiz::msdata::SpectrumPtr ptr = spectrumList->spectrum(i, false);
-        const int& msLevel = ptr->cvParam(MS_ms_level).valueAs<int>();
-
-        if (msLevel == 1) {
-            ++cycle;
-            lastMz = 0;
-            ms2Count = 0;
-            //            if (ms1CountWithAtLeastNMs2 == 20) {
-            //                LOG(INFO) << "Swath Mode detected ! Congrats";
-            //                m_swathMode = true;
-            //                return m_swathMode;
-            //            }
-
-            ms1Found = true;
-        }  else if (msLevel == 2) {
-            const pwiz::msdata::SelectedIon& si = ptr->precursors.front().selectedIons.front();
-            const double& precMz = si.cvParam(pwiz::msdata::MS_selected_ion_m_z).valueAs<double>();
-            ++ms2Count;
-
-            if (ms2Count == 10)
-                ++ms1CountWithAtLeastNMs2;
-
-            if (precMz <= lastMz) { // && ms2Count >= 3) {
-                LOG(INFO) << "DDA Mode detected.";
-                m_swathMode = false;
-                return m_swathMode;
+    
+    size_t nbMS1SpectraToCheck = 10; // 2 should suffice, but 10 is safer
+    size_t nbMS1SpectraChecked = 0;
+    size_t nbDiaLikeMS1Spectra = 0; // at the end, should be equal to nbMS1SpectraToCheck
+    size_t nbSpectraWithoutExpectedCvParams = 0;
+    size_t nbSpectraWithoutExpectedCvParamsToCheck = 100;
+    // reference and candidate values
+    // TODO the list of isolation windows for DIA analysis can be retrieved from here !
+    vector<float> refTargets, cndTargets;
+    
+    for(size_t i = 0; i < spectrumList->size(); i++) {
+        pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(i, false);
+        const int& msLevel = spectrum->cvParam(MS_ms_level).valueAs<int>();
+        if(msLevel == 1) {
+            // do nothing if first or second MS1 (there must be something to compare)
+            if(cndTargets.size() == 0)
+                continue;
+            if(refTargets.size() == 0)
+                refTargets = cndTargets;
+            // compare target and candidates
+            if(contains(refTargets, cndTargets))
+                nbDiaLikeMS1Spectra++;
+            // keep the candidate if it is larger than the reference (a DIA reference was a subset of the candidate, if DDA it doesnt matter if the reference changes)
+            if(refTargets.size() < cndTargets.size()) {
+                refTargets = cndTargets;
             }
-            lastMz = precMz;
+            // reset the candidate
+            cndTargets.clear();
+            // increment the counter
+            nbMS1SpectraChecked++;
+        } else if(msLevel == 2) {
+            // look at all the MS2 spectra for the current MS1 and try to get the target value
+            // there may be more than one precursor on multiplexed data (but this algorithm does not seem to work on multiplexed data anyway)
+            pwiz::msdata::Precursor prec = spectrum->precursors[0];
+            if(prec.hasCVParam(MS_isolation_window_target_m_z)) {
+                cndTargets.push_back(stof(prec.cvParam(MS_isolation_window_target_m_z).value));
+            } else {
+                if(prec.isolationWindow.hasCVParam(MS_isolation_window_target_m_z)) {
+                    cndTargets.push_back(stof(prec.isolationWindow.cvParam(MS_isolation_window_target_m_z).value));
+                } else {
+                    nbSpectraWithoutExpectedCvParams++;
+                }
+            }
         }
-    } // end for
-    LOG(WARNING) << "Not able to detected DDA/SWATH mode: fallbacks to DDA";
-
-    // directly return m_swathMode attribute as it is set to 'false' as default
-    return m_swathMode;
-} // end function
+        if(nbMS1SpectraChecked >= nbMS1SpectraToCheck)
+            break;
+        if(nbSpectraWithoutExpectedCvParams >= nbSpectraWithoutExpectedCvParamsToCheck)
+            break;
+    }
+    // check what has been seen
+    if(nbDiaLikeMS1Spectra == nbMS1SpectraToCheck) {
+        LOG(INFO) << "DIA Mode detected";
+        m_swathMode = true;
+        // print the isolation windows
+        //for(int i = 0; i < refTargets.size() - 1; i++) {
+        //    int windowIndex = i + 1;
+        //    float windowStartMz = refTargets[i];
+        //    float windowSize = refTargets[i+1] - refTargets[i];
+        //    LOG(INFO) << "Swath Window #" << windowIndex <<", Start: " << windowStartMz << ",  Size: " <<  windowSize;
+        //}
+    } else {
+        LOG(INFO) << "DDA Mode detected";
+        m_swathMode = false;
+    }
+}
 
 }//end mzdb namesapce

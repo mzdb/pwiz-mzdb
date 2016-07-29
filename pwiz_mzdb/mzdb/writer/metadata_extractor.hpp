@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-//author marc.dubois@ipbs.fr
+/*
+ * @file metadata_extractor.hpp
+ * @brief interface for extracting metadata, defining the minimum knowledge about on sample
+ * @author Marc Dubois marc.dubois@ipbs.fr
+ * @author Alexandre Burel alexandre.burel@unistra.fr
+ */
 
 #ifndef ABSTRACTMETADATAEXTRACTOR_H
 #define ABSTRACTMETADATAEXTRACTOR_H

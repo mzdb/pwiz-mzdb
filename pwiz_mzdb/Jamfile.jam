@@ -1,119 +1,48 @@
+# the result of the compilation will be put in this folder
+target-folder = target ;
+
+# compile raw2mzDB.cpp into target folder
 exe raw2mzDB
 : raw2mzDB.cpp
 : 
   <include>..
   <library>mzdb/writer
   <library>mzdb/lib/getopt_pp
+  <location>$(target-folder)
 : <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /GAyF" <linkflags>"/LTCG" #default_builds "/Ox /Gy /GA /GF /arch:SSE2 /HEa"  <cxxflags>"/Ox /GLAFy /LTCG /fp:fast" 
 :
 ;
 
-
-#exe mzDB2mzML
-#: mzDB2mzML.cpp
-#: 
-#  <include>..
-#  <library>mzdb/converter
-#  <library>mzdb/lib/getopt_pp
-#: <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default_builds
-#: 
-#;
-
-#exe md5Diff
-#: md5Diff.cpp
-#: <library>raw2mzdb <include>.. <library>../pwiz/data/msdata <library>../pwiz_tools/common #requirements
-#: <cflags>-O2 #default_builds
-#: <library>raw2mzdb <include>.. <library>../pwiz/data/msdata <library>../pwiz_tools/common
-#; 
-
-#exe wave
-#: wave.cpp
-#: <library>raw2mzdb <include>.. 
-#: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default_builds
-#: <library>raw2mzdb <include>.. 
-#;
-
-#exe rtreeBench
-#: rtreeBench.cpp
-#: <library>raw2mzdb <include>.. <library>getopt_pp <library>../pwiz/data/msdata <library>../pwiz_tools/common #requirements
-#: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default_builds
-#: <library>raw2mzdb <include>.. <library>getopt_pp <library>../pwiz/data/msdata <library>../pwiz_tools/common
-#;
-
-#exe runSliceBench
-#: runSliceBench.cpp
-#: <library>raw2mzdb <include>.. <library>getopt_pp <library>../pwiz/data/msdata <library>../pwiz_tools/common #requirements
-#: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default_builds
-#: <library>raw2mzdb <include>.. <library>getopt_pp <library>../pwiz/data/msdata <library>../pwiz_tools/common
-#;
-
+# compile iterationBench.cpp into target folder (why ?)
 exe iterationBench
 : iterationBench.cpp
 : 
 	<include>..
 	<library>mzdb/reader  
 	<library>mzdb/lib/getopt_pp
+	<location>$(target-folder)
 : <toolset>msvc <variant>release <cxxflags>"/Ox /GAyF"
 : 
 ;
 
+# compile regionExtractorBench.cpp into target folder (why ?)
 exe regionExtractorBench
 : regionExtractorBench.cpp
 : 
 	<include>..
 	<library>mzdb/reader  
 	<library>mzdb/lib/getopt_pp
+	<location>$(target-folder)
 : <toolset>msvc <variant>release <cxxflags>"/Ox /GAyF"
 : 
 ;
 
-#exe fitted2profile
-#: fittedToProfileMode.cpp
-#:
-# <include>..
-# <library>mzdb/fitted2Profile
-# <library>mzdb/lib/getopt_pp #requirements
-#: <toolset>msvc <variant>release <cxxflags>"/Ox /Gy /GA /GF" #default_builds
-#:
-#;
+# add missing dll files
+make libgflags.dll : mzdb/lib/libgflags.dll : @common.copy : <location>$(target-folder) ;
+make libglog.dll : mzdb/lib/libglog.dll : @common.copy : <location>$(target-folder) ;
 
-install hello_pwiz_install
-: raw2mzDB
-: <location>. # this puts the executable in this directory 
-;
+# create a file containing the date of compile
+JAMDATE = [ modules.peek : JAMDATE ] ;
+make build.txt : : @make_VERSION : <location>$(target-folder) ;
+actions make_VERSION { @($(STDOUT):E=$(JAMDATE)) > "$(<)" }
 
-
-#install marco_pwiz_install
-#: mzDB2mzML
-#: <location>.
-#;
-
-#install marco_pwiz_2_install
-#: md5Diff
-#: <location>.
-#;
-
-#install marco_pwiz_3_install
-#: wave
-#: <location>.
-#;
-
-#install marco_pwiz_4_install
-#: rtreeBench
-#: <location>.
-#;
-
-#install marco_pwiz_5_install
-#: runSliceBench
-#: <location>.
-#;
-
-install marco_pwiz_6_install
-: iterationBench
-: <location>.
-;
-
-install marco_pwiz_7_install
-: regionExtractorBench
-: <location>.
-;
