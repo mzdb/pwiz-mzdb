@@ -13,30 +13,6 @@ exe raw2mzDB
 :
 ;
 
-# compile iterationBench.cpp into target folder (why ?)
-exe iterationBench
-: iterationBench.cpp
-: 
-	<include>..
-	<library>mzdb/reader  
-	<library>mzdb/lib/getopt_pp
-	<location>$(target-folder)
-: <toolset>msvc <variant>release <cxxflags>"/Ox /GAyF"
-: 
-;
-
-# compile regionExtractorBench.cpp into target folder (why ?)
-exe regionExtractorBench
-: regionExtractorBench.cpp
-: 
-	<include>..
-	<library>mzdb/reader  
-	<library>mzdb/lib/getopt_pp
-	<location>$(target-folder)
-: <toolset>msvc <variant>release <cxxflags>"/Ox /GAyF"
-: 
-;
-
 # add missing dll files
 make libgflags.dll : mzdb/lib/libgflags.dll : @common.copy : <location>$(target-folder) ;
 make libglog.dll : mzdb/lib/libglog.dll : @common.copy : <location>$(target-folder) ;
@@ -46,3 +22,7 @@ JAMDATE = [ modules.peek : JAMDATE ] ;
 make build.txt : : @make_VERSION : <location>$(target-folder) ;
 actions make_VERSION { @($(STDOUT):E=$(JAMDATE)) > "$(<)" }
 
+# TODO delete these files (but it does not work yet because these files are not created at this point !)
+#make raw2mzDB.exe.rsp : : @common.delete : <location>$(target-folder)/raw2mzDB.exe.rsp ;
+#make raw2mzDB.obj : : @common.delete : <location>$(target-folder)/raw2mzDB.obj ;
+#make raw2mzDB.obj.rsp : : @common.delete : <location>$(target-folder)/raw2mzDB.obj.rsp ;

@@ -88,7 +88,7 @@ Bug fixes:
 
 #### Download and setup
 
-* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.7-beta.1/pwiz_mzdb_0.9.7.zip">zip archive</a>
+* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9RC/raw2mzDB_0.9.9RC_build20160629.zip">zip archive</a>
 * Raw2mzDB has the same requirements as ProteoWizard, otherwise install the following: .NET Framework 3.5 SP1, .NET Framework 4.0, MSVC 2008 SP1 (x86), MSVC 2012, MSVC 2013 (http://proteowizard.sourceforge.net/user_installation_simple.shtml)
 
 #### Command line usage
@@ -105,9 +105,28 @@ There are two other available conversion modes:
 * "profile", the command line is then: **raw2mzdb.exe -i \<rawfilename\> -o \<outputfilename\> -p 1** (means you want profile mode for MS1, other MS levels will be stored as they were stored in the raw file)
 * "centroid" : **raw2mzdb.exe -i \<rawfilename\> -o \<outputfilename\> -c 1** (means you want centroid mode for MS1, other MS levels will be stored as they were stored in the raw file)
 
-### Convert vendor mzDB files into mzML files
+**Complete list of parameters:**
 
-TODO
+```
+usage: raw2mzDB.exe --input filename <parameters>
+
+Options:
+
+	-i, --input : specify the input rawfile path
+	-o, --output : specify the output filename (must be an absolute path)
+	-c, --centroid : centroidization, eg: -c 1 (centroidization msLevel 1) or -c 1-5 (centroidization msLevel 1 to msLevel 5) 
+	-p, --profile : idem but for profile mode 
+	-f, --fitted : idem buf for fitted mode 
+	-T, --bbTimeWidth : bounding box width for ms1 in seconds, default: 15s
+	-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s
+	-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da 
+	-m, --bbMzWidthMSn : bounding box height for msn in Da, default: 10000Da 
+	-a, --acquisition : dda, dia or auto (converter will try to determine if the analysis is DIA or DDA), default: auto
+	--no_loss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)
+ 	--cycles : only convert the selected range of cycles, eg: 1-10 (first ten cycles) or 10- (from cycle 10 to the end) ; using this option will disable progress information
+	-s, --safe_mode : use centroid mode if the requested mode is not available
+	-h --help : show help
+```
 
 ## Developers
 
@@ -125,9 +144,10 @@ After installing Visual Studio, check following points :
 
 In order to build with *bjam*:
 * Unzip pwiz-mzdb-lib.zip file (containing project dependencies as static compiled libraries) located in <code>project_root/pwiz_mzdb/mzdb/lib</code> directory. (You can also download it [here](https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.8/pwiz-mzdb-lib.zip) if not exist)
-* Then run the following command from the project root: <br/>
-<code>quickbuild -j8 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses</code>
-* Use --incremental to speed up the compilation process
+* Then run the script *raw2mzDB_quickbuild.bat* from the project root
+* Or else, run the following command from the project root: <br/>
+<code>quickbuild -j8 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses --incremental</code>
+* *--incremental* is not mandatory but it speeds up the compilation process
 
 **raw2mzdb.exe** file is generated in :
 <code>project_root/pwiz_mzdb/target</code>
