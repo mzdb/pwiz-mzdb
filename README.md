@@ -18,7 +18,7 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 
 ## Roadmap
 
-Current stable version is 0.9.7.
+Current stable version is 0.9.7.<br/>
 Last available version is 0.9.9, consider it a Release Candidate.
 
 ### Release 0.9.10
