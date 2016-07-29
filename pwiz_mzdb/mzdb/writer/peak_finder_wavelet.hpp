@@ -63,10 +63,10 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
             const pair<double, double> baselineNoise = mzPeakFinderUtils::getBaselineAndNoise(ints);
             params.baseline = baselineNoise.first;
             params.noise = baselineNoise.second;
-        } catch (exception& e) {
+        //} catch (exception& e) {
             // failed to compute baseline and noise, using default values (no need to log this)
             //printf("Spectrum '%s' exception: %s\n", spectrum->id.c_str(), e.what());
-        }
+        } catch(...) {}
     }
 
     // TODO check if centroiding is ok
