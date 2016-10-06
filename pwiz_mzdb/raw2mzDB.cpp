@@ -386,9 +386,9 @@ int main(int argc, char* argv[]) {
                   "\t-a, --acquisition : dda, dia or auto (converter will try to determine if the analysis is DIA or DDA), default: auto\n"
                   //"\t--bufferSize : low value (min 2) will enforce the program to use less memory (max 50), default: 3\n"
                   // "\t--max_nb_threads : maximum nb_threads to use, default: nb processors on the machine\n"
-                  "\t--no_loss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
+                  "\t--noLoss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
                   "\t--cycles : only convert the selected range of cycles, eg: 1-10 (first ten cycles) or 10- (from cycle 10 to the end) ; using this option will disable progress information\n"
-                  "\t-s, --safe_mode : use centroid mode if the requested mode is not available\n"
+                  "\t-s, --safeMode : use centroid mode if the requested mode is not available\n"
                   "\t-h --help : show help";
 
 
@@ -404,9 +404,9 @@ int main(int argc, char* argv[]) {
     //ops >> Option('s', "serialize", serialization);
     ops >> Option('o', "output", outputFileName);
     ops >> Option('n', "cycles", cycleRangeStr);
-    ops >> OptionPresent("no_loss", noLoss);
+    ops >> OptionPresent("noLoss", noLoss);
     ops >> Option('a', "acquisition", acquisitionMode);
-    ops >> OptionPresent('s', "safe_mode", safeMode);
+    ops >> OptionPresent('s', "safeMode", safeMode);
 
     //std::cout << "dia:" << dia << std::endl;
     //ops >> Option("ppm", ppm);
