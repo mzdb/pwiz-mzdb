@@ -30,7 +30,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#define  GLOG_NO_ABBREVIATED_SEVERITIES
+// this is needed especially on Windows because windows.h already defines an ERROR security level
+// so this command needs to be called before windows.h and glog/logging.h
+#define GLOG_NO_ABBREVIATED_SEVERITIES
 
 #ifdef _WIN32
 #include <share.h>
@@ -68,32 +70,32 @@ namespace fs = boost::filesystem;
  * it has been added when Andrea Kalaitzakis and Veronique Dupierris asked for a way to check on the fly if all required dlls are loaded
  * in order to tell the end user which dll is missing (or even better, which software should be installed)
  */
-int PrintModules(DWORD processID) {
-    HMODULE hMods[1024];
-    HANDLE hProcess;
-    DWORD cbNeeded;
-
-    // Print the process identifier.
-    printf("\nProcess ID: %u\n", processID);
-    // Get a handle to the process.
-    hProcess = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID );
-    if (NULL == hProcess) return 1;
-
-    // Get a list of all the modules in this process.
-    if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded)) {
-        for (unsigned int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
-            TCHAR szModName[MAX_PATH];
-            // Get the full path to the module's file.
-            if (GetModuleFileNameEx(hProcess, hMods[i], szModName, sizeof(szModName) / sizeof(TCHAR))) {
-                // Print the module name and handle value.
-                _tprintf(TEXT("\t%s (0x%08X)\n"), szModName, hMods[i]);
-            }
-        }
-    }
-    // Release the handle to the process.
-    CloseHandle(hProcess);
-    return 0;
-}
+//int PrintModules(DWORD processID) {
+//    HMODULE hMods[1024];
+//    HANDLE hProcess;
+//    DWORD cbNeeded;
+//
+//    // Print the process identifier.
+//    printf("\nProcess ID: %u\n", processID);
+//    // Get a handle to the process.
+//    hProcess = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID );
+//    if (NULL == hProcess) return 1;
+//
+//    // Get a list of all the modules in this process.
+//    if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded)) {
+//        for (unsigned int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
+//            TCHAR szModName[MAX_PATH];
+//            // Get the full path to the module's file.
+//            if (GetModuleFileNameEx(hProcess, hMods[i], szModName, sizeof(szModName) / sizeof(TCHAR))) {
+//                // Print the module name and handle value.
+//                _tprintf(TEXT("\t%s (0x%08X)\n"), szModName, hMods[i]);
+//            }
+//        }
+//    }
+//    // Release the handle to the process.
+//    CloseHandle(hProcess);
+//    return 0;
+//}
 
 /// Warning, calling this function will delete a previous mzdb file.
 int deleteIfExists(const string &filename) {
@@ -330,7 +332,7 @@ int main(int argc, char* argv[]) {
     // list of loaded dlls
     //PrintModules(GetCurrentProcessId());
 
-    //google::InitGoogleLogging(argv[0]);
+    google::InitGoogleLogging(argv[0]); // set this on to allow logging options (such as writting logs to a file)
     //FLAGS_logbufsecs = 0; // DEBUG ONLY !! use this to print log messages instantly, it will probably slow everything... (does not seem to work...)
 
 //    #ifdef _WIN32
@@ -339,6 +341,7 @@ int main(int argc, char* argv[]) {
 //        _set_se_translator(trans_func);
 //    #endif
     string filename = "", centroid = "", profile = "", fitted = "", outputFileName = "", serialization = "xml", cycleRangeStr="";
+    string logToWhat = "";
     bool compress = false;
     //double ppm = 20.0;
 
@@ -389,6 +392,7 @@ int main(int argc, char* argv[]) {
                   "\t--noLoss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
                   "\t--cycles : only convert the selected range of cycles, eg: 1-10 (first ten cycles) or 10- (from cycle 10 to the end) ; using this option will disable progress information\n"
                   "\t-s, --safeMode : use centroid mode if the requested mode is not available\n"
+                  "\t--log : console, file or both (log file will be put in the same directory as the output file), default: console\n"
                   "\t-h --help : show help";
 
 
@@ -403,11 +407,12 @@ int main(int argc, char* argv[]) {
     ops >> Option('m', "bbMzWidthMSn", bbHeightMSn);
     //ops >> Option('s', "serialize", serialization);
     ops >> Option('o', "output", outputFileName);
+    ops >> Option("log", logToWhat);
     ops >> Option('n', "cycles", cycleRangeStr);
     ops >> OptionPresent("noLoss", noLoss);
     ops >> Option('a', "acquisition", acquisitionMode);
     ops >> OptionPresent('s', "safeMode", safeMode);
-
+    
     //std::cout << "dia:" << dia << std::endl;
     //ops >> Option("ppm", ppm);
     //ops >> Option("bufferSize", nbCycles);
@@ -442,6 +447,29 @@ int main(int argc, char* argv[]) {
 
     // check output file name, use input file name if missing, make sure to have the right extension, delete former file if any
     checkOutputFile(outputFileName, filename);
+
+    // where should logs be written
+    if(boost::to_upper_copy(logToWhat) == "FILE" || boost::to_upper_copy(logToWhat) == "BOTH") {
+        // write logs to a file in the same directory as the output file
+        // Default log file format is based on this (cf. glog/logging.h.in:270)
+        // Unless otherwise specified, logs will be written to the filename
+        // "<program name>.<hostname>.<user name>.log.<severity level>.", followed
+        // by the date, time, and pid (you can't prevent the date, time, and pid
+        // from being in the filename).
+        FLAGS_logtostderr = 0;
+        // write to file and to console
+        if(boost::to_upper_copy(logToWhat) == "BOTH") {
+            FLAGS_alsologtostderr = 1;
+        }
+        // log file has the name of the input file, but is stored in the output directory
+        fs::path output(outputFileName);
+        string logFile = fs::absolute(output).parent_path().string() + "/" + filename;
+        google::SetLogDestination(google::GLOG_INFO, logFile.c_str()); // first parameter means that all levels from FATAL to INFO will be put in the given file
+        google::SetLogFilenameExtension(".log."); // date, time, and pid will be appended to the extension (and this cannot be modified in the glog library)
+    } else {
+        // write logs to standard and error outputs
+        FLAGS_logtostderr = 1;
+    }
 
     //--- overriding default encoding to `fitted` for DIA mslevel 2
     if(boost::to_upper_copy(acquisitionMode) == "DIA") {
