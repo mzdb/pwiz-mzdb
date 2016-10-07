@@ -451,7 +451,7 @@ int main(int argc, char* argv[]) {
     // where should logs be written
     if(boost::to_upper_copy(logToWhat) == "FILE" || boost::to_upper_copy(logToWhat) == "BOTH") {
         // write logs to a file in the same directory as the output file
-        // Default log file format is based on this (cf. glog/logging.h.in:270)
+        // Default log file format is based on this (cf. glog/logging.h.in:260)
         // Unless otherwise specified, logs will be written to the filename
         // "<program name>.<hostname>.<user name>.log.<severity level>.", followed
         // by the date, time, and pid (you can't prevent the date, time, and pid
@@ -461,9 +461,9 @@ int main(int argc, char* argv[]) {
         if(boost::to_upper_copy(logToWhat) == "BOTH") {
             FLAGS_alsologtostderr = 1;
         }
-        // log file has the name of the input file, but is stored in the output directory
+        // log file has the name of the output file and is stored in the output directory
         fs::path output(outputFileName);
-        string logFile = fs::absolute(output).parent_path().string() + "/" + filename;
+        string logFile = fs::absolute(output).parent_path().string() + "/" + output.stem().string(); // stem() returns the name of the file without its path and extension
         google::SetLogDestination(google::GLOG_INFO, logFile.c_str()); // first parameter means that all levels from FATAL to INFO will be put in the given file
         google::SetLogFilenameExtension(".log."); // date, time, and pid will be appended to the extension (and this cannot be modified in the glog library)
     } else {
