@@ -112,9 +112,18 @@ public:
                 mzPeakFinderZeroBounded::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
                 break;
             }
+            case pwiz::msdata::MS_Bruker_BAF_format : {
+                // same as default mode, but always recentroid spectra
+                detectPeaks = true; // re-detect peaks anyway because the default algorithm is not efficient enough
+                peakPickerParams.adaptiveBaselineAndNoise = true;
+                peakPickerParams.optimizationOpt = mzPeakFinderUtils::NO_OPTIMIZATION;
+                peakPickerParams.minSNR = 0.0;
+                peakPickerParams.fwhm = TOF_FWHM;
+                mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
+                break;
+            }
             default: {
-                //if(originalMode != CENTROID && (spectrum->getIntensityArray()->data.size() == centroids.size() || centroids.size() == 0)) detectPeaks = true;
-                //if(wantedMode == CENTROID) computeFWHM = false;
+                // FIXME mzML files will use fall into this case, instead of their original mode
                 peakPickerParams.adaptiveBaselineAndNoise = true;
                 peakPickerParams.optimizationOpt = mzPeakFinderUtils::NO_OPTIMIZATION;
                 peakPickerParams.minSNR = 0.0;

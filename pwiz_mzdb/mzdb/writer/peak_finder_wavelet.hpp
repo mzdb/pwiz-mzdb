@@ -70,14 +70,15 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
     }
 
     // TODO check if centroiding is ok
-    // TODO add the detectPeaks condition anyway
     //---copy data du non corresponding template parameters ! TODO: how to change this
     const vector<mz_t> mzBuffer(mzs.begin(), mzs.end());
     const vector<int_t> intBuffer(ints.begin(), ints.end());
     DataPointsCollection<mz_t, int_t> spectrumData(mzBuffer, intBuffer, spectrum);
 
     //---detectPeaks using CWT, SNR filtered ( snr taken from params.minSNR )
-    spectrumData._detectPeaksCWT(params);
+    if(detectPeaks) {
+        spectrumData._detectPeaksCWT(params);
+    }
     
     // optimize the new centroids and if requested calculate the FWHM values
     vector<std::shared_ptr<Centroid<mz_t, int_t> > > optimizedCentroids;

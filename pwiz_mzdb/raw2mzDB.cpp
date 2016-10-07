@@ -495,31 +495,6 @@ int main(int argc, char* argv[]) {
 
     pair<int, int> cycleRange = parseCycleRange(cycleRangeStr);
 
-    //---print gathered informations
-    std::stringstream summary;
-    summary << "\n\n************ Summary of the parameters ************\n\n";
-    summary << "Treating file: " << filename << "\n";
-    for (auto it = dataModeByMsLevel.begin(); it != dataModeByMsLevel.end(); ++it) {
-        summary << "ms " << it->first << " => selected Mode: " << modeToString(it->second) << "\n";
-    }
-    
-    if(cycleRange.first > 1 || cycleRange.second != 0) {
-        summary << "Converting cycles from ";
-        if(cycleRange.first == 0) summary << "first"; else summary << "#" << cycleRange.first;
-        summary << " to ";
-        if(cycleRange.second == 0) summary << "last"; else summary << "#" << cycleRange.second;
-        summary << "\n";
-    }
-    summary << "\n";
-
-    summary << "Bounding box dimensions:\n";
-    summary << "MS 1\t" << "m/z: " << bbHeight << " Da, retention time: " << bbWidth << "sec\n";
-    summary << "MS n\t" << "m/z: " << bbHeightMSn << " Da, retention time: " << bbWidthMSn << "sec\n";
-
-    summary << "\n";
-    LOG(INFO) << summary.str();
-    //end parsing commandline
-
     //--- Starting launching code
     //create a mzDBFile
     MzDBFile f(filename, outputFileName, bbHeight, bbHeightMSn, bbWidth, bbWidthMSn, noLoss);
@@ -541,6 +516,31 @@ int main(int argc, char* argv[]) {
 
     auto& msData = msdList[0];
     auto originFileFormat = pwiz::msdata::identifyFileFormat(readers, f.name);
+
+    //---print gathered informations
+    std::stringstream summary;
+    summary << "\n\n************ Summary of the parameters ************\n\n";
+    summary << "Treating file: " << filename << " (" << pwiz::msdata::cvTermInfo(originFileFormat).name << ")\n";
+    for (auto it = dataModeByMsLevel.begin(); it != dataModeByMsLevel.end(); ++it) {
+        summary << "ms " << it->first << " => selected Mode: " << modeToString(it->second) << "\n";
+    }
+    
+    if(cycleRange.first > 1 || cycleRange.second != 0) {
+        summary << "Converting cycles from ";
+        if(cycleRange.first == 0) summary << "first"; else summary << "#" << cycleRange.first;
+        summary << " to ";
+        if(cycleRange.second == 0) summary << "last"; else summary << "#" << cycleRange.second;
+        summary << "\n";
+    }
+    summary << "\n";
+
+    summary << "Bounding box dimensions:\n";
+    summary << "MS 1\t" << "m/z: " << bbHeight << " Da, retention time: " << bbWidth << "sec\n";
+    summary << "MS n\t" << "m/z: " << bbHeightMSn << " Da, retention time: " << bbWidthMSn << "sec\n";
+
+    summary << "\n";
+    LOG(INFO) << summary.str();
+    //end parsing commandline
 
     // TODO add a check on the content of the raw file
     // make sure right now that dataModeByMsLevel is correct
