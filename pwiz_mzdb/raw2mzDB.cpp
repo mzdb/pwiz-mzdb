@@ -287,8 +287,11 @@ void checkInputFile(std::string &inputFileName, const string& help) {
             // TODO what about Agilent files ?
             if(fileExists(inputFileName + "/analysis.baf", false, help)) {
                 inputFileName = inputFileName + "/analysis.baf"; // Bruker file format
-            //} else if(fileExists(inputFileName + "/Analysis.yep", false, help)) {
-            //    inputFileName = inputFileName + "/Analysis.yep"; // Bruker file format
+            // MS_Bruker_Agilent_YEP_format generates a runtime error !
+            } else if(fileExists(inputFileName + "/Analysis.yep", false, help)) {
+                // inputFileName = inputFileName + "/Analysis.yep"; // Bruker file format
+                LOG(ERROR) << "Bruker YEP format is not supported. Exiting.";
+                exit(EXIT_FAILURE);
             }
         //} else if(std::regex_match(lc_inputFileName, std::regex(".*\\.raw$"))) {
         //    // else if Waters raw folder ?
@@ -449,6 +452,7 @@ int main(int argc, char* argv[]) {
     checkOutputFile(outputFileName, filename);
 
     // where should logs be written
+    string logFile = "";
     if(boost::to_upper_copy(logToWhat) == "FILE" || boost::to_upper_copy(logToWhat) == "BOTH") {
         // write logs to a file in the same directory as the output file
         // Default log file format is based on this (cf. glog/logging.h.in:260)
@@ -463,11 +467,11 @@ int main(int argc, char* argv[]) {
         }
         // log file has the name of the output file and is stored in the output directory
         fs::path output(outputFileName);
-        string logFile = fs::absolute(output).parent_path().string() + "/" + output.stem().string(); // stem() returns the name of the file without its path and extension
+        logFile = fs::absolute(output).parent_path().string() + "/" + output.stem().string(); // stem() returns the name of the file without its path and extension
         google::SetLogDestination(google::GLOG_INFO, logFile.c_str()); // first parameter means that all levels from FATAL to INFO will be put in the given file
-        google::SetLogFilenameExtension(".log."); // date, time, and pid will be appended to the extension (and this cannot be modified in the glog library)
+        google::SetLogFilenameExtension("-"); // date, time, and pid will be appended to the extension (and this cannot be modified in the glog library)
     } else {
-        // write logs to standard and error outputs
+        // write logs to error output (GLOG does not write on standard output, but why ???)
         FLAGS_logtostderr = 1;
     }
 
@@ -607,9 +611,39 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-   clock_t endTime = clock();
-   LOG(INFO) << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl;
+    clock_t endTime = clock();
+    LOG(INFO) << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl;
 
+    /*
+     * Piece of code written to rename the log file (if any)
+     * The log file format is "<output_filename>-<yyyymmdd>-<hhmmss>.<pid>" and it's not convenient for Windows users so I just add ".txt"
+     */ 
+    try {
+        if(FLAGS_logtostderr == 0) {
+            google::SetLogDestination(google::GLOG_INFO, ""); // write logs to another file to unlock the current log file
+            fs::path log(logFile);
+            string pid = boost::lexical_cast<std::string>(GetCurrentProcessId());
+            string searchTerm = log.filename().string()+".*"+pid;
+            const std::regex filter(searchTerm.c_str());
+            boost::filesystem::directory_iterator end_itr;
+            for(boost::filesystem::directory_iterator i(log.parent_path()); i != end_itr; ++i) {
+                // Skip if not a file
+                if( !boost::filesystem::is_regular_file( i->status() ) ) continue;
+                // rename if file matches the regex
+                fs::path fd(i->path());
+                if(std::regex_match(fd.filename().string().c_str(), filter)) {
+                    fs::path renamedLogFile(fd.string() + ".txt");
+                    //printf("Renaming log file '%s' to '%s'\n", i->path().string().c_str(), renamedLogFile.string().c_str());
+                    boost::filesystem::rename(i->path(), renamedLogFile);
+                }
+            }
+        }
+    } catch(exception& e) {
+        printf(e.what());
+        printf("\n");
+    } catch(...) {
+        printf("Unknown error\n");
+    }
 
     return 0;
 }

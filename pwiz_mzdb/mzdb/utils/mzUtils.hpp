@@ -352,6 +352,11 @@ inline void checkCycleNumber(pwiz::msdata::CVID filetype, string spectrumTitle, 
 /**
  * Get simple activation code as string for pwiz ``Activation`` object.
  * -HCD, CID, ETD
+ * 
+ * Warning: the current version of ProteoWizard does not handle well ETD metadata
+ * cf. https://sourceforge.net/p/proteowizard/mailman/message/35141275/
+ * "Some work was done a while ago to get better activation energy for HCD, but we never even got into ETD"
+ * It means that ETD analyses will get considered like CID :(
  *
  * @param a pwiz activation object contained in _pwiz precursor_ object
  * @return string representing activation to be inserted in the database
@@ -359,14 +364,18 @@ inline void checkCycleNumber(pwiz::msdata::CVID filetype, string spectrumTitle, 
 static inline string getActivationCode(const pwiz::msdata::Activation& a) {
     if (a.empty())
         return EMPTY_STR;
+    /// CID (collision-induced dissociation): The dissociation of an ion after collisional excitation. The term collisional-activated dissociation is not recommended.
     if (a.hasCVParam(pwiz::msdata::MS_CID) && ! a.hasCVParam(pwiz::msdata::MS_ETD))
         return CID_STR;
+    /// ETD (electron transfer dissociation): A process to fragment ions in a mass spectrometer by inducing fragmentation of cations (e.g. peptides or proteins) by transferring electrons to them.
     else if (a.hasCVParam(pwiz::msdata::MS_ETD)) //electron_transfer_dissociation))
         return ETD_STR;
+    /// HCD (beam-type collision-induced dissociation): A collision-induced dissociation process that occurs in a beam-type collision cell.
     else if (a.hasCVParam(pwiz::msdata::MS_HCD)) //MS_high_energy_collision_induced_dissociation))
         return HCD_STR;
-     else
+    else
         return UNKNOWN_STR;
+    
 }
 
 
