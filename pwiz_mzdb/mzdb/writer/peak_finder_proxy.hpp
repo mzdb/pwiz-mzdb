@@ -76,7 +76,7 @@ private:
 public:
 
     inline mzPeakFinderProxy() {}
-
+    
     template<class mz_t, class int_t> static void computeCentroidsWidths(const pwiz::msdata::SpectrumPtr &spectrum,
                                                                          vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids,
                                                                          pwiz::msdata::CVID fileType,
@@ -87,7 +87,7 @@ public:
             LOG(ERROR) << "Call to computeCentroidsWidths with a null spectrum";
             return;
         }
-
+    
         bool detectPeaks = detectPeaksAgain<mz_t, int_t>(spectrum, centroids); // true means that peaks must be (re)centroided, false means that we use the vendors' centroids
         bool computeFWHM = computeFullWidthAtHalfMaximum(wantedMode); // true means that FWHM must be calculated, false means that we want centroid peaks only
         switch (fileType) {
@@ -97,11 +97,13 @@ public:
                 break;
             }
             case pwiz::msdata::MS_Thermo_RAW_format : {
+                // detectPeaks should always be false here
                 peakPickerParams.adaptiveBaselineAndNoise = false;
                 peakPickerParams.noise = 0;
                 peakPickerParams.baseline = 0;
                 peakPickerParams.minSNR = 0;
-                mzPeakFinderZeroBounded::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
+                //mzPeakFinderZeroBounded::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
+                mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
                 break;
             }
             case pwiz::msdata::MS_Bruker_BAF_format : {
