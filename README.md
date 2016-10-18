@@ -19,7 +19,8 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 ## Roadmap
 
 Current stable version is 0.9.7.<br/>
-Last available version is 0.9.9, consider it a Release Candidate.
+Last available version is 0.9.9, consider it a Release Candidate (binaries will be uploaded on github once this version is considered stable).
+
 
 ### Next release 0.9.10
 
@@ -79,7 +80,7 @@ Improvements
 
 Bug fixes:
 - [x] Wrong encoding for HCD spectra (32 instead of 64 bits)
-- see issues for more informations 
+- See fixed [issues](https://github.com/mzdb/pwiz-mzdb/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed) for more information
 
 ## Users
 
