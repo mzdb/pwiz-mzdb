@@ -32,7 +32,7 @@
 
 
 #include "../utils/mzUtils.hpp"
-#include "peak_finder_zero_bounded.hpp"
+//#include "peak_finder_zero_bounded.hpp"
 #include "peak_finder_tof.hpp"
 #include "peak_finder_wavelet.hpp"
 

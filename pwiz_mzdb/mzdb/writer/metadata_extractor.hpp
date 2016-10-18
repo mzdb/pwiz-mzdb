@@ -62,6 +62,7 @@ public:
     /// Important function to determine resolution of a spectra. It will
     /// determine the encoding mode of its mzs, intensities
     virtual bool isInHighRes(pwiz::msdata::SpectrumPtr) = 0;
+    virtual bool isInHighRes(pwiz::msdata::SpectrumPtr, bool isNoLoss) = 0;
 
     /// Suppose to return the lowest mz observed during the run
     virtual inline double getLowMass() = 0;
@@ -93,6 +94,9 @@ public:
 
     virtual inline bool isInHighRes(pwiz::msdata::SpectrumPtr s) {
         return static_cast<Derived*>(this)->isInHighRes(s);
+    }
+    virtual inline bool isInHighRes(pwiz::msdata::SpectrumPtr s, bool isNoLoss) {
+        return static_cast<Derived*>(this)->isInHighRes(s, isNoLoss);
     }
 
     virtual inline double getLowMass() {
@@ -126,6 +130,13 @@ public:
     }
 
     virtual inline bool isInHighRes(pwiz::msdata::SpectrumPtr p) {
+        if (p->hasCVParam(pwiz::msdata::MS_MSn_spectrum))
+            return false;
+        return true;
+    }
+    virtual inline bool isInHighRes(pwiz::msdata::SpectrumPtr p, bool isNoLoss) {
+        if(isNoLoss)
+            return true;
         if (p->hasCVParam(pwiz::msdata::MS_MSn_spectrum))
             return false;
         return true;
@@ -179,6 +190,9 @@ class mzABSciexMetadataExtractor : public mzAbstractMetadataExtractor< mzABSciex
     /// It is true for triple TOF but not for the others
     ///  TODO: check ?
     virtual inline bool isInHighRes(pwiz::msdata::SpectrumPtr p) {
+        return true;
+    }
+    virtual inline bool isInHighRes(pwiz::msdata::SpectrumPtr p, bool isNoLoss) {
         return true;
     }
 
@@ -314,6 +328,9 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
 
     /**
      * Check if _FTMS_ exists in scan cvParams.
+     * FTMS: Fourier Transform Mass Spectrometry => high resolution
+     * ITMS: Ion Trap Mass Spectrometry => low resolution
+     * This function is called in dda_producer.h and swath_producer.h
      *
      * @param p
      * @return boolean true if is in high resolution false otherwise
@@ -322,6 +339,11 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
         const std::string& scanparam = p->scanList.scans[0].cvParam(pwiz::msdata::MS_filter_string).value;
         bool highRes = (scanparam.find("FTMS") != std::string::npos) ? true : false;
         return highRes;
+    }
+    virtual inline bool isInHighRes(pwiz::msdata::SpectrumPtr p, bool isNoLoss) {
+        if(isNoLoss)
+            return true;
+        return isInHighRes(p);
     }
 
     /* return default values ?*/

@@ -329,7 +329,7 @@ public:
         if ( optimizationOpt == mzPeakFinderUtils::NO_OPTIMIZATION) {
             optimizedCentroids = inputCentroids;
         }
-        //--- optimize all detected peak 's  width and intensity
+        //--- optimize all detected peak's width and intensity
         else if ( optimizationOpt == mzPeakFinderUtils::GAUSS_OPTIMIZATION ) {
             ProblemSolver<mz_t, int_t> problem(this->mzData, this->intData, inputCentroids);
             problem.solve(optimizedCentroids);

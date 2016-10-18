@@ -79,6 +79,9 @@ private:
     
     /// DataMode for each MS level
     map<int, DataMode> m_dataModeByMsLevel;
+    
+    /// true if user specifically asked to store data with double variables
+    bool isNoLoss;
 
     /**
      * @brief _peakPickAndPush
@@ -208,7 +211,7 @@ public:
             auto& bbRtWidthBound = bbRtWidth[msLevel];
             const float rt = PwizHelper::rtOf(spectrum);
             if(rt == 0) LOG(ERROR) << "Can not find RT for spectrum " << spectrum->id;
-            bool isInHighRes = this->isInHighRes(spectrum);
+            bool isInHighRes = this->isInHighRes(spectrum, isNoLoss);
             bool added = false;
 
             //get a reference to the unique pointer corresponding to the current mslevel
@@ -271,6 +274,7 @@ public:
                    bool safeMode):
         QueueingPolicy(queue),
         MetadataExtractionPolicy(mzdbFile.name),
+        isNoLoss(mzdbFile.isNoLoss()), 
         m_peakPicker(dataModeByMsLevel, safeMode),
         m_dataModeByMsLevel(dataModeByMsLevel) {
         }

@@ -32,7 +32,6 @@
 #include "../../utils/mzUtils.hpp"
 #include "peak.hpp"
 
-
 using namespace std;
 
 namespace mzdb {
@@ -232,15 +231,15 @@ public:
             if (p.first == 1) {
                 // high res mode
                 if (dm == FITTED)
-                    insertFittedToBinaryVector<h_mz_t, h_int_t>(v, idx, *_highResPeaksByScanIDs);
+                    insertFittedToBinaryVector<h_mz_t, h_int_t>(v, idx, *_highResPeaksByScanIDs, true);
                 else
-                    insertCentroidToBinaryVector<h_mz_t, h_int_t>(v, idx, *_highResPeaksByScanIDs);
+                    insertCentroidToBinaryVector<h_mz_t, h_int_t>(v, idx, *_highResPeaksByScanIDs, true);
             } else {
                 // low res mode
                 if (dm == FITTED)
-                    insertFittedToBinaryVector<l_mz_t, l_int_t>(v, idx, *_lowResPeaksByScanIDs);
+                    insertFittedToBinaryVector<l_mz_t, l_int_t>(v, idx, *_lowResPeaksByScanIDs, false);
                 else
-                    insertCentroidToBinaryVector<l_mz_t, l_int_t>(v, idx, *_lowResPeaksByScanIDs);
+                    insertCentroidToBinaryVector<l_mz_t, l_int_t>(v, idx, *_lowResPeaksByScanIDs, false);
             }
         }
     }
@@ -251,19 +250,25 @@ public:
      * @param v: output byte vector
      * @param idx: scanID
      * @param w scanID, peaks
+     * @param isInHighRes true if high res
      *
      * @see asByteArray
      */
     template<typename mz_t, typename int_t>
     inline static void insertCentroidToBinaryVector(vector<byte>& v, int idx,
-                                                    map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& w)  {
+                                                    map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& w, bool isInHighRes)  {
 
         auto& peaks = w[idx];
         put<int>(idx, v);
         put<int>(peaks.size(), v);
         for (size_t j = 0; j < peaks.size(); ++j) {
             Centroid<mz_t, int_t>& p_ = *(peaks[j]);
-            put<mz_t>(p_.mz, v);
+            // instead of abstract type mz_t, force correct type double or float
+            //put<mz_t>(p_.mz, v);
+            if(isInHighRes)
+                put<double>(p_.mz, v);
+            else
+                put<float>(p_.mz, v);
             put<int_t>(p_.intensity, v);
         }
     }
@@ -274,18 +279,24 @@ public:
      * @param v: output byte vector
      * @param idx  scanID
      * @param w map scanID, peaks
+     * @param isInHighRes true if high res
      *
      * @see asByteArray
      */
     template<typename mz_t, typename int_t>
     inline static void insertFittedToBinaryVector(vector<byte>& v, int idx,
-                                                  map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& w) {
+                                                  map<int, vector<std::shared_ptr<Centroid<mz_t, int_t> > > >& w, bool isInHighRes) {
         auto& peaks = w[idx];
         put<int>(idx, v);
         put<int>(peaks.size(), v);
         for (size_t j = 0; j < peaks.size(); ++j) {
             Centroid<mz_t, int_t>& p_ = *(peaks[j]);
-            put<mz_t>(p_.mz, v);
+            // instead of abstract type mz_t, force correct type double or float
+            //put<mz_t>(p_.mz, v);
+            if(isInHighRes)
+                put<double>(p_.mz, v);
+            else
+                put<float>(p_.mz, v);
             put<int_t>(p_.intensity, v);
             put<float>(p_.lwhm, v);
             put<float>(p_.rwhm, v);

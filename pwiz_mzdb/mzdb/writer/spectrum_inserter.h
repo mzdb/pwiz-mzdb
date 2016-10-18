@@ -65,16 +65,9 @@ private:
     /// null if not a wiff file
     pwiz::vendor_api::ABI::WiffFilePtr mWiffFile;
 
-    /// map mslevel dataMode
-    /// @see DataMode
-    //map<int, DataMode>& mDataModeByMsLevel;
-
-    /// map db id, DataEncoding, useful to retrieve db data encoding id
+    /// vector of DataEncoding items, used items will be inserted to the mzDB file
     /// @see DataEncoding
-    //map<int, DataEncoding>& mDataEncodingByID;
-    
     vector<DataEncoding> mDataEncodings;
-    
 
     // map of original modes per msLevel (what mode are in the input file)
     unordered_map<int, DataMode> originalModesByMsLevel;
@@ -115,12 +108,12 @@ private:
         }
         LOG(ERROR) << "Data encoding not found for findDataEncodingID(" << modeToString(mode) << ", " << inHighRes << ", " << noLoss << ")";
         return 1;
-        //throw exception("Can not determine the good data encoding ID");
     }
 
     /**
      * @brief insertFakeScan
      * Insert empty spectrum object into the mzDB file
+     * Because it is possible that the first cycle does not have a MS1 scan !
      *
      * @param spectrum
      * @param bbFirstScanId
@@ -179,33 +172,17 @@ public:
     mzSpectrumInserter(MzDBFile& mzdb,
                        mzParamsCollecter& pc,
                        pwiz::msdata::CVID rawFileFormat,
-                       //map<int, DataMode>& dataModeByMsLevel,
-                       //map<int, DataEncoding>& dataEncodingByID) :
                        vector<DataEncoding> dataEncodings):
 
         mMzdbFile(mzdb),
         mParamsCollecter(pc),
         mRawFileFormat(rawFileFormat),
-        //mDataModeByMsLevel(dataModeByMsLevel),
-        //mDataEncodingByID(dataEncodingByID) {
         mDataEncodings(dataEncodings) {
 
         if (mRawFileFormat == pwiz::msdata::MS_ABI_WIFF_format)
             mWiffFile = pwiz::vendor_api::ABI::WiffFile::create(mMzdbFile.name);
     } // end ctor
-    
-    //void printUsedDataEncodings() {
-    //    for (auto d = mDataEncodings.begin(); d != mDataEncodings.end(); ++d) {
-    //        if(d->hasBeenInserted) {
-    //            LOG(INFO) << "mode " << d->mode << " peakEncoding " << d->peakEncoding << "\n";
-    //        }
-    //    }
-    //}
-    
-    //vector<DataEncoding> getUpdatedDataEncodings() {
-    //    return mDataEncodings;
-    //}
-    
+
     /**
      * @brief insertScan
      * Insert spectrum object into the mzDB file
@@ -228,8 +205,6 @@ public:
         const auto& spec = spectrum->spectrum;
 
         if (! spec || spec == nullptr) {
-            //LOG(ERROR) << "null pwiz spectrum. Recovering has failed";
-            //return;
             if(idxInCycle == 1) {
                 LOG(ERROR) << "null pwiz spectrum. Adding a fake spectrum for cycle " << idxInCycle;
                 insertFakeScan(spectrum, bbFirstScanId);
@@ -244,7 +219,6 @@ public:
         mParamsCollecter.updateUserMap(*spec);
 
         // fast version: crash if scans vector does not contain any scan !
-        //const pwiz::msdata::Scan& scan = spec->scanList.scans[0];
         pwiz::msdata::Scan scan;
         try {
             scan = spec->scanList.scans.at(0);
@@ -278,9 +252,8 @@ public:
         sqlite3_bind_int(mMzdbFile.stmt, 4, spectrum->cycle);
 
         //time
-        //sqlite3_bind_double(mMzdbFile.stmt, 5, PwizHelper::rtOf(spec));
         float rt = PwizHelper::rtOf(spec);
-        if(rt == 0) LOG(ERROR) << "Can not find RT for spectrum " << spec->id;
+        if(rt == 0) LOG(ERROR) << "Can't find RT for spectrum " << spec->id;
         sqlite3_bind_double(mMzdbFile.stmt, 5, rt);
 
         //msLevel
@@ -450,7 +423,6 @@ public:
         sqlite3_bind_int(mMzdbFile.stmt, 22, 1); //dataProcessingIndex(msdata, spec->dataProcessingPtr));
 
         //data enc id
-        //DataMode effectiveMode = mDataModeByMsLevel[msLevel];
         DataMode effectiveMode = spectrum->getEffectiveMode();
         sqlite3_bind_int(mMzdbFile.stmt, 23, this->findDataEncodingID(effectiveMode, isInHighRes, mMzdbFile.noLoss));
 
@@ -483,7 +455,6 @@ public:
                      ISerializer::xml_string_writer& serializer,
                      int bbFirstScanIDMS1=0,
                      map<int, int>* bbFirstSpectrumID=nullptr) {
-                     //int bbFirstScanIDMS2=0) {
 
         //to handle swath cycle
         int i = 1;
@@ -564,8 +535,8 @@ public:
             summary << "\n\n************ Summary of the conversion ************\n\n";
             summary << "Created file: " << mMzdbFile.outputFilename << "\n";
             summary << "MS\tInput   \tOutput  \tNb spectra\n";
-            // used to be 'while(true)' but just in case (hoping we won't reach 100 ms levels soon !!)
-            // this is just to be sure to print all levels in the right order
+            // make sure to print all levels in the right order. It used to be 'while(true)' but just in case...
+            // this code will have to be updated when mass spectrometers will be able to fragment a peptide more than 100 times !! (it should be fine for a while)
             while(msLevel < 100) {
                 auto originalMode = originalModesByMsLevel.find(msLevel);
                 if(originalMode != originalModesByMsLevel.end()) {

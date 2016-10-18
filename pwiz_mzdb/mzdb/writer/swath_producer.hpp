@@ -71,6 +71,9 @@ private:
     
     /// DataMode for each MS level
     map<int, DataMode> m_dataModeByMsLevel;
+    
+    /// true if user specifically asked to store data with double variables
+    bool isNoLoss;
 
     /**
      * @brief _peakPickAndPush
@@ -132,7 +135,7 @@ private:
                 
                 // Retrieve the MS level
                 const int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
-                bool isInHighRes = this->isInHighRes(spectrum);
+                bool isInHighRes = this->isInHighRes(spectrum, isNoLoss);
                 // Retrieve the effective mode
                 DataMode wantedMode = m_dataModeByMsLevel[msLevel];
                 
@@ -219,6 +222,7 @@ public:
                     bool safeMode):
         QueueingPolicy(queue),
         MetadataExtractionPolicy(mzdbFile.name),
+        isNoLoss(mzdbFile.isNoLoss()),
         m_peakPicker(dataModeByMsLevel, safeMode),
         m_safeMode(safeMode),
         m_dataModeByMsLevel(dataModeByMsLevel) {

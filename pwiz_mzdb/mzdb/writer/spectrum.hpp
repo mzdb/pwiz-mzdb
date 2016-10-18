@@ -105,18 +105,6 @@ struct PWIZ_API_DECL mzSpectrum {
     }
 
     ///Most used ctor
-    inline mzSpectrum(int id_, int cycle_, const pwiz::msdata::SpectrumPtr& s) :
-        id(id_),
-        cycle(cycle_),
-        spectrum(s),
-        retentionTime(0.0),
-        isInHighRes(true),
-        isInserted(false),
-        _precursorCharge(0),
-        _precursorMz(0.0),
-        _msLevel(0) {
-    }
-    
     inline mzSpectrum(
         int id_,
         int cycle_,

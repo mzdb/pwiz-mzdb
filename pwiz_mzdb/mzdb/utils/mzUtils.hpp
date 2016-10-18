@@ -36,6 +36,42 @@
 
 //#include "glog/logging.h"
 
+///** START OF TYPENAME ADDON (TEMPORARY) **/
+//#include <cstddef>
+//#include <stdexcept>
+//#include <cstring>
+//#include <ostream>
+//
+//#ifndef _MSC_VER
+//#  if __cplusplus < 201103
+//#    define CONSTEXPR11_TN
+//#    define CONSTEXPR14_TN
+//#    define NOEXCEPT_TN
+//#  elif __cplusplus < 201402
+//#    define CONSTEXPR11_TN constexpr
+//#    define CONSTEXPR14_TN
+//#    define NOEXCEPT_TN noexcept
+//#  else
+//#    define CONSTEXPR11_TN constexpr
+//#    define CONSTEXPR14_TN constexpr
+//#    define NOEXCEPT_TN noexcept
+//#  endif
+//#else  // _MSC_VER
+//#  if _MSC_VER < 1900
+//#    define CONSTEXPR11_TN
+//#    define CONSTEXPR14_TN
+//#    define NOEXCEPT_TN
+//#  elif _MSC_VER < 2000
+//#    define CONSTEXPR11_TN constexpr
+//#    define CONSTEXPR14_TN
+//#    define NOEXCEPT_TN noexcept
+//#  else
+//#    define CONSTEXPR11_TN constexpr
+//#    define CONSTEXPR14_TN constexpr
+//#    define NOEXCEPT_TN noexcept
+//#  endif
+//#endif  // _MSC_VER
+///** END OF TYPENAME ADDON (TEMPORARY) **/
 
 using namespace std;
 
