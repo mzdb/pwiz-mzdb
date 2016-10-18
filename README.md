@@ -124,6 +124,7 @@ Options:
 	--no_loss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)
  	--cycles : only convert the selected range of cycles, eg: 1-10 (first ten cycles) or 10- (from cycle 10 to the end) ; using this option will disable progress information
 	-s, --safe_mode : use centroid mode if the requested mode is not available
+    --log : console, file or both (log file will be put in the same directory as the output file), default: console
 	-h --help : show help
 ```
 
