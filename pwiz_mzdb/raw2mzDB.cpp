@@ -30,7 +30,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#define  GLOG_NO_ABBREVIATED_SEVERITIES
+// this is needed especially on Windows because windows.h already defines an ERROR security level
+// so this command needs to be called before windows.h and glog/logging.h
+#define GLOG_NO_ABBREVIATED_SEVERITIES
 
 #ifdef _WIN32
 #include <share.h>
@@ -68,32 +70,32 @@ namespace fs = boost::filesystem;
  * it has been added when Andrea Kalaitzakis and Veronique Dupierris asked for a way to check on the fly if all required dlls are loaded
  * in order to tell the end user which dll is missing (or even better, which software should be installed)
  */
-int PrintModules(DWORD processID) {
-    HMODULE hMods[1024];
-    HANDLE hProcess;
-    DWORD cbNeeded;
-
-    // Print the process identifier.
-    printf("\nProcess ID: %u\n", processID);
-    // Get a handle to the process.
-    hProcess = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID );
-    if (NULL == hProcess) return 1;
-
-    // Get a list of all the modules in this process.
-    if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded)) {
-        for (unsigned int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
-            TCHAR szModName[MAX_PATH];
-            // Get the full path to the module's file.
-            if (GetModuleFileNameEx(hProcess, hMods[i], szModName, sizeof(szModName) / sizeof(TCHAR))) {
-                // Print the module name and handle value.
-                _tprintf(TEXT("\t%s (0x%08X)\n"), szModName, hMods[i]);
-            }
-        }
-    }
-    // Release the handle to the process.
-    CloseHandle(hProcess);
-    return 0;
-}
+//int PrintModules(DWORD processID) {
+//    HMODULE hMods[1024];
+//    HANDLE hProcess;
+//    DWORD cbNeeded;
+//
+//    // Print the process identifier.
+//    printf("\nProcess ID: %u\n", processID);
+//    // Get a handle to the process.
+//    hProcess = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID );
+//    if (NULL == hProcess) return 1;
+//
+//    // Get a list of all the modules in this process.
+//    if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded)) {
+//        for (unsigned int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
+//            TCHAR szModName[MAX_PATH];
+//            // Get the full path to the module's file.
+//            if (GetModuleFileNameEx(hProcess, hMods[i], szModName, sizeof(szModName) / sizeof(TCHAR))) {
+//                // Print the module name and handle value.
+//                _tprintf(TEXT("\t%s (0x%08X)\n"), szModName, hMods[i]);
+//            }
+//        }
+//    }
+//    // Release the handle to the process.
+//    CloseHandle(hProcess);
+//    return 0;
+//}
 
 /// Warning, calling this function will delete a previous mzdb file.
 int deleteIfExists(const string &filename) {
@@ -285,8 +287,11 @@ void checkInputFile(std::string &inputFileName, const string& help) {
             // TODO what about Agilent files ?
             if(fileExists(inputFileName + "/analysis.baf", false, help)) {
                 inputFileName = inputFileName + "/analysis.baf"; // Bruker file format
-            //} else if(fileExists(inputFileName + "/Analysis.yep", false, help)) {
-            //    inputFileName = inputFileName + "/Analysis.yep"; // Bruker file format
+            // MS_Bruker_Agilent_YEP_format generates a runtime error !
+            } else if(fileExists(inputFileName + "/Analysis.yep", false, help)) {
+                // inputFileName = inputFileName + "/Analysis.yep"; // Bruker file format
+                LOG(ERROR) << "Bruker YEP format is not supported. Exiting.";
+                exit(EXIT_FAILURE);
             }
         //} else if(std::regex_match(lc_inputFileName, std::regex(".*\\.raw$"))) {
         //    // else if Waters raw folder ?
@@ -330,7 +335,7 @@ int main(int argc, char* argv[]) {
     // list of loaded dlls
     //PrintModules(GetCurrentProcessId());
 
-    //google::InitGoogleLogging(argv[0]);
+    google::InitGoogleLogging(argv[0]); // set this on to allow logging options (such as writting logs to a file)
     //FLAGS_logbufsecs = 0; // DEBUG ONLY !! use this to print log messages instantly, it will probably slow everything... (does not seem to work...)
 
 //    #ifdef _WIN32
@@ -339,6 +344,7 @@ int main(int argc, char* argv[]) {
 //        _set_se_translator(trans_func);
 //    #endif
     string filename = "", centroid = "", profile = "", fitted = "", outputFileName = "", serialization = "xml", cycleRangeStr="";
+    string logToWhat = "";
     bool compress = false;
     //double ppm = 20.0;
 
@@ -386,9 +392,10 @@ int main(int argc, char* argv[]) {
                   "\t-a, --acquisition : dda, dia or auto (converter will try to determine if the analysis is DIA or DDA), default: auto\n"
                   //"\t--bufferSize : low value (min 2) will enforce the program to use less memory (max 50), default: 3\n"
                   // "\t--max_nb_threads : maximum nb_threads to use, default: nb processors on the machine\n"
-                  "\t--no_loss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
+                  "\t--noLoss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
                   "\t--cycles : only convert the selected range of cycles, eg: 1-10 (first ten cycles) or 10- (from cycle 10 to the end) ; using this option will disable progress information\n"
-                  "\t-s, --safe_mode : use centroid mode if the requested mode is not available\n"
+                  "\t-s, --safeMode : use centroid mode if the requested mode is not available\n"
+                  "\t--log : console, file or both (log file will be put in the same directory as the output file), default: console\n"
                   "\t-h --help : show help";
 
 
@@ -403,11 +410,12 @@ int main(int argc, char* argv[]) {
     ops >> Option('m', "bbMzWidthMSn", bbHeightMSn);
     //ops >> Option('s', "serialize", serialization);
     ops >> Option('o', "output", outputFileName);
+    ops >> Option("log", logToWhat);
     ops >> Option('n', "cycles", cycleRangeStr);
-    ops >> OptionPresent("no_loss", noLoss);
+    ops >> OptionPresent("noLoss", noLoss);
     ops >> Option('a', "acquisition", acquisitionMode);
-    ops >> OptionPresent('s', "safe_mode", safeMode);
-
+    ops >> OptionPresent('s', "safeMode", safeMode);
+    
     //std::cout << "dia:" << dia << std::endl;
     //ops >> Option("ppm", ppm);
     //ops >> Option("bufferSize", nbCycles);
@@ -443,6 +451,30 @@ int main(int argc, char* argv[]) {
     // check output file name, use input file name if missing, make sure to have the right extension, delete former file if any
     checkOutputFile(outputFileName, filename);
 
+    // where should logs be written
+    string logFile = "";
+    if(boost::to_upper_copy(logToWhat) == "FILE" || boost::to_upper_copy(logToWhat) == "BOTH") {
+        // write logs to a file in the same directory as the output file
+        // Default log file format is based on this (cf. glog/logging.h.in:260)
+        // Unless otherwise specified, logs will be written to the filename
+        // "<program name>.<hostname>.<user name>.log.<severity level>.", followed
+        // by the date, time, and pid (you can't prevent the date, time, and pid
+        // from being in the filename).
+        FLAGS_logtostderr = 0;
+        // write to file and to console
+        if(boost::to_upper_copy(logToWhat) == "BOTH") {
+            FLAGS_alsologtostderr = 1;
+        }
+        // log file has the name of the output file and is stored in the output directory
+        fs::path output(outputFileName);
+        logFile = fs::absolute(output).parent_path().string() + "/" + output.stem().string(); // stem() returns the name of the file without its path and extension
+        google::SetLogDestination(google::GLOG_INFO, logFile.c_str()); // first parameter means that all levels from FATAL to INFO will be put in the given file
+        google::SetLogFilenameExtension("-"); // date, time, and pid will be appended to the extension (and this cannot be modified in the glog library)
+    } else {
+        // write logs to error output (GLOG does not write on standard output, but why ???)
+        FLAGS_logtostderr = 1;
+    }
+
     //--- overriding default encoding to `fitted` for DIA mslevel 2
     if(boost::to_upper_copy(acquisitionMode) == "DIA") {
         dataModeByMsLevel[2] = FITTED;
@@ -467,31 +499,6 @@ int main(int argc, char* argv[]) {
 
     pair<int, int> cycleRange = parseCycleRange(cycleRangeStr);
 
-    //---print gathered informations
-    std::stringstream summary;
-    summary << "\n\n************ Summary of the parameters ************\n\n";
-    summary << "Treating file: " << filename << "\n";
-    for (auto it = dataModeByMsLevel.begin(); it != dataModeByMsLevel.end(); ++it) {
-        summary << "ms " << it->first << " => selected Mode: " << modeToString(it->second) << "\n";
-    }
-    
-    if(cycleRange.first > 1 || cycleRange.second != 0) {
-        summary << "Converting cycles from ";
-        if(cycleRange.first == 0) summary << "first"; else summary << "#" << cycleRange.first;
-        summary << " to ";
-        if(cycleRange.second == 0) summary << "last"; else summary << "#" << cycleRange.second;
-        summary << "\n";
-    }
-    summary << "\n";
-
-    summary << "Bounding box dimensions:\n";
-    summary << "MS 1\t" << "m/z: " << bbHeight << " Da, retention time: " << bbWidth << "sec\n";
-    summary << "MS n\t" << "m/z: " << bbHeightMSn << " Da, retention time: " << bbWidthMSn << "sec\n";
-
-    summary << "\n";
-    LOG(INFO) << summary.str();
-    //end parsing commandline
-
     //--- Starting launching code
     //create a mzDBFile
     MzDBFile f(filename, outputFileName, bbHeight, bbHeightMSn, bbWidth, bbWidthMSn, noLoss);
@@ -513,6 +520,31 @@ int main(int argc, char* argv[]) {
 
     auto& msData = msdList[0];
     auto originFileFormat = pwiz::msdata::identifyFileFormat(readers, f.name);
+
+    //---print gathered informations
+    std::stringstream summary;
+    summary << "\n\n************ Summary of the parameters ************\n\n";
+    summary << "Treating file: " << filename << " (" << pwiz::msdata::cvTermInfo(originFileFormat).name << ")\n";
+    for (auto it = dataModeByMsLevel.begin(); it != dataModeByMsLevel.end(); ++it) {
+        summary << "ms " << it->first << " => selected Mode: " << modeToString(it->second) << "\n";
+    }
+    
+    if(cycleRange.first > 1 || cycleRange.second != 0) {
+        summary << "Converting cycles from ";
+        if(cycleRange.first == 0) summary << "first"; else summary << "#" << cycleRange.first;
+        summary << " to ";
+        if(cycleRange.second == 0) summary << "last"; else summary << "#" << cycleRange.second;
+        summary << "\n";
+    }
+    summary << "\n";
+
+    summary << "Bounding box dimensions:\n";
+    summary << "MS 1\t" << "m/z: " << bbHeight << " Da, retention time: " << bbWidth << "sec\n";
+    summary << "MS n\t" << "m/z: " << bbHeightMSn << " Da, retention time: " << bbWidthMSn << "sec\n";
+
+    summary << "\n";
+    LOG(INFO) << summary.str();
+    //end parsing commandline
 
     // TODO add a check on the content of the raw file
     // make sure right now that dataModeByMsLevel is correct
@@ -579,9 +611,39 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-   clock_t endTime = clock();
-   LOG(INFO) << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl;
+    clock_t endTime = clock();
+    LOG(INFO) << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl;
 
+    /*
+     * Piece of code written to rename the log file (if any)
+     * The log file format is "<output_filename>-<yyyymmdd>-<hhmmss>.<pid>" and it's not convenient for Windows users so I just add ".txt"
+     */ 
+    try {
+        if(FLAGS_logtostderr == 0) {
+            google::SetLogDestination(google::GLOG_INFO, ""); // write logs to another file to unlock the current log file
+            fs::path log(logFile);
+            string pid = boost::lexical_cast<std::string>(GetCurrentProcessId());
+            string searchTerm = log.filename().string()+".*"+pid;
+            const std::regex filter(searchTerm.c_str());
+            boost::filesystem::directory_iterator end_itr;
+            for(boost::filesystem::directory_iterator i(log.parent_path()); i != end_itr; ++i) {
+                // Skip if not a file
+                if( !boost::filesystem::is_regular_file( i->status() ) ) continue;
+                // rename if file matches the regex
+                fs::path fd(i->path());
+                if(std::regex_match(fd.filename().string().c_str(), filter)) {
+                    fs::path renamedLogFile(fd.string() + ".txt");
+                    //printf("Renaming log file '%s' to '%s'\n", i->path().string().c_str(), renamedLogFile.string().c_str());
+                    boost::filesystem::rename(i->path(), renamedLogFile);
+                }
+            }
+        }
+    } catch(exception& e) {
+        printf(e.what());
+        printf("\n");
+    } catch(...) {
+        printf("Unknown error\n");
+    }
 
     return 0;
 }

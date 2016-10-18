@@ -50,6 +50,11 @@ void mzDBWriter::buildDataEncodingRowByID() {
     m_dataEncodings.push_back(deCentroidHighResPeak);
     DataEncoding deCentroidLowResPeak(7, CENTROID, LOW_RES_PEAK);
     m_dataEncodings.push_back(deCentroidLowResPeak);
+    // required for no loss mode !
+    DataEncoding deFittedNoLoss(8, FITTED, NO_LOSS_PEAK);
+    m_dataEncodings.push_back(deFittedNoLoss);
+    DataEncoding deCentroidNoLoss(9, CENTROID, NO_LOSS_PEAK);
+    m_dataEncodings.push_back(deCentroidNoLoss);
 }
 
 
