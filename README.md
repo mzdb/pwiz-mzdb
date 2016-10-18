@@ -21,7 +21,7 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 Current stable version is 0.9.7.<br/>
 Last available version is 0.9.9, consider it a Release Candidate.
 
-### Release 0.9.10
+### Next release 0.9.10
 
 New features:
 - [ ] [MS-Numpress](https://github.com/ms-numpress/ms-numpress) compression algorithm support
@@ -46,8 +46,7 @@ New features:
 - [x] Safe mode added : fall back to centroid if requested mode is not possible (ie. centroid -> profile)
 - [x] --cycles option in the command line to convert a subset of the input file
 - [x] Build number is added
-- [ ] [MS-Numpress](https://github.com/ms-numpress/ms-numpress) compression algorithm support
-- [ ] Integration of the project with existing msconvert tool
+- [x] add an "--log" option to write logs to a file and/or to the console
 
 Improvements
 - [x] Using QTofPeakpicker algorithm for AB Sciex data
@@ -58,7 +57,9 @@ Improvements
 Bug fixes:
 - [x] Wrong data peak count
 - [x] Algorithm to check DDA/DIA is now working on Thermo, AB Sciex and Bruker analysis
-- [ ] ~~add missing CvTerms~~ (not present in Pwiz Msdata object, neither in converted mzML files)
+- [x] mzML file support is improved
+- [x] fixed encoding issue with low resolution spectra
+- [x] fixed encoding issue with NO_LOSS option
 - see issues for more informations
 
 ### Release 0.9.8
@@ -78,7 +79,6 @@ Improvements
 
 Bug fixes:
 - [x] Wrong encoding for HCD spectra (32 instead of 64 bits)
-- [ ] ~~add missing CvTerms~~ (not present in Pwiz Msdata object, neither in converted mzML files)
 - see issues for more informations 
 
 ## Users
@@ -87,7 +87,7 @@ Bug fixes:
 
 #### Download and setup
 
-* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9RC/raw2mzDB_0.9.9RC_build20160629.zip">zip archive</a>
+* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9RC/raw2mzDB_0.9.9RC_build20161018.zip">zip archive</a>
 * Raw2mzDB has the same requirements as ProteoWizard, otherwise install the following: .NET Framework 3.5 SP1, .NET Framework 4.0, MSVC 2008 SP1 (x86), MSVC 2012, MSVC 2013 (http://proteowizard.sourceforge.net/user_installation_simple.shtml)
 
 #### Command line usage
