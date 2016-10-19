@@ -46,8 +46,9 @@ template<class mz_t, class int_t>
 static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
                       vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids,
                       mzPeakFinderUtils::PeakPickerParams& params,
-                      bool detectPeaks = false, // not used but always true
-                      bool computeFWHM = true) {
+                      bool detectPeaks = false,
+                      bool computeFWHM = true,
+                      mzPeakFinderUtils::USE_CWT useCWT = mzPeakFinderUtils::CWT_DISABLED) {
 
     const vector<double>& mzs = spectrum->getMZArray()->data;
     const vector<double>& ints = spectrum->getIntensityArray()->data;
@@ -77,7 +78,8 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
 
     //---detectPeaks using CWT, SNR filtered ( snr taken from params.minSNR )
     if(detectPeaks) {
-        spectrumData._detectPeaksCWT(params);
+        //spectrumData._detectPeaksCWT(params);
+        spectrumData.detectPeaks(params, useCWT);
     }
     
     // optimize the new centroids and if requested calculate the FWHM values

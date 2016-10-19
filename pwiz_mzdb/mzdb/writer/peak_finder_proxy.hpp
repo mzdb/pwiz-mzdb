@@ -103,7 +103,7 @@ public:
                 peakPickerParams.baseline = 0;
                 peakPickerParams.minSNR = 0;
                 //mzPeakFinderZeroBounded::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
-                mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
+                mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM, mzPeakFinderUtils::CWT_DISABLED);
                 break;
             }
             case pwiz::msdata::MS_Bruker_BAF_format : {
@@ -113,7 +113,7 @@ public:
                 peakPickerParams.optimizationOpt = mzPeakFinderUtils::NO_OPTIMIZATION;
                 peakPickerParams.minSNR = 0.0;
                 peakPickerParams.fwhm = TOF_FWHM;
-                mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
+                mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM, mzPeakFinderUtils::CWT_ENABLED);
                 break;
             }
             default: {
@@ -123,7 +123,7 @@ public:
                 peakPickerParams.optimizationOpt = mzPeakFinderUtils::NO_OPTIMIZATION;
                 peakPickerParams.minSNR = 0.0;
                 peakPickerParams.fwhm = TOF_FWHM;
-                mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
+                mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM, mzPeakFinderUtils::CWT_ENABLED);
                 break;
             }
         }
