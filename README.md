@@ -97,6 +97,9 @@ Open a command line window in the directory containing raw2mzdb.exe then type:
 
 **raw2mzdb.exe -i \<rawfilename\> -o \<outputfilename\>**
 
+Example:
+**raw2mzdb.exe -i "D:\myfile.raw" -o "D:\myfile.mzDB"**
+
 By defaut, the raw file will be converted in the "fitted" mode for the MS1 (MS2 is often in centroid mode and can not be converted in fitted mode). If the MS2 (or superior) are acquired in high resolution (i.e in profile mode), you could specify that you want to convert specific MS levels in the required mode:
 
 **raw2mzdb.exe -i \<rawfilename\> -o \<outputfilename\> -f 1-2** will try to convert MS and MS/MS spectra in fitted mode.
