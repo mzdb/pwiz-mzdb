@@ -18,11 +18,10 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 
 ## Roadmap
 
-Current stable version is 0.9.7.<br/>
-Last available version is 0.9.9, consider it a Release Candidate (binaries will be uploaded on github once this version is considered stable).
+Current stable version is 0.9.9.<br/>
 
 
-### Next release 0.9.10
+### Work in progress
 
 New features:
 - [ ] [MS-Numpress](https://github.com/ms-numpress/ms-numpress) compression algorithm support
@@ -88,7 +87,7 @@ Bug fixes:
 
 #### Download and setup
 
-* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9RC/raw2mzDB_0.9.9RC_build20161018.zip">zip archive</a>
+* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9/raw2mzDB_0.9.9_build20161019.zip">zip archive</a>
 * Raw2mzDB has the same requirements as ProteoWizard, otherwise install the following: .NET Framework 3.5 SP1, .NET Framework 4.0, MSVC 2008 SP1 (x86), MSVC 2012, MSVC 2013 (http://proteowizard.sourceforge.net/user_installation_simple.shtml)
 
 #### Command line usage
