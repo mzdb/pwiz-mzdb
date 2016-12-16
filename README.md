@@ -53,6 +53,7 @@ Improvements
 - [x] Added a summary at the end of the conversion
 - [x] --dia option has been replaced by -a or --acquisition option, user can tell if the analysis is DDA, DIA or let the converter determine it
 - [x] Better input and output file verification (convert AB Sciex data by calling .wiff or .wiff.scan files, convert Bruker data by calling .d directory)
+- [x] Added some dlls to avoid Visual C++ pre-requisites
 
 Bug fixes:
 - [x] Wrong data peak count
@@ -87,7 +88,7 @@ Bug fixes:
 
 #### Download and setup
 
-* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9/raw2mzDB_0.9.9_build20161019.zip">zip archive</a>
+* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9/raw2mzDB_0.9.9_build20161216.zip">zip archive</a>
 * Raw2mzDB has the same requirements as ProteoWizard, otherwise install the following: .NET Framework 3.5 SP1, .NET Framework 4.0, MSVC 2008 SP1 (x86), MSVC 2012, MSVC 2013 (http://proteowizard.sourceforge.net/user_installation_simple.shtml)
 
 #### Command line usage

@@ -17,6 +17,15 @@ exe raw2mzDB
 make libgflags.dll : mzdb/lib/libgflags.dll : @common.copy : <location>$(target-folder) ;
 make libglog.dll : mzdb/lib/libglog.dll : @common.copy : <location>$(target-folder) ;
 
+# add msvc dlls to avoid visual c++ pre-requisites
+make mfc100u.dll : mzdb/lib/msvc/mfc100u.dll : @common.copy : <location>$(target-folder) ;
+make msvcp100.dll : mzdb/lib/msvc/msvcp100.dll : @common.copy : <location>$(target-folder) ;
+make msvcp110.dll : mzdb/lib/msvc/msvcp110.dll : @common.copy : <location>$(target-folder) ;
+make msvcr100.dll : mzdb/lib/msvc/msvcr100.dll : @common.copy : <location>$(target-folder) ;
+make msvcr110.dll : mzdb/lib/msvc/msvcr110.dll : @common.copy : <location>$(target-folder) ;
+make vcomp100.dll : mzdb/lib/msvc/vcomp100.dll : @common.copy : <location>$(target-folder) ;
+make vcomp110.dll : mzdb/lib/msvc/vcomp110.dll : @common.copy : <location>$(target-folder) ;
+
 # create a file containing the date of compile
 JAMDATE = [ modules.peek : JAMDATE ] ;
 make build.txt : : @make_VERSION : <location>$(target-folder) ;
