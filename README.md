@@ -31,7 +31,7 @@ New features:
 Improvements
 - [ ] add FK constraints
 - [ ] replace blobs with vectors
-- [ ] replace table bounding_blo_msn_rtree with table msn_layer
+- [ ] replace table bounding_box_msn_rtree with table msn_layer
 - [ ] update proteowizard libraries ?
 
 Bug fixes:
@@ -47,6 +47,7 @@ New features:
 - [x] --cycles option in the command line to convert a subset of the input file
 - [x] Build number is added
 - [x] add an "--log" option to write logs to a file and/or to the console
+- [x] add an option to display version information (-v or --version)
 
 Improvements
 - [x] Using QTofPeakpicker algorithm for AB Sciex data
@@ -61,6 +62,7 @@ Bug fixes:
 - [x] mzML file support is improved
 - [x] fixed encoding issue with low resolution spectra
 - [x] fixed encoding issue with NO_LOSS option
+- [x] remove some temporary files after compiling
 - see issues for more informations
 
 ### Release 0.9.8
@@ -89,7 +91,7 @@ Bug fixes:
 #### Download and setup
 
 * Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9/raw2mzDB_0.9.9_build20161216.zip">zip archive</a>
-* Raw2mzDB has the same requirements as ProteoWizard, otherwise install the following: .NET Framework 3.5 SP1, .NET Framework 4.0, MSVC 2008 SP1 (x86), MSVC 2012, MSVC 2013 (http://proteowizard.sourceforge.net/user_installation_simple.shtml)
+* Raw2mzDB should work on any modern 64 bits Windows environment. If you encounter missing dlls issues, you may try to install Microsoft's .NET Framework 3.5 SP1 and 4.0. Also consider Visual C++ Redistributable for Visual Studio 2008, 2012 and 2013.
 
 #### Command line usage
 

@@ -14,6 +14,12 @@ echo Compilation return code is %ERRORLEVEL%
 
 rem check if raw2mzDB.exe has been generated
 IF EXIST "pwiz_mzdb\target\raw2mzDB.exe" (
+  rem remove files that should be removed with bjam
+  erase "pwiz_mzdb\target\raw2mzDB.obj"
+  erase "pwiz_mzdb\target\raw2mzDB.obj.rsp"
+  erase "pwiz_mzdb\target\raw2mzDB.exe.rsp"
+  rem TODO add a --compress option and if present, rename target to raw2mzDB_<soft_version_str>_build<yyyymmdd> and zip it
+  rem happy ending
   echo File raw2mzDB has been generated !
   goto CalcTime
 ) else (

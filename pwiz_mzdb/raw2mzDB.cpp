@@ -44,6 +44,7 @@
 #include "mzdb/lib/getopt_pp/include/getopt_pp.h"
 #include "mzdb/writer/mzdb_writer.hpp"
 #include "mzdb/utils/MzDBFile.h"
+#include "mzdb/writer/version.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -396,8 +397,11 @@ int main(int argc, char* argv[]) {
                   "\t--cycles : only convert the selected range of cycles, eg: 1-10 (first ten cycles) or 10- (from cycle 10 to the end) ; using this option will disable progress information\n"
                   "\t-s, --safeMode : use centroid mode if the requested mode is not available\n"
                   "\t--log : console, file or both (log file will be put in the same directory as the output file), default: console\n"
+                  "\t-v, --version: display version information\n"
                   "\t-h --help : show help";
 
+    std::stringstream version;
+    version << "raw2mzDB version: " << SOFT_VERSION_STR << "\nSQLite schema version: " << SCHEMA_VERSION_STR << "\nBuild date: " << getBuildDate(argv[0]) << "\n";
 
     GetOpt_pp ops(argc, argv);
     ops >> Option('i', "input", filename);
@@ -423,6 +427,10 @@ int main(int argc, char* argv[]) {
 
     if (ops >> OptionPresent('h', "help")) {
         std::cout << help << std::endl;
+        exit(EXIT_SUCCESS);
+    }
+    if (ops >> OptionPresent('v', "version")) {
+        std::cout << version.str() << std::endl;
         exit(EXIT_SUCCESS);
     }
     //ops >> Option('C', "compress", compression)
