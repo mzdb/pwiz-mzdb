@@ -32,7 +32,7 @@
 
 
 #include "../utils/mzUtils.hpp"
-//#include "peak_finder_zero_bounded.hpp"
+#include "peak_finder_zero_bounded.hpp"
 #include "peak_finder_tof.hpp"
 #include "peak_finder_wavelet.hpp"
 
@@ -102,8 +102,8 @@ public:
                 peakPickerParams.noise = 0;
                 peakPickerParams.baseline = 0;
                 peakPickerParams.minSNR = 0;
-                //mzPeakFinderZeroBounded::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
-                mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM, mzPeakFinderUtils::CWT_DISABLED);
+                mzPeakFinderZeroBounded::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
+                //mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM, mzPeakFinderUtils::CWT_DISABLED);
                 break;
             }
             case pwiz::msdata::MS_Bruker_BAF_format : {

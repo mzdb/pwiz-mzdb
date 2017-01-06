@@ -242,6 +242,7 @@ string getExecutableDirectory(string argv0) {
 }
 
 string getBuildDate(string argv0) {
+    // returns something like: 2017-01-04 13:08:59.105156500 +000
     string exePath = getExecutableDirectory(argv0);
     string filename = exePath + "/build.txt";
     std::ifstream fin( filename.c_str() );
@@ -253,6 +254,13 @@ string getBuildDate(string argv0) {
         date = "";
     }
     return date;
+}
+
+string getBuildName(string date) {
+    // return something like: raw2mzDB_<soft_version_str>_build<yyyymmdd>
+    std::stringstream name;
+    name << "raw2mzDB_" << SOFT_VERSION_STR << "_build" << date.substr(0,4) << date.substr(5,2) << date.substr(8,2);
+    return name.str();
 }
 
 std::string toLower(std::string input) {
@@ -400,8 +408,16 @@ int main(int argc, char* argv[]) {
                   "\t-v, --version: display version information\n"
                   "\t-h --help : show help";
 
+    const string buildDate = getBuildDate(argv[0]);
     std::stringstream version;
-    version << "raw2mzDB version: " << SOFT_VERSION_STR << "\nSQLite schema version: " << SCHEMA_VERSION_STR << "\nBuild date: " << getBuildDate(argv[0]) << "\n";
+    // append: SQLite version, proteowizard release, proteowizard msdata 
+    version << "\nVersion: " << getBuildName(buildDate)
+            << "\n\n- Build date: '" << buildDate << "'"
+            << "\n- Software version: " << SOFT_VERSION_STR
+            << "\n- SQLite schema version: " << SCHEMA_VERSION_STR
+            << "\n- SQLite version: " << SQLITE_VERSION
+            << "\n- ProteoWizard release: " << pwiz::Version::str() << " (" << pwiz::Version::LastModified() << ")"
+            << "\n- ProteoWizard MSData: " << pwiz::msdata::Version::str() << " (" << pwiz::msdata::Version::LastModified() << ")\n";
 
     GetOpt_pp ops(argc, argv);
     ops >> Option('i', "input", filename);
@@ -559,7 +575,7 @@ int main(int argc, char* argv[]) {
     // that way, the user will know what he will get
     // it will take some time due to the reading of the raw file
 
-    mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, getBuildDate(argv[0]), compress, safeMode);
+    mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, compress, safeMode);
     
     //---insert metadata
     try {

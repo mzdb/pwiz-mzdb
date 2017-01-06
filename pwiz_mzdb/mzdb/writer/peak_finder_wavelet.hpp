@@ -80,6 +80,8 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
     if(detectPeaks) {
         //spectrumData._detectPeaksCWT(params);
         spectrumData.detectPeaks(params, useCWT);
+    } else {
+        spectrumData.setDetectedPeaks(centroids, params, useCWT);
     }
     
     // optimize the new centroids and if requested calculate the FWHM values
