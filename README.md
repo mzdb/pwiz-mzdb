@@ -90,7 +90,7 @@ Bug fixes:
 
 #### Download and setup
 
-* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9/raw2mzDB_0.9.9_build20161216.zip">zip archive</a>
+* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9/raw2mzDB_0.9.9_build20170106.zip">zip archive</a>
 * Raw2mzDB should work on any modern 64 bits Windows environment. If you encounter missing dlls issues, you may try to install Microsoft's .NET Framework 3.5 SP1 and 4.0. Also consider Visual C++ Redistributable for Visual Studio 2008, 2012 and 2013.
 
 #### Command line usage
