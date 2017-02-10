@@ -565,11 +565,15 @@ static double gaussianCentroidApex(const std::vector<mz_t>& xData, const std::ve
     double diff_log_y_p1_m1 = log(y_p1) - log(y_m1);
     double diff_log_y_m1_0 = log(y_m1) - log(y_0);
 
-
-    double x = 0.5 * (diff_log_y_0_p1 * pow(x_m1, 2.0) + diff_log_y_p1_m1 * pow(x_0, 2.0) + diff_log_y_m1_0 * pow(x_p1, 2.0)) /
-            (diff_log_y_0_p1 * x_m1 + diff_log_y_p1_m1 * x_0 + diff_log_y_m1_0 * x_p1);
-
-    return x;
+    double div = diff_log_y_0_p1 * x_m1 + diff_log_y_p1_m1 * x_0 + diff_log_y_m1_0 * x_p1;
+    if(div != 0) {
+        return 0.5 * (diff_log_y_0_p1 * pow(x_m1, 2.0) + diff_log_y_p1_m1 * pow(x_0, 2.0) + diff_log_y_m1_0 * pow(x_p1, 2.0)) / div;
+    } else {
+        // return average mz to avoid dividing by zero
+        // this case should not happen, but it's safer !
+        LOG(WARNING) << "Function gaussianCentroidApex returned an average value to avoid a division by zero !";
+        return (x_m1 + x_0 + x_p1) / 3;
+    }
 }
 
 /// Extension of the MaxQuant formula (parabola) to compute intensity maximum from mass peak data points

@@ -72,6 +72,8 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
             return;
         }
         
+        int_t almostNothing = (int_t)1e-3;
+        
         if(detectPeaks) {
             //construct peak picker
             std::pair<double, double> range = std::make_pair(mzs.front(),mzs.back());
@@ -97,6 +99,25 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
                     recalculatedCentroids.push_back(std::make_shared<Centroid<mz_t, int_t> >(c_mz, c_int, rt));
                 }
                 centroids = recalculatedCentroids;
+            } else if(centroids.size() == 0) {
+                // this may happen on noise-only spectra, all peaks have a low intensity (such as 21) and no centroid is returned
+                // in this case, just use the most intense peak of profile spectrum and take it as the only centroid found
+                // if it's noise, the position of the chosen peak in the spectrum doesn't matter
+                mz_t mostIntenseMz = 0;
+                int_t highestIntensity = 0;
+                for (size_t i = 0; i < mzs.size(); ++i) {
+                    if(ints[i] > highestIntensity) {
+                        mostIntenseMz = mzs[i] + almostNothing; // adding a little something to avoid identical values (may cause problem with fitting)
+                        highestIntensity = ints[i] + almostNothing; // adding a little something to avoid identical values (may cause problem with fitting)
+                    }
+                }
+                if(mostIntenseMz != 0) {
+                    recalculatedCentroids.push_back(std::make_shared<Centroid<mz_t, int_t> >(mostIntenseMz, highestIntensity, rt));
+                    centroids = recalculatedCentroids;
+                    //LOG(WARNING) << "No centroids given for spectrum '" << spectrum->id << "' and qtofpeakpicker failed to recalculate anything, using best peak of profile spectrum (" << mzs[bestPeakId] << "/" << ints[bestPeakId] << ")";
+                } else {
+                    LOG(WARNING) << "No centroids given for spectrum '" << spectrum->id << "' and qtofpeakpicker failed to recalculate anything, this will result in an empty spectrum which will probably cause problems later !";
+                }
             }
         }
 
@@ -111,7 +132,6 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
     
             mz_t lastMz = 0;
             int_t lastInt = 0;
-            int_t almostNothing = (int_t)1e-3;
             while(i < mzSize) {
                 /*
                  * We are only looking at the current and previous lines
