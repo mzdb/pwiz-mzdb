@@ -621,6 +621,10 @@ public:
                                         mzPeakFinderUtils::PeakPickerParams& params) {
         this->writeMzDB<float, float, float, float>(filename, cycleRange, nbCycles, params);
     }
+    
+    void PWIZ_API_DECL closeMzDbFile() {
+        this->m_mzdbFile.close();
+    }
 
 
 }; //end class

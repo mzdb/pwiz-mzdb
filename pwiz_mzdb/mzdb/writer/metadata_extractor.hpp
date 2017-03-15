@@ -253,14 +253,14 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
         }
     }
 
-
     virtual UserText getExtraDataAsUserText() {
         std::auto_ptr<pwiz::vendor_api::Thermo::LabelValueArray> l = _rawfilePtr->getInstrumentMethods();
         std::string instrumentMethods;
 
         for (int i=0; i < l->size(); ++i) {
-            std::string v = l->value(i) + "\n";
-            instrumentMethods += v;
+            //std::string v = l->value(i) + "\n";
+            //instrumentMethods += v;
+            instrumentMethods += l->value(i) + "\n";
         }
         return UserText("instrumentMethods", instrumentMethods, XML_STRING);
 
@@ -312,9 +312,14 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
         } catch (exception&) { }
 
         try {
-            sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod),
-                                                                 _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod),
-                                                                 XML_STRING));
+            std::string name = _rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod);
+            std::string value = _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod);
+            pwiz::msdata::UserParam userParam = pwiz::msdata::UserParam(name, value, XML_STRING);
+            sample->userParams.push_back(userParam);
+            //delete userParam;
+            //sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod),
+            //                                                     _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod),
+            //                                                     XML_STRING));
         } catch (exception&) { }
 
         try {

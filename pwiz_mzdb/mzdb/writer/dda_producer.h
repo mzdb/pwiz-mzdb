@@ -239,6 +239,11 @@ public:
                     this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum);
                 }
             }
+            // delete spectra objects
+            spectrum.reset();
+            centroidSpectrum.reset();
+            
+            //genericUtils::checkMemoryUsage(""); // just to avoid memory leaks
         } // end for
 
         //handles ending, i.e non finished cycles

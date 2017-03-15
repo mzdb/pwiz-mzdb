@@ -66,8 +66,8 @@ MzDBFile::MzDBFile(string& _name, string& _outputFilename, float _bbHeight, floa
 
 MzDBFile::~MzDBFile() {
     //handles the closing of the sqlite file
-    sqlite3_finalize(stmt);
-    sqlite3_close_v2(db);
+    //sqlite3_finalize(stmt);
+    //sqlite3_close_v2(db);
 }
 
 bool MzDBFile::isNoLoss() {

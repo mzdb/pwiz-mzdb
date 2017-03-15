@@ -324,7 +324,11 @@ void checkOutputFile(std::string &outputFileName, std::string &inputFileName) {
     if (outputFileName == "") outputFileName = inputFileName;
     // if input data is a Bruker .d directory, then only keep .d directory name
     if(std::regex_match(toLower(outputFileName), std::regex(".*analysis.baf$"))) {
-        outputFileName = outputFileName.substr(0, outputFileName.length() - 13);
+        outputFileName = outputFileName.substr(0, outputFileName.length() - 13); // 13 instead of 12 because we want to remove the slash/antislash character too
+    }
+    // if user gave a ".mzDB.tmp" extension, remove it because it will be added anyway
+    if(std::regex_match(toLower(outputFileName), std::regex(".*.mzdb.tmp$"))) {
+        outputFileName = outputFileName.substr(0, outputFileName.length() - 9);
     }
     // add the mzDB extension if needed
     if(!std::regex_match(toLower(outputFileName), std::regex(".*\\.mzdb$"))) {
@@ -336,6 +340,8 @@ void checkOutputFile(std::string &outputFileName, std::string &inputFileName) {
         //should never pass here
         exit(EXIT_FAILURE);
     }
+    // also delete the mzDB.tmp file that could only exists if the previous run has failed
+    if (deleteIfExists(outputFileName + ".tmp") == 1) { exit(EXIT_FAILURE); }
 }
 
 /// Starting point !
@@ -524,8 +530,10 @@ int main(int argc, char* argv[]) {
     pair<int, int> cycleRange = parseCycleRange(cycleRangeStr);
 
     //--- Starting launching code
-    //create a mzDBFile
-    MzDBFile f(filename, outputFileName, bbHeight, bbHeightMSn, bbWidth, bbWidthMSn, noLoss);
+    // create a mzDBFile
+    /// outputFileName must end with ".tmp" here (this ".tmp" will be removed at the end of the process)
+    std::string outputFileNameTmp = outputFileName + ".tmp";
+    MzDBFile f(filename, outputFileNameTmp, bbHeight, bbHeightMSn, bbWidth, bbWidthMSn, noLoss);
 
     //---pwiz file detection
     ReaderPtr readers(new FullReaderList);
@@ -570,11 +578,6 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << summary.str();
     //end parsing commandline
 
-    // TODO add a check on the content of the raw file
-    // make sure right now that dataModeByMsLevel is correct
-    // that way, the user will know what he will get
-    // it will take some time due to the reading of the raw file
-
     mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, compress, safeMode);
     
     //---insert metadata
@@ -613,21 +616,26 @@ int main(int argc, char* argv[]) {
     try {
         if (noLoss) {
             //LOG(INFO) << "No-loss mode encoding: all ms Mz-64, all ms Int-64";
-            writer.writeNoLossMzDB(outputFileName, cycleRange, nbCycles, p);
+            writer.writeNoLossMzDB(outputFileNameTmp, cycleRange, nbCycles, p);
         } else {
             if (false) { // If msInstrument only good at ms1
                 //LOG(INFO) << "ms1 Mz-64, all ms Int-32 encoding";
-                writer.writeMzDBMzMs1Hi(outputFileName, cycleRange, nbCycles, p);
+                writer.writeMzDBMzMs1Hi(outputFileNameTmp, cycleRange, nbCycles, p);
             } else {
                 //LOG(INFO) << "all ms Mz-64, all ms Int-32 encoding";
-                writer.writeMzDBMzHi(outputFileName, cycleRange, nbCycles, p);
+                writer.writeMzDBMzHi(outputFileNameTmp, cycleRange, nbCycles, p);
             }
         }
         
         LOG(INFO) << "Checking run slices numbers";
         // check if run slice numbers are sorted according to ms_level and begin_mz
         writer.checkAndFixRunSliceNumberAnId();
-
+        // close mzDB sqlite handler
+        //writer.closeMzDbFile();
+        // rename temp file into mzDB
+        fs::path tempOutputPath(outputFileNameTmp);
+        fs::path finalOutputPath(outputFileName);
+        boost::filesystem::rename(tempOutputPath, finalOutputPath);
     } catch (exception& e) {
         LOG(ERROR) << e.what();
     } catch(...) {
@@ -637,7 +645,7 @@ int main(int argc, char* argv[]) {
 
     clock_t endTime = clock();
     LOG(INFO) << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl;
-
+    
     /*
      * Piece of code written to rename the log file (if any)
      * The log file format is "<output_filename>-<yyyymmdd>-<hhmmss>.<pid>" and it's not convenient for Windows users so I just add ".txt"

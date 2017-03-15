@@ -1,7 +1,8 @@
 pwiz-mzdb
 =========
 
-An extension of the ProteoWizard framework enabling the support of the mzDB format.
+Raw2MzDB is an extension of the ProteoWizard framework enabling the support of the mzDB format.
+The current stable version is 0.9.9.
 
 For details about mzDB concepts (scanSlice, runSlice...) and specifications, have a look to the [related repository](http://github.com/mzdb/mzdb-specs).
 
@@ -18,26 +19,47 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 
 ## Roadmap
 
-Current stable version is 0.9.9.<br/>
-
-
-### Work in progress
-
-New features:
-- [ ] [MS-Numpress](https://github.com/ms-numpress/ms-numpress) compression algorithm support
-- [ ] Integration of the project with existing msconvert tool
-- [ ] add an option to filter spectra upon retention time
-
-Improvements
-- [ ] add FK constraints
-- [ ] replace blobs with vectors
-- [ ] replace table bounding_box_msn_rtree with table msn_layer
-- [ ] update proteowizard libraries ?
+### Roadmap v0.9.10
 
 Bug fixes:
-- [ ] check MS3 analyses
-- [ ] ~~add missing CvTerms~~ (not present in Pwiz Msdata object, neither in converted mzML files)
-- see issues for more informations
+- [ ] The field mzdb.param_tree can be corrupted for some Thermo raw files (#39)
+- [x] Find and fix memory leak for AB Sciex data (#38)
+- [ ] Issue #26 is for AB Sciex DIA acquisition (and accession 1001954)
+- [ ] Issue #24 sample name is empty for AB Sciex analyses (also check for Bruker)
+- [ ] Improve cycle filtering by checking cycle number before centroiding data (#40)
+
+### Roadmap v1.0
+
+New features:
+- [ ] Add an option to filter spectra upon retention time (RT range) (#41)
+- [ ] Restore the mzDB2mzML.exe (#42)
+
+Improvements
+- [ ] Add acquisition method parameters for AB Sciex and Bruker data (#43)
+- [ ] Add FK constraints (set "PRAGMA foreign_keys = ON" after sqlite3_open) + see "DEFERRABLE INITIALLY DEFERRED" change below (#44)
+- [ ] Update ProteoWizard libraries (#45)
+- [ ] Update SQLite library (#46)
+
+Database schema
+- [ ] Add "DEFERRABLE INITIALLY DEFERRED" constraint to all FKs (#47)
+- [ ] Upgrade mzDB specification to 1.0 (#48)
+
+### Roadmap v2.0
+- [ ] Replace table bounding_box_msn_rtree with table msn_layer (#49)
+- [ ] Replace blobs by vectors (#50)
+- [ ] Support other instrument vendors (#51)
+- [ ] Ion mobility support ? (#52)
+- [ ] [MS-Numpress](https://github.com/ms-numpress/ms-numpress) compression algorithm support (#53)
+- [ ] Quality control for fitting algorithm: compute difference between raw profile and reconstructed profile by calculating the RMSD based score (#54)
+
+### Roadmap Other
+- [ ] Integration of the project with existing msconvert tool (#55)
+- [ ] Linux build for "mzML -> mzDB" and "Thermo RAW file -> mzDB" (#56)
+- [ ] Check MS3 analyses (#57)
+- [ ] ~~add missing CvTerms~~ (not present in Pwiz Msdata object, neither in converted mzML files) compare a mzML from mzDB and mzML from raw file (#58)
+- [ ] Implement an mzDB validator using mzDB-access (#59)
+
+## Change log
 
 ### Release 0.9.9
 
@@ -90,7 +112,7 @@ Bug fixes:
 
 #### Download and setup
 
-* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9/raw2mzDB_0.9.9_build20170210.zip">zip archive</a>
+* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9/raw2mzDB_0.9.9_build20170315.zip">zip archive</a>
 * Raw2mzDB should work on any modern 64 bits Windows environment. If you encounter missing dlls issues, you may try to install Microsoft's .NET Framework 3.5 SP1 and 4.0. Also consider Visual C++ Redistributable for Visual Studio 2008, 2012 and 2013.
 
 #### Command line usage
@@ -157,6 +179,12 @@ In order to build with *bjam*:
 
 **raw2mzdb.exe** file is generated in :
 <code>project_root/pwiz_mzdb/target</code>
+
+#### Debug raw2mzDB
+
+To debug raw2mzDB, you first need to compile it with debug symbols. To do so, open the raw2mzDB_quickbuild.bat script and set *debug-symbols=on*
+Or just run quickbuild.bat with this argument correctly set. This should create a raw2mzDB.pdb file in the target directory.
+Using this raw2mzDB.pdb file, you can use a debugging tool such as MTuner.
 
 #### Project structure
 

@@ -9,7 +9,7 @@ exe raw2mzDB
   <library>mzdb/writer
   <library>mzdb/lib/getopt_pp
   <location>$(target-folder)
-: <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /GAyF" <linkflags>"/LTCG" #default_builds "/Ox /Gy /GA /GF /arch:SSE2 /HEa"  <cxxflags>"/Ox /GLAFy /LTCG /fp:fast" 
+: <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /GAyF /bigobj" <linkflags>"/LTCG" #default_builds "/Ox /Gy /GA /GF /arch:SSE2 /HEa"  <cxxflags>"/Ox /GLAFy /LTCG /fp:fast" 
 :
 ;
 

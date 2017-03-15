@@ -911,7 +911,8 @@ void mzDBWriter::insertMetaData() {
 
     const char* sql_29 = "INSERT INTO chromatogram VALUES(NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)";
     sqlite3_prepare_v2(m_mzdbFile.db, sql_29, -1, &(m_mzdbFile.stmt), 0);
-    for (size_t i = 0; i < chromList->size(); ++i) {
+    size_t chromListSize = chromList->size();
+    for (size_t i = 0; i < chromListSize; ++i) {
         const pwiz::msdata::ChromatogramPtr& chrom = chromList->chromatogram(i, true);
         m_paramsCollecter.updateCVMap(*chrom);
         m_paramsCollecter.updateUserMap(*chrom);
@@ -1020,6 +1021,7 @@ void mzDBWriter::checkAndFixRunSliceNumberAnId() {
         sqlite3_finalize(this->m_mzdbFile.stmt);
         m_mzdbFile.stmt = 0;
     }
+    closeMzDbFile();
 }
 
 /**

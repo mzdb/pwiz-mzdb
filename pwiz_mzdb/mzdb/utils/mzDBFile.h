@@ -129,6 +129,11 @@ struct MzDBFile : public pwiz::msdata::ParamContainer {
     inline int open(std::string& filename) {
         return sqlite3_open_v2(filename.c_str(), &db, SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE, 0);
     }
+    
+    inline int close() {
+        sqlite3_finalize(stmt);
+        return sqlite3_close_v2(db);
+    }
 
     /**
      * load `user_params` mzdb table to find the `noLoss user param`

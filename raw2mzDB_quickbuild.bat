@@ -8,7 +8,9 @@ IF EXIST "pwiz_mzdb\target" (
 rem start building raw2mzDB
 set start=%time%
 echo Build started at %start%
-call quickbuild -j8 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses --incremental > raw2mzDB.log 2>&1
+rem -j<n> indicates using the number of processors used for compiling (some say that you should use n+1 cores, in my case I have a quad-core so I set -j5)
+rem set debug-symbols=on to compile in debug mode
+call quickbuild -j5 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses --incremental debug-symbols=off > raw2mzDB.log 2>&1
 rem return code is not very informative because success can have a code of 0 or 1... (the real test is to check if raw2mzDB.exe file exists or not)
 echo Compilation return code is %ERRORLEVEL%
 
@@ -18,7 +20,6 @@ IF EXIST "pwiz_mzdb\target\raw2mzDB.exe" (
   erase "pwiz_mzdb\target\raw2mzDB.obj"
   erase "pwiz_mzdb\target\raw2mzDB.obj.rsp"
   erase "pwiz_mzdb\target\raw2mzDB.exe.rsp"
-  rem TODO add a --compress option and if present, rename target to raw2mzDB_<soft_version_str>_build<yyyymmdd> and zip it
   rem happy ending
   echo File raw2mzDB has been generated !
   goto CalcTime

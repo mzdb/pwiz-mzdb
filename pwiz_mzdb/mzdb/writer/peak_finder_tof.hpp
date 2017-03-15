@@ -62,22 +62,20 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
                       bool detectPeaks = false,
                       bool computeFWHM = true) {
     try {
-
+        // get mz and intensity vectors
         const vector<double>& mzs = spectrum->getMZArray()->data;
         const vector<double>& ints = spectrum->getIntensityArray()->data;
-    
-        if (mzs.empty() || ints.empty()) {
-            // actually, it can happen in practical cases, when  a large file is processed
-            //printf("Empty spectrum which is obviously unusual !\n");
-            return;
-        }
-        
+        if (mzs.empty() || ints.empty()) return;
         int_t almostNothing = (int_t)1e-3;
-        
+        // re-detect peaks if needed
+        // on AB Sciex data, we should always use qtofpeakpicker to detect centroids
+        // TODO make sure to detect peaks only once with AB Sciex data (don't detect peaks before this point, or run qtofpeakpicker in the first place and not here)
+
         if(detectPeaks) {
             //construct peak picker
             std::pair<double, double> range = std::make_pair(mzs.front(),mzs.back());
-            double resolution = 20000; // TODO find real value in metadata, default value = 20000
+            // TODO qtofpeakpicker options should be automatically computed or left to the user through CLI options
+            double resolution = 20000; // TODO find real value if it's in metadata or try to compute it, default value = 20000
             double smoothwidth = 1; // default value = 1
             uint32_t integrationWidth = 0; // default value = 2, mzdb best value: 0
             double intensityThreshold = 0; // default value = 10, mzdb best value: 0
@@ -87,18 +85,17 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
             ralab::base::ms::PeakPicker<double, ralab::base::ms::SimplePeakArea> pp(resolution, range, smoothwidth, integrationWidth, intensityThreshold, area, maxnumberofpeaks);
             pp(mzs.begin(), mzs.end(), ints.begin());
             // replace the centroids vector with these new points
-            vector<std::shared_ptr<Centroid<mz_t, int_t> > > recalculatedCentroids;
             float rt = static_cast<float>(spectrum->scanList.scans[0].cvParam(pwiz::msdata::MS_scan_start_time).timeInSeconds());
             auto& centroidMzs = pp.getPeakMass();
             auto& centroidInts = pp.getPeakArea();
             // final verification: keep the old centroids if the new one are missing
             if(centroidMzs.size() > 0) {
+                centroids.clear();
                 for (size_t i = 0; i < centroidMzs.size(); ++i) {
                     mz_t c_mz = centroidMzs[i];
                     int_t c_int = centroidInts[i];
-                    recalculatedCentroids.push_back(std::make_shared<Centroid<mz_t, int_t> >(c_mz, c_int, rt));
+                    centroids.push_back(std::make_shared<Centroid<mz_t, int_t> >(c_mz, c_int, rt));
                 }
-                centroids = recalculatedCentroids;
             } else if(centroids.size() == 0) {
                 // this may happen on noise-only spectra, all peaks have a low intensity (such as 21) and no centroid is returned
                 // in this case, just use the most intense peak of profile spectrum and take it as the only centroid found
@@ -111,122 +108,64 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
                         highestIntensity = ints[i] + almostNothing; // adding a little something to avoid identical values (may cause problem with fitting)
                     }
                 }
+                centroids.clear();
                 if(mostIntenseMz != 0) {
-                    recalculatedCentroids.push_back(std::make_shared<Centroid<mz_t, int_t> >(mostIntenseMz, highestIntensity, rt));
-                    centroids = recalculatedCentroids;
-                    //LOG(WARNING) << "No centroids given for spectrum '" << spectrum->id << "' and qtofpeakpicker failed to recalculate anything, using best peak of profile spectrum (" << mzs[bestPeakId] << "/" << ints[bestPeakId] << ")";
+                    centroids.push_back(std::make_shared<Centroid<mz_t, int_t> >(mostIntenseMz, highestIntensity, rt));
                 } else {
                     LOG(WARNING) << "No centroids given for spectrum '" << spectrum->id << "' and qtofpeakpicker failed to recalculate anything, this will result in an empty spectrum which will probably cause problems later !";
                 }
             }
         }
-
         if(computeFWHM) {
-            vector<std::shared_ptr<Centroid<mz_t, int_t> > > fittedCentroids;
-            vector<mz_t> mzBuffer;
-            vector<int_t> intBuffer;
-    
-            size_t i = 0;
-            size_t lastCentroidId = 0;
-            size_t mzSize = mzs.size();
-    
-            mz_t lastMz = 0;
-            int_t lastInt = 0;
-            while(i < mzSize) {
-                /*
-                 * We are only looking at the current and previous lines
-                 * 4 possible cases: 
-                 * 0 -> 0 : nothing to do
-                 * 0 -> X : new buffers
-                 * X -> 0 : process buffers and clear
-                 * X -> Y : append to buffers
-                 *
-                 * for each centroid, get all the positive points on the left and right
-                 * create a mzPeak object from these points : PeakUPtr p(new mzPeak<mz_t, int_t>(lmzs, lints, spectrum));
-                 * compute the fitted centroid: auto fc = peak->_computeFittedCentroid();
-                 * add the fitted centroid to the fittedCentroids vector: fittedCentroids.push_back(fc);
-                 */
-                //if(lastInt == 0 && ints[i] == 0) {} else // case 1 : nothing to do
-                if(lastInt == 0 && ints[i] > 0) { // case 2 : new buffers
-                    // add an empty item at the beginning of the buffer, if i == 0 create a fake mz
-                    mzBuffer.push_back(lastMz == 0 ? mzs[i] - almostNothing : lastMz);
-                    intBuffer.push_back(almostNothing);
-                    // append the first real point
-                    mzBuffer.push_back(mzs[i]);
-                    intBuffer.push_back(ints[i]);
-                } else if(lastInt > 0 && ints[i] == 0) { // case 3 : process buffers
-                    // add an empty item at the end of the buffer
-                    mzBuffer.push_back(mzs[i]);
-                    intBuffer.push_back(almostNothing);
-                    // get all centroids contained in this mz range
-                    size_t cId = lastCentroidId;
-                    while(cId < centroids.size() && centroids[cId]->mz <= mzBuffer[mzBuffer.size() - 1]) {
-                        if(centroids[cId]->mz >= mzBuffer[0]) {
-                            // add the centroid if it has been recalculated (because it would not be part of the original points)
-                            size_t iId = 0; // id of the future inserted item
-                            if (detectPeaks) iId = insertCentroidIntoBuffers<mz_t, int_t>(mzBuffer, intBuffer, centroids[cId]);
-                            // create a mzPeak object from these points
-                            mzPeak<mz_t, int_t> peak(mzBuffer, intBuffer, spectrum);
-                            //add the fitted centroid to the fittedCentroids vector
-                            fittedCentroids.push_back(peak._computeFittedCentroid());
-                            if (detectPeaks) removeCentroidFromBuffers<mz_t, int_t>(mzBuffer, intBuffer, iId);
-                        } else { // single centroid point
-                            // create new buffers with 3 points: 0, centroid, 0
-                            mz_t tMz[3] = { centroids[cId]->mz - almostNothing, centroids[cId]->mz, centroids[cId]->mz + almostNothing };
-                            vector<mz_t> mzBufferTemp(&tMz[0], &tMz[0]+3);
-                            int_t tInt[3] = { almostNothing, centroids[cId]->intensity, almostNothing };
-                            vector<int_t> intBufferTemp(&tInt[0], &tInt[0]+3);
-                            // fit this centroids
-                            mzPeak<mz_t, int_t> peak(mzBufferTemp, intBufferTemp, spectrum);
-                            fittedCentroids.push_back(peak._computeFittedCentroid());
+            // make a loop on all profile peaks and create blocks of peaks
+            // each block of peaks should contain one centroid and some peaks before and after
+            // start at 0, continue until first centroid is met, continue until next centroid looking at the lowest peak between the two centroids
+            // the block will contain peaks from position 0 to the lowest peak met
+            // calculate fwhm on this block and then use ceres optimizer
+            // start again until the end
+            size_t cId = 0;
+            size_t pIdStart = 0;
+            size_t lastLowestPeakId = 0;
+            int_t lastLowestPeakIntensity = centroids[0]->intensity; // first lowest intensity must be lower than that
+            vector<std::shared_ptr<Centroid<mz_t, int_t>>> optimizedCentroids;
+            // unique loop on each peak
+            for (size_t i = 0; i < mzs.size(); ++i) {
+                if(cId == centroids.size() - 1 || mzs[i] >= centroids[cId+1]->mz) {
+                    if(cId == centroids.size() - 1) {
+                        lastLowestPeakId = mzs.size() - 1;
+                    }
+                    // set vectors of peaks around the current centroid
+                    vector<mz_t> mzBuffer;
+                    vector<int_t> intBuffer;
+                    for(size_t j = pIdStart; j <= lastLowestPeakId; j++) {
+                        mzBuffer.push_back(mzs[j]);
+                        if(ints[j] == 0) {
+                            intBuffer.push_back(almostNothing);
+                        } else {
+                            intBuffer.push_back(ints[j]);
                         }
+                    }
+                    // create the data points collection with the current centroid
+                    DataPointsCollection<mz_t, int_t> collec(mzBuffer, intBuffer, spectrum);
+                    vector<std::shared_ptr<Centroid<mz_t, int_t> > > centroidBuffer;
+                    centroidBuffer.push_back(centroids[cId]);
+                    collec.setDetectedPeaks(centroidBuffer, params, mzPeakFinderUtils::CWT_DISABLED);
+                    // compute fitted data and optimize it with ceres
+                    collec.optimize(optimizedCentroids, mzPeakFinderUtils::GAUSS_OPTIMIZATION, computeFWHM);
+                    // prepare for next block of peaks or quit
+                    if(cId == centroids.size() - 1) {
+                        break; // just exit for loop
+                    } else {
+                        pIdStart = lastLowestPeakId;
+                        lastLowestPeakIntensity = centroids[cId+1]->intensity; // next lowest intensity must be lower than that
                         cId++;
                     }
-                    lastCentroidId = cId;
-                    mzBuffer.clear();
-                    intBuffer.clear();
-                } else if(lastInt > 0 && ints[i] > 0) { // case 4 : append to buffers
-                    mzBuffer.push_back(mzs[i]);
-                    intBuffer.push_back(ints[i]);
-                }
-                lastMz = mzs[i];
-                lastInt = ints[i];
-                i++;
-            }
-            
-            // deal with eventual final peaks
-            if(!mzBuffer.empty()) {
-                // redo case 3 : process buffers (see comments above)
-                mzBuffer.push_back(mzs[i]);
-                intBuffer.push_back(almostNothing);
-                size_t cId = lastCentroidId;
-                while(cId < centroids.size() && centroids[cId]->mz) {
-                    if(centroids[cId]->mz >= mzBuffer[0]) {
-                        size_t iId = 0;
-                        if (detectPeaks) iId = insertCentroidIntoBuffers<mz_t, int_t>(mzBuffer, intBuffer, centroids[cId]);
-                        mzPeak<mz_t, int_t> peak(mzBuffer, intBuffer, spectrum);
-                        fittedCentroids.push_back(peak._computeFittedCentroid());
-                        if (detectPeaks) removeCentroidFromBuffers<mz_t, int_t>(mzBuffer, intBuffer, iId);
-                    } else { // single centroid point
-                        // TODO create a function for this !
-                        // create new buffers with 3 points: 0, centroid, 0
-                        mz_t tMz[3] = { centroids[cId]->mz - almostNothing, centroids[cId]->mz, centroids[cId]->mz + almostNothing };
-                        vector<mz_t> mzBufferTemp(&tMz[0], &tMz[0]+3);
-                        int_t tInt[3] = { almostNothing, centroids[cId]->intensity, almostNothing };
-                        vector<int_t> intBufferTemp(&tInt[0], &tInt[0]+3);
-                        // fit this centroids
-                        mzPeak<mz_t, int_t> peak(mzBufferTemp, intBufferTemp, spectrum);
-                        fittedCentroids.push_back(peak._computeFittedCentroid());
-                    }
-                    cId++;
+                } else if(mzs[i] > centroids[cId]->mz && ints[i] < lastLowestPeakIntensity) {
+                    lastLowestPeakId = i;
+                    lastLowestPeakIntensity = ints[i];
                 }
             }
-            // clear buffers
-            mzBuffer.clear();
-            intBuffer.clear();
-            
-            // store the new centroids or fitted peaks
-            centroids = fittedCentroids;
+            centroids = optimizedCentroids;
         }
     } catch(std::exception& e) {
         exitOnError(std::string("[QTOFPeakPicker] Error :") + e.what());

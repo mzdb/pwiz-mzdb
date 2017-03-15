@@ -199,13 +199,14 @@ public:
      * The first centroid mz and intensity approximation
      * are estimated using a Parabola fitting (mathematical formula taken from MaxQuant paper)
      */
-    PWIZ_API_DECL CentroidSPtr _computeFittedCentroid() const{
+    PWIZ_API_DECL CentroidSPtr _computeFittedCentroid() const {
 
+        //genericUtils::checkMemoryUsage("_computeFittedCentroid start");
         if (_mzData.empty() || _intData.empty()) {
             throw exception("Can not compute centroid: Empty data");
         }
 
-        auto _centroid = std::make_shared<Centroid<mz_t, int_t> >();
+        auto _centroid = std::make_shared<Centroid<mz_t, int_t> >(); // FIXME: MTuner points a memory leak here !
         _centroid->rt = PwizHelper::rtOf(_spectrum);
         if(_centroid->rt == 0) LOG(ERROR) << "Can not find RT for spectrum " << _spectrum->id;
         int nbDataPoints = _mzData.size();
@@ -213,16 +214,12 @@ public:
         // Check that apex pos is a valid value
 
         if (apexPos < 0 || apexPos >= nbDataPoints) {
+            //LOG(ERROR) << "Invalid apex position for spectrum " << _spectrum->id;
             throw exception("Invalid apex position");
-            //return 0;
         }
 
         //set the background
-        //const int_t& background = *min_element(_intData.begin(), _intData.end());
         const int_t& maxIntensity = _intData[apexPos];
-        //_centroid->background = background;
-
-        //printf("background:%f\n", background);
 
         _centroid->intensity = maxIntensity;
         int nbPointsLeft = apexPos;
@@ -306,14 +303,8 @@ public:
             _centroid->rwhm = MIN_SEMI_WIDTH;
         }
 
-        //if  (! _centroid || _centroid->mz < 0.0 || _centroid->mz > 3000.0)
-        //    printf("ERROR mz centroid out of bound: %f\n", _centroid->mz);
-
         if (! mzMath::isFiniteNumber<mz_t>(_centroid->mz))
             _centroid->mz = _mzData[apexPos];
-
-        //if (! mzMath::isFiniteNumber<mz_t>(_centroid->mz))
-        //   printf("ERROR mz centroid is not a finite number: %f\n", _centroid->mz);
 
         return _centroid;
     }
@@ -394,7 +385,7 @@ public:
 
     inline static vector<pair<mz_t, int_t> > getInterpolationPointsForY(const vector<mz_t>& xData, const vector<int_t>& yData, int startIdx, int idxStep, double y) {
 
-        if (idxStep < 0) {
+        if (idxStep < 0) { // left
             for (int i = startIdx; i + idxStep >= 0; i += idxStep) {
                 if ( (y >= yData[i] && y <= yData[i + idxStep]) ||  (y >=yData[i + idxStep] && y <= yData[i])) {
                     vector<pair<mz_t, int_t> > r;
@@ -403,7 +394,7 @@ public:
                     return r;
                 }
             }
-        } else {
+        } else { // right
             for (int i = startIdx;  i + idxStep < (int)xData.size(); i += idxStep) {
                 if ( (y >= yData[i] && y <= yData[i + idxStep]) ||  (y >=yData[i + idxStep] && y <= yData[i])) {
                     vector<pair<mz_t, int_t> > r;

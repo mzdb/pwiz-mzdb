@@ -148,6 +148,17 @@ struct PWIZ_API_DECL mzSpectrum {
         originalMode = p.originalMode;
         spectrum = p.spectrum;
     }
+    
+    ~mzSpectrum() {
+        if (! peaks.empty()) {
+            for (size_t i = 0; i < peaks.size(); ++i) {
+                //delete peaks[i];
+                peaks[i].reset();
+            }
+            peaks.clear();
+        }
+        spectrum.reset();
+    }
 
     ///affectation
     mzSpectrum<mz_t, int_t>& operator=(const mzSpectrum<mz_t, int_t> &p) {

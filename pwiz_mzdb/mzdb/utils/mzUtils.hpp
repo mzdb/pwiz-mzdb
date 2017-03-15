@@ -34,6 +34,10 @@
 #include "pwiz/analysis/peakdetect/PeakFamilyDetectorFT.hpp"
 #include "pwiz/analysis/spectrum_processing/PrecursorRecalculatorDefault.hpp"
 
+// next two lines are required for the genericUtils namespace
+//#include "windows.h"
+//#include "psapi.h"
+
 //#include "glog/logging.h"
 
 ///** START OF TYPENAME ADDON (TEMPORARY) **/
@@ -655,5 +659,43 @@ inline static void exitOnError(std::string message) {
 }
 
 }//end namespace
+
+//namespace genericUtils {
+//
+//    static SIZE_T getMemoryUsage() {
+//        // function based on code available here: http://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
+//        PROCESS_MEMORY_COUNTERS_EX pmc;
+//        GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+//        SIZE_T virtualMemUsedByMe = pmc.PrivateUsage;
+//        //if(virtualMemUsedByMe > 500000000) LOG(WARNING) << "MEMORY IS TOO HIGH (" << virtualMemUsedByMe/1048576 << "MB)";
+//        return virtualMemUsedByMe;
+//    }
+//    
+//    static void checkMemoryUsage(std::string message, size_t limit, size_t i) {
+//        size_t memory = getMemoryUsage();
+//        if(memory >= limit) {
+//            //LOG(WARNING) << "Current memory is " << memory/1048576 << "MB (" << message << ")";
+//            //printf("Current memory is %d MB (%s)\n", memory/1048576, message.c_str());
+//            printf("%s [item %d] (%d Mo)\n", message.c_str(), i, memory/1048576);
+//            if(memory >= 1200000000) {
+//                //LOG(ERROR) << "Current memory is too high, exiting !";
+//                printf("Current memory is too high, exiting !\n");
+//                exit(EXIT_FAILURE);
+//            }
+//        }
+//    }
+//    
+//    static void checkMemoryUsage(std::string message, size_t i) {
+//        checkMemoryUsage(message, 500000000, i);
+//    }
+//    
+//    static void checkMemoryUsage(std::string message) {
+//        checkMemoryUsage(message, 0);
+//    }
+//    
+//    static void checkMemoryUsage() {
+//        checkMemoryUsage("");
+//    }
+//}
 
 #endif // MZUTILS_HPP

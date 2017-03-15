@@ -198,6 +198,9 @@ private:
                     }
                     ++scanCount;
                 }
+                // delete spectra objects
+                spectrum.reset();
+                centroidSpectrum.reset();
             } catch(std::exception& e) {
                 LOG(INFO) << "Exception detected: " << e.what();
             }
