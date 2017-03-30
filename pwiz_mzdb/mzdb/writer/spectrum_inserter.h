@@ -76,6 +76,9 @@ private:
     // map to know the number of spectra per ms level
     unordered_map<int, int> nbSpectraByMsLevel;
 
+    // variables for a potential scan offset
+    int scanOffset;
+    bool isScanOffsetComputed;
 
     /**
      * @brief findDataEncodingID
@@ -179,6 +182,9 @@ public:
         mRawFileFormat(rawFileFormat),
         mDataEncodings(dataEncodings) {
 
+        scanOffset = 0;
+        isScanOffsetComputed = false;
+        
         if (mRawFileFormat == pwiz::msdata::MS_ABI_WIFF_format)
             mWiffFile = pwiz::vendor_api::ABI::WiffFile::create(mMzdbFile.name);
     } // end ctor
@@ -238,22 +244,31 @@ public:
         const char* sql = "INSERT INTO tmp_spectrum  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
         sqlite3_prepare_v2(mMzdbFile.db, sql, -1, &(mMzdbFile.stmt), 0);
 
+        // prepare title and scan offset (because it is possible than initial_id = 1 when scan_id=3426)
+        const string& title = spec->id;
+        if(!isScanOffsetComputed) {
+            int scanNumber = PwizHelper::extractScanNumber(title);
+            if(scanNumber > 0) {
+                scanOffset = scanNumber - spectrum->id; // default is 0 (neutral offset)
+            }
+            isScanOffsetComputed = true;
+        }
+        
         //ID could be autoincrement
         sqlite3_bind_int(mMzdbFile.stmt, 1, spectrum->id);
 
         //initial_id
-        sqlite3_bind_int(mMzdbFile.stmt, 2, spectrum->id);
-        const string& id = spec->id;
+        sqlite3_bind_int(mMzdbFile.stmt, 2, spectrum->id + scanOffset);
 
         //title
-        sqlite3_bind_text(mMzdbFile.stmt, 3, id.c_str(), id.length(), SQLITE_STATIC);
+        sqlite3_bind_text(mMzdbFile.stmt, 3, title.c_str(), title.length(), SQLITE_STATIC);
 
         //cycle
         sqlite3_bind_int(mMzdbFile.stmt, 4, spectrum->cycle);
 
         //time
         float rt = PwizHelper::rtOf(spec);
-        if(rt == 0) LOG(ERROR) << "Can't find RT for spectrum " << spec->id;
+        if(rt == 0) LOG(ERROR) << "Can't find RT for spectrum " << title;
         sqlite3_bind_double(mMzdbFile.stmt, 5, rt);
 
         //msLevel

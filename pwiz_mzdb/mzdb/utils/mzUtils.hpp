@@ -386,6 +386,16 @@ inline void checkCycleNumber(pwiz::msdata::CVID filetype, string spectrumTitle, 
         }
     }
 }
+
+inline int extractScanNumber(string spectrumTitle) {
+    std::regex e ("scan=(\\d+)");
+    std::smatch match;
+    if (std::regex_search(spectrumTitle, match, e) && match.size() > 0) {
+        return std::stoi(match.str(1));
+    }
+    return 0;
+}
+
 } // end namespace PWIZ HELPER
 
 
