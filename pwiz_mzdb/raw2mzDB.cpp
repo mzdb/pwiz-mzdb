@@ -102,13 +102,13 @@ namespace fs = boost::filesystem;
 int deleteIfExists(const string &filename) {
 
     if (std::ifstream(filename.c_str())) {
-        //file exist
-        //printf("\n");
-        LOG(WARNING) << "";
-        LOG(WARNING) << "Found file with the same name";
-        LOG(WARNING) << "Delete...";
+        // FIXME these warnings are never printed because the function is called before setting log file
+        //LOG(WARNING) << "";
+        //LOG(WARNING) << "Found file with the same name";
+        //LOG(WARNING) << "Delete...";
         if (remove(filename.c_str()) != 0) {
-            LOG(ERROR) << "Error trying to delete file, exiting...May the file is opened elsewhere ?";
+            //LOG(ERROR) << "Error trying to delete file, exiting...May the file is opened elsewhere ?";
+            LOG(ERROR) << "File " << filename << " already exists and is locked, exiting...";
             exit(EXIT_FAILURE);
         } else {
             LOG(INFO) << "Done";

@@ -250,6 +250,7 @@ public:
             int scanNumber = PwizHelper::extractScanNumber(title);
             if(scanNumber > 0) {
                 scanOffset = scanNumber - spectrum->id; // default is 0 (neutral offset)
+                LOG(WARNING) << "First scan number is " << scanOffset+1 << ", previous spectra could not be read";
             }
             isScanOffsetComputed = true;
         }
