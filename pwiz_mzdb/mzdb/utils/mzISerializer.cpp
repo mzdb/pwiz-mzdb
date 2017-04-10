@@ -115,7 +115,7 @@ void getUserParams(const ParamContainer& object, xml_node& doc) {
 }
 
 
-
+// TODO remove this function and only use serialize(&ParamContainer) instead
 string serialize(const ParamContainer& e, xml_string_writer &writer) {
     xml_document doc;
     auto n = doc.append_child(PARAMS_STR);
@@ -125,6 +125,31 @@ string serialize(const ParamContainer& e, xml_string_writer &writer) {
 
 	// Add "MS:" prefix 
     string runForAddMS = writer.getResult();
+    if (!runForAddMS.empty()){
+        string strCvRef("cvRef=\"");
+        string strAccession("accession=\"");
+        size_t foundPositionCvRef = runForAddMS.find(strCvRef);
+        size_t foundPositionAccession = runForAddMS.find(strAccession);
+        while (foundPositionCvRef != string::npos && foundPositionAccession != string::npos && runForAddMS.substr(foundPositionCvRef+7, 2) == "MS" && runForAddMS.substr(foundPositionAccession+11, 3) != "MS:"){ // add to all accession values
+            runForAddMS.insert(foundPositionAccession+11,"MS:");
+            foundPositionCvRef = runForAddMS.find(strCvRef, foundPositionCvRef+1);
+            foundPositionAccession = runForAddMS.find(strAccession, foundPositionAccession+1);
+        }
+    }
+    string& writerFixMS = runForAddMS;
+    return runForAddMS;
+}
+
+string serialize(const ParamContainer& e) {
+    xml_document doc;
+    auto n = doc.append_child(PARAMS_STR);
+    getCvParams(e, n);
+    getUserParams(e, n);
+    std::stringstream writer;
+    doc.save(writer,"  ", format_no_declaration);
+
+	// Add "MS:" prefix 
+    string runForAddMS = writer.str();
     if (!runForAddMS.empty()){
         string strCvRef("cvRef=\"");
         string strAccession("accession=\"");

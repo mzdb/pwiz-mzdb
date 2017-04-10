@@ -596,7 +596,7 @@ void mzDBWriter::insertMetaData() {
     }
 
     //param tree
-    string& tree = ISerializer::serialize(m_mzdbFile, m_serializer);
+    string& tree = ISerializer::serialize(m_mzdbFile);
     sqlite3_bind_text(m_mzdbFile.stmt, 5, tree.c_str(), tree.length(), SQLITE_STATIC);
 
     sqlite3_step(m_mzdbFile.stmt);

@@ -62,6 +62,12 @@ void getUserParams(const pwiz::msdata::ParamContainer&, pugi::xml_node& doc);
  */
 string serialize(const pwiz::msdata::ParamContainer&, xml_string_writer &);
 
+/**
+ * wrapper: calls getCvParams and getUserParams
+ *
+ * @return string result of the serialization
+ */
+string serialize(const pwiz::msdata::ParamContainer&);
 
 }//end serialization
 
