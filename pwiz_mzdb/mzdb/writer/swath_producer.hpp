@@ -26,7 +26,6 @@
 
 #include "pwiz/data/msdata/MSDataFile.hpp"
 #include "pwiz/utility/misc/IntegerSet.hpp"
-//#include "pwiz/data/vendor_readers/ABI/SpectrumList_ABI.hpp"
 
 #include "../threading/SpScQueue.hpp"
 #include "cycle_obj.hpp"
@@ -66,7 +65,6 @@ class mzSwathProducer: QueueingPolicy, MetadataExtractionPolicy {
 private:
 
     PeakPickerPolicy m_peakPicker;
-    bool firstCycleMs1IsMissing;
     bool m_safeMode;
     
     /// DataMode for each MS level
@@ -86,18 +84,7 @@ private:
     void _peakPickAndPush(SpectraContainerUPtr& cycle, pwiz::msdata::CVID filetype,
                           mzPeakFinderUtils::PeakPickerParams& params) {
         this->m_peakPicker.start<h_mz_t, h_int_t, l_mz_t, l_int_t>(cycle, filetype, params);
-
-        //do not forget to fit first msLevel
-        //cycle->parentSpectrum->doPeakPicking(this->m_peakPicker.getDataModeByMsLevel()[1], filetype, params);
-
-        if(!firstCycleMs1IsMissing) {
-            // TODO check why dataModeByMsLevel[1] is used ???
-            cycle->parentSpectrum->doPeakPicking(this->m_peakPicker.getDataModeByMsLevel()[0], filetype, params, m_safeMode);
-        } else {
-            firstCycleMs1IsMissing = false;
-        }
-
-        this->put(std::move(cycle));
+        this->put(cycle);
     }
 
 
@@ -111,111 +98,113 @@ private:
      * @param filetype
      * @param params
      */
-    void _produce(
-            pwiz::util::IntegerSet& levelsToCentroid,
-            SpectrumListType* spectrumList,
-            pair<int, int>& cycleRange,
-            pwiz::msdata::CVID filetype,
-            mzPeakFinderUtils::PeakPickerParams& params) {
+    void _produce(pwiz::util::IntegerSet& levelsToCentroid,
+                  SpectrumListType* spectrumList,
+                  pair<int, int>& cycleRange,
+                  pwiz::msdata::CVID filetype,
+                  mzPeakFinderUtils::PeakPickerParams& params) {
 
         /* initialiazing counter */
         int cycleCount = 0, scanCount = 1;
-        firstCycleMs1IsMissing = false;
 
         HighResSpectrumSPtr currMs1(nullptr);
         SpectraContainerUPtr cycle(nullptr);
 
         for (size_t i = 0; i < spectrumList->size(); i++) {
+            scanCount = i + 1;
             try {
-                pwiz::msdata::SpectrumPtr spectrum;
-                pwiz::msdata::SpectrumPtr centroidSpectrum;
-                
                 // Retrieve the input spectrum as is
-                spectrum = spectrumList->spectrum(i, true);
-                
+                pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(i, true);
                 // Retrieve the MS level
                 const int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
-                bool isInHighRes = this->isInHighRes(spectrum, isNoLoss);
                 // Retrieve the effective mode
                 DataMode wantedMode = m_dataModeByMsLevel[msLevel];
-                
                 // If effective mode is not profile
+                pwiz::msdata::SpectrumPtr centroidSpectrum;
                 if (wantedMode != PROFILE) {
-                    // --- Retrieve the CENTROID spectrum ---
                     // The content of the retrieved spectrum depends on the levelsToCentroid settings
                     // If the set is empty then we will get a PROFILE spectrum
                     // Else we will obtain a CENTROID spectrum if its msLevel belongs to levelsToCentroid
                     centroidSpectrum = mzdb::getSpectrum<SpectrumListType>(spectrumList, i, true, levelsToCentroid);
                 }
                 
-                // increment cycle number
-                if (msLevel == 1 ) {
-                    PwizHelper::checkCycleNumber(filetype, spectrum->id, ++cycleCount);
+                /*
+                 * it should be like this:
+                 * cycle = { MS1 - MS2 - MS2 - ... }
+                 * but sometimes there might be no primary MS1, first spectra are MS2
+                 * in this case, create a fake MS1 parent with spectrum = null
+                 */
+                if (!cycle && msLevel != 1) {
+                    // special case, there is no MS1 parent
+                    LOG(WARNING) << "Spectrum \"" << spectrum->id << "\" has no precursor, creating a fake one";
+                    cycleCount = 1; // new value should be 1
+                    // create a fake MS1 parent with spectrum = null
+                    currMs1 = make_shared<mzSpectrum<h_mz_t, h_int_t> >();
+                    currMs1->id = scanCount;
+                    currMs1->cycle = cycleCount;
+                    currMs1->originalMode = m_dataModeByMsLevel[msLevel]; // I can't know that !
+                    currMs1->effectiveMode = m_dataModeByMsLevel[msLevel]; // this is wantedMode and not effectiveMode (because I don't know the real originalMode)
+                    // initialize cycle with it
+                    cycle = move(SpectraContainerUPtr(new SpectraContainer(2)));
+                    cycle->parentSpectrum = currMs1;
+                    ++scanCount;
                 }
+                // check cycle number (if available in metadata)
+                PwizHelper::checkCycleNumber(filetype, spectrum->id, cycleCount);
+                
                 // do not process if the cycle is not asked
                 if(cycleCount < cycleRange.first) {
                     continue;
                 } else if(cycleRange.second != 0 && cycleCount > cycleRange.second) {
                     break;
                 }
-
-                if (msLevel == 1 ) {
-                    currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum);
+                
+                // put spectra in cycle
+                if(msLevel == 1) {
+                    // peak picks MS2 spectra from previous cycle (if any)
                     if (cycle) {
-                        //peak picks only ms == 2
                         this->_peakPickAndPush(cycle, filetype, params);
                     }
-                    // it may happen that the first MS1 is missing, in such case we shouldn't increment cycle number
-                    if(firstCycleMs1IsMissing) {
-                        firstCycleMs1IsMissing = false;
-                        LOG(WARNING) << "First cycle has been skipped because MS1 spectrum was missing";
-                    }
-                    cycle = std::move(SpectraContainerUPtr(new SpectraContainer(2)));
+                    // make this spectra the precursor of the new cycle
+                    currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, ++cycleCount, spectrum, centroidSpectrum, wantedMode, m_safeMode);
+                    cycle = move(SpectraContainerUPtr(new SpectraContainer(2)));
                     cycle->parentSpectrum = currMs1;
-                    ++scanCount;
                 } else {
-                    if (!cycle) {
-                        LOG(WARNING) << "Spectrum \"" << spectrum->id << "\" has no precursor, creating a fake one";
-                        firstCycleMs1IsMissing = true;
-                        ++cycleCount;
-                        PwizHelper::checkCycleNumber(filetype, spectrum->id, cycleCount);
-                        currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >();
-                        currMs1->id = scanCount;
-                        currMs1->cycle = cycleCount;
-                        cycle = std::move(SpectraContainerUPtr(new SpectraContainer(2)));
-                        cycle->parentSpectrum = currMs1;
-                        ++scanCount;
-                    }
+                    bool isInHighRes = this->isInHighRes(spectrum, isNoLoss);
                     if (isInHighRes) {
-                        auto s = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum);
+                        auto s = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum, wantedMode, m_safeMode);
                         s->isInHighRes = isInHighRes;
                         cycle->addHighResSpectrum(s);
                     } else {
-                        LOG(WARNING) << "LOW RES SPEC IS NOT NORMAL IN SWATH MODE";
-                        auto s = std::make_shared<mzSpectrum<l_mz_t, l_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum);
+                        LOG(WARNING) << "Low resolution spectrum is not normal in DIA mode";
+                        auto s = std::make_shared<mzSpectrum<l_mz_t, l_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum, wantedMode, m_safeMode);
                         s->isInHighRes = isInHighRes;
                         cycle->addLowResSpectrum(s);
                     }
-                    ++scanCount;
                 }
                 // delete spectra objects
                 spectrum.reset();
                 centroidSpectrum.reset();
-            } catch(std::exception& e) {
-                LOG(INFO) << "Exception detected: " << e.what();
+            } catch (runtime_error& e) {
+                LOG(ERROR) << "Runtime exception: " << e.what();
+            } catch (exception& e) {
+                LOG(ERROR) << "Catch an exception: " << e.what();
+                LOG(ERROR) << "Skipping scan";
+                continue;
+            } catch(...) {
+                LOG(ERROR) << "\nCatch an unknown exception. Trying to recover...";
+                continue;
             }
 
         } // end for
 
-        //ensure everyone is sent to the queue
+        // ensure everyone is sent to the queue
         if ( cycle && ! cycle->empty()) {
             this->_peakPickAndPush(cycle, filetype, params);
         }
 
-        //signify that we finished producing
-        LOG(INFO) << "Producer finishing...\n";
-        this->put(std::move(SpectraContainerUPtr(nullptr)));
-        //LOG(INFO) << "Producer finished...\n";
+        // signify that we finished producing
+        this->put(move(SpectraContainerUPtr(nullptr)));
     }
 
 public:
@@ -226,9 +215,9 @@ public:
         QueueingPolicy(queue),
         MetadataExtractionPolicy(mzdbFile.name),
         isNoLoss(mzdbFile.isNoLoss()),
-        m_peakPicker(dataModeByMsLevel, safeMode),
-        m_safeMode(safeMode),
-        m_dataModeByMsLevel(dataModeByMsLevel) {
+        m_peakPicker(dataModeByMsLevel/*, safeMode*/),
+        m_dataModeByMsLevel(dataModeByMsLevel),
+        m_safeMode(safeMode) {
 
     }
 
@@ -238,21 +227,16 @@ public:
                                     pwiz::msdata::CVID filetype,
                                     mzPeakFinderUtils::PeakPickerParams& params) {
 
-        return boost::thread(
-                    //boost::bind(
-                    &mzSwathProducer<QueueingPolicy,
-                    MetadataExtractionPolicy, // TODO: create a policy which claims isInHighRes always true
-                    PeakPickerPolicy, // ability to launch peak picking process
-                    SpectrumListType>::_produce,
-                    this,
-                    //arguments
-                    std::ref(levelsToCentroid),
-                    spectrumList,
-                    cycleRange,
-                    filetype,
-                    std::ref(params)
-                    //)
-                    );
+        return boost::thread(&mzSwathProducer<QueueingPolicy,
+                             MetadataExtractionPolicy, // TODO: create a policy which claims isInHighRes always true
+                             PeakPickerPolicy, // ability to launch peak picking process
+                             SpectrumListType>::_produce, // function to run in the thread
+                             this, // next variables are arguments for _produce()
+                             ref(levelsToCentroid),
+                             spectrumList,
+                             cycleRange,
+                             filetype,
+                             ref(params));
 
     } // end function
 

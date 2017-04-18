@@ -109,7 +109,9 @@ struct PWIZ_API_DECL mzSpectrum {
         int id_,
         int cycle_,
         const pwiz::msdata::SpectrumPtr& s,
-        const pwiz::msdata::SpectrumPtr& cs // spectrum containing centroids
+        const pwiz::msdata::SpectrumPtr& cs, // spectrum containing centroids
+        DataMode wantedMode,
+        bool safeMode
     ) :
         id(id_),
         cycle(cycle_),
@@ -129,6 +131,28 @@ struct PWIZ_API_DECL mzSpectrum {
             spectrumToMzDbPeaks(s, peaks); // fils this.peaks with input peaks
         }
         // at this  point, this.peaks cannot be empty
+        
+        // set original mode
+        originalMode = s->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
+        /*
+         * FIXME
+         * This fix is related to https://github.com/mzdb/pwiz-mzdb/issues/45
+         * Remove it when the ProteoWizard libraries will be updated
+         * It is a bug seen on file IB12302LMU_1-D,1_01_5930.d, spectra have both CVs but they are centroided
+         */
+        if(spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum) && spectrum->hasCVParam(pwiz::msdata::MS_centroid_spectrum)) originalMode = CENTROID;
+        
+        // set effective mode
+        if(originalMode == CENTROID && wantedMode != CENTROID) {
+            if(safeMode) {
+                effectiveMode = CENTROID;
+            } else {
+                //LOG(ERROR) << "Error: MS" << _msLevel << " is " << modeToString(originalMode) << " and cannot be turned into " << modeToString(wantedMode);
+                exitOnError("Current file contains centroid data that cannot be turned into profile/fitted data");
+            }
+        } else {
+            effectiveMode = wantedMode;
+        }
     }
 
     ///copy ctor
@@ -204,80 +228,15 @@ struct PWIZ_API_DECL mzSpectrum {
             return std::make_shared<Centroid<mz_t, int_t> >(mz, ints, rt);
         });
     }
-    
-    ///**
-    // * Converts a proteowizard spectrum to mzdb peaks and fills this.peaks
-    // * When no peak picking is needed, we convert each data points into a centroid object.
-    // * When peak picking has been done but not correctly, call the in-house peakpicking algorithm
-    // */
-    //inline void spectrumToMzDbPeaks_recalculateIfNeeded(const pwiz::msdata::SpectrumPtr &originalSpectrum, const pwiz::msdata::SpectrumPtr &centroidedSpectrum) {
-    //    if (centroidedSpectrum != NULL) { // effectiveMode != PROFILE
-    //        // TODO check if centroids have to be recalculated
-    //        // original spectrum has to be in profile mode (TODO not sure how it should work in this case: centroidedSpectrum==NULL or not ?)
-    //        bool hasBeenCorrected = false;
-    //        if(originalSpectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum)) {
-    //            // TODO: not sure if it's possible, but we should check that centroids exist at all (centroidSpectrum==null && !centroidSpectrum->getIntensityArray()->empty())
-    //            size_t nbProfileIntensities = originalSpectrum->getIntensityArray()->data.size();
-    //            size_t nbCentroidIntensities = centroidedSpectrum->getIntensityArray()->data.size();
-    //            // second condition: same number of data_points in both vectors
-    //            if(nbProfileIntensities == nbCentroidIntensities) {
-    //                // first get the list of peaks
-    //                const vector<double>& mzs = originalSpectrum->getMZArray()->data;
-    //                const vector<double>& ints = originalSpectrum->getIntensityArray()->data;
-    //                const vector<mz_t> nmzs(mzs.begin(), mzs.end());
-    //                const vector<int_t> nints(ints.begin(), ints.end());
-    //                // set the peakpicking parameters
-    //                mzPeakFinderUtils::PeakPickerParams peakPickerParams;
-    //                peakPickerParams.adaptiveBaselineAndNoise = true;
-    //                peakPickerParams.optimizationOpt = mzPeakFinderUtils::NO_OPTIMIZATION;
-    //                peakPickerParams.minSNR = 0.0;
-    //                peakPickerParams.fwhm = TOF_FWHM;
-    //                // then run the peak detection
-    //                DataPointsCollection<mz_t, int_t> spectrumData(nmzs, nints, centroidedSpectrum);
-    //                spectrumData._detectPeaksCWT(peakPickerParams);
-    //                vector<std::shared_ptr<Centroid<mz_t, int_t> > > tempPeaks;
-    //                spectrumData.peaksToCentroids(tempPeaks);
-    //                if(tempPeaks.size() > 1) {
-    //                    peaks = tempPeaks;
-    //                    hasBeenCorrected = true;
-    //                } else {
-    //                    hasBeenCorrected = false;
-    //                }
-    //            }
-    //        }
-    //        if (!hasBeenCorrected) {
-    //            // fill this.peaks with peaks centroided with vendors algorithms
-    //            spectrumToMzDbPeaks(centroidedSpectrum, peaks);
-    //        }
-    //    } else { // effectiveMode == PROFILE
-    //        // fill this.peaks with peaks centroided with vendors algorithms
-    //        spectrumToMzDbPeaks(originalSpectrum, peaks);
-    //    }
-    //}
 
     /**
       * Perform peak picking, fill peaks member et set the member
       * _effectiveMode_.
       *
-      * @param m wanted dataMode to convert
       * @param ppa CVID representing filetype
       * @param peak picking params object
       */
-    inline void doPeakPicking(DataMode wantedMode, pwiz::msdata::CVID ppa, mzPeakFinderUtils::PeakPickerParams& params, bool safeMode) {
-        // check wantedMode
-        originalMode = spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
-        if(originalMode == CENTROID && wantedMode != CENTROID) {
-            if(safeMode) {
-                effectiveMode = CENTROID;
-            } else {
-                //LOG(ERROR) << "Error: MS" << _msLevel << " is " << modeToString(originalMode) << " and cannot be turned into " << modeToString(wantedMode);
-                exitOnError("Current file contains centroid data that cannot be turned into profile/fitted data");
-                //throw runtime_error("Current file contains centroid data that cannot be turned into profile/fitted data");
-            }
-        } else {
-            effectiveMode = wantedMode;
-        }
-
+    inline void doPeakPicking(pwiz::msdata::CVID ppa, mzPeakFinderUtils::PeakPickerParams& params) {
         if (effectiveMode != PROFILE) {
             mzPeakFinderProxy::computeCentroidsWidths<mz_t, int_t>(spectrum, peaks, ppa, params, effectiveMode);
         }
@@ -307,6 +266,7 @@ struct PWIZ_API_DECL mzSpectrum {
     inline DataMode getOriginalMode() {
         if(! originalMode) {
             // really ?? it should not happen !!!
+            LOG(ERROR) << "Spectrum " << id << " has no original mode !!";
             originalMode = CENTROID;
         }
         return originalMode;
@@ -315,6 +275,7 @@ struct PWIZ_API_DECL mzSpectrum {
     inline DataMode getEffectiveMode() {
         if(! effectiveMode) {
             // really ?? it should not happen !!!
+            LOG(ERROR) << "Spectrum " << id << " has no effective mode !!";
             effectiveMode = CENTROID;
         }
         return effectiveMode;

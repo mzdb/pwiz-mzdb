@@ -47,7 +47,7 @@ private:
     /// wanted DataMode for each msLevel wanted by the user.
     map<int, DataMode>& m_dataModeByMsLevel;
     
-    bool m_safeMode;
+    //bool m_safeMode;
 
     /**
      * Launches peak picking for each spectrum in its own thread.
@@ -56,7 +56,7 @@ private:
      */
     template<typename mz_t, typename int_t>
     void _peakPicksTypedSpectra(vector<std::shared_ptr<mzSpectrum<mz_t, int_t> > >& spectra,
-                                DataMode m,
+                                //DataMode m,
                                 pwiz::msdata::CVID filetype,
                                 mzPeakFinderUtils::PeakPickerParams& params,
                                 size_t maxNbThreads) {
@@ -65,7 +65,8 @@ private:
             boost::thread_group g;
             size_t counter = ( N - j < maxNbThreads ) ? N - j : maxNbThreads;
             for (size_t i = 0; i < counter; ++i) {
-                g.create_thread(std::bind(&mzSpectrum<mz_t, int_t>::doPeakPicking, spectra.at(j + i), m, filetype, params, m_safeMode));
+                //g.create_thread(std::bind(&mzSpectrum<mz_t, int_t>::doPeakPicking, spectra.at(j + i), m, filetype, params/ m_safeMode));
+                g.create_thread(std::bind(&mzSpectrum<mz_t, int_t>::doPeakPicking, spectra.at(j + i), /*m,*/ filetype, params/*, m_safeMode*/));
             }
             g.join_all();
         }
@@ -79,7 +80,7 @@ private:
              class l_mz_t, class l_int_t>
     void _peakPicks(vector<std::shared_ptr<mzSpectrum<h_mz_t,h_int_t> > >& highResBuffer,
                     vector<std::shared_ptr<mzSpectrum<l_mz_t,l_int_t> > >& lowResBuffer,
-                    DataMode m,
+                    //DataMode m,
                     pwiz::msdata::CVID filetype,
                     mzPeakFinderUtils::PeakPickerParams& params) {
 
@@ -87,16 +88,16 @@ private:
         //---heard that in theory should be around (nbProc - 4) / 2 + 1);
         size_t maxNbThreads = std::max<size_t>(1, nbProc);
 
-        this->_peakPicksTypedSpectra<h_mz_t, h_int_t>(highResBuffer, m, filetype, params, maxNbThreads);
-        this->_peakPicksTypedSpectra<l_mz_t, l_int_t>(lowResBuffer, m, filetype, params, maxNbThreads);
+        this->_peakPicksTypedSpectra<h_mz_t, h_int_t>(highResBuffer, /*m,*/ filetype, params, maxNbThreads);
+        this->_peakPicksTypedSpectra<l_mz_t, l_int_t>(lowResBuffer, /*m,*/ filetype, params, maxNbThreads);
     }
 
 public:
     /* constructor */
-    //inline mzMultiThreadedPeakPicker (map<int, DataMode>& dataModeByMsLevel): m_dataModeByMsLevel(dataModeByMsLevel) {}
-    inline mzMultiThreadedPeakPicker (map<int, DataMode>& dataModeByMsLevel, bool safeMode):
-        m_dataModeByMsLevel(dataModeByMsLevel),
-        m_safeMode(safeMode) {}
+    inline mzMultiThreadedPeakPicker (map<int, DataMode>& dataModeByMsLevel): m_dataModeByMsLevel(dataModeByMsLevel) {}
+    //inline mzMultiThreadedPeakPicker (map<int, DataMode>& dataModeByMsLevel, bool safeMode):
+    //    m_dataModeByMsLevel(dataModeByMsLevel),
+    //    m_safeMode(safeMode) {}
 
 
     inline map<int, DataMode>& getDataModeByMsLevel() {
@@ -117,8 +118,8 @@ public:
         vector<std::shared_ptr<mzSpectrum<l_mz_t, l_int_t> > > lowResSpectra;
 
         cycleObject->getSpectra(highResSpectra, lowResSpectra);
-        auto& dataMode = m_dataModeByMsLevel[cycleObject->msLevel];
-        this->_peakPicks<h_mz_t, h_int_t, l_mz_t, l_int_t>(highResSpectra, lowResSpectra, dataMode, filetype, params);
+        //auto& dataMode = m_dataModeByMsLevel[cycleObject->msLevel];
+        this->_peakPicks<h_mz_t, h_int_t, l_mz_t, l_int_t>(highResSpectra, lowResSpectra, /*dataMode,*/ filetype, params);
     }
 
 };

@@ -73,6 +73,7 @@ private:
 
     /// peakpicker object
     PeakPickerPolicy m_peakPicker;
+    bool m_safeMode;
 
     ///ms levels encountered
     set<int> m_msLevels;
@@ -114,14 +115,15 @@ private:
         int cycleCount,
         bool isInHighRes,
         pwiz::msdata::SpectrumPtr spec,
-        pwiz::msdata::SpectrumPtr centroidSpec
+        pwiz::msdata::SpectrumPtr centroidSpec,
+        DataMode wantedMode
     ) {
         if (isInHighRes) {
-            auto s = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spec, centroidSpec);
+            auto s = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spec, centroidSpec, wantedMode, m_safeMode);
             s->isInHighRes = isInHighRes;
             cycle->addHighResSpectrum(s);
         } else {
-            auto s = std::make_shared<mzSpectrum<l_mz_t, l_int_t> >(scanCount, cycleCount, spec, centroidSpec);
+            auto s = std::make_shared<mzSpectrum<l_mz_t, l_int_t> >(scanCount, cycleCount, spec, centroidSpec, wantedMode, m_safeMode);
             s->isInHighRes = isInHighRes;
             cycle->addLowResSpectrum(s);
         }
@@ -159,6 +161,7 @@ public:
             pwiz::msdata::SpectrumPtr spectrum;
             pwiz::msdata::SpectrumPtr centroidSpectrum;
             int msLevel;
+            DataMode wantedMode;
             try {
                 // Retrieve the input spectrum as is
                 spectrum = spectrumList->spectrum(i, true); // size_t index, bool getBinaryData
@@ -166,7 +169,7 @@ public:
                 msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
                 m_msLevels.insert(msLevel);
                 // Retrieve the effective mode
-                DataMode wantedMode = m_dataModeByMsLevel[msLevel];
+                wantedMode = m_dataModeByMsLevel[msLevel];
                 // If effective mode is not profile
                 if (wantedMode != PROFILE) {
                     // The content of the retrieved spectrum depends on the levelsToCentroid settings
@@ -199,7 +202,7 @@ public:
             
             // set new precursor
             if (msLevel == 1 ) {
-                currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum);
+                currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum, wantedMode, m_safeMode);
             }
 
             //init
@@ -218,7 +221,7 @@ public:
             auto& container = spectraByMsLevel[msLevel];
 
             if (container->empty() ) {
-                this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum);
+                this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
                 added = true;
             }
 
@@ -231,12 +234,12 @@ public:
                 c->parentSpectrum = currMs1;
                 //check if already been added
                 if (!added) {
-                    this->_addSpectrum(c, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum);
+                    this->_addSpectrum(c, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
                 }
                 spectraByMsLevel[msLevel] = std::move(c);
             } else {
                 if (!added) {
-                    this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum);
+                    this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
                 }
             }
             // delete spectra objects
@@ -280,8 +283,9 @@ public:
         QueueingPolicy(queue),
         MetadataExtractionPolicy(mzdbFile.name),
         isNoLoss(mzdbFile.isNoLoss()), 
-        m_peakPicker(dataModeByMsLevel, safeMode),
-        m_dataModeByMsLevel(dataModeByMsLevel) {
+        m_peakPicker(dataModeByMsLevel/*, safeMode*/),
+        m_dataModeByMsLevel(dataModeByMsLevel),
+        m_safeMode(safeMode) {
         }
 
     /**

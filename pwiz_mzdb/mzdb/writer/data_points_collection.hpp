@@ -142,7 +142,7 @@ private:
         } else if (peakIndexes.isMissingBothLeftRight() ) {
             //---in that case dont know what to do
             // does not build a peak from these peak indexes
-            LOG(WARNING) << "Do not know how to handle one peak";
+            //LOG(WARNING) << "Do not know how to handle one peak";
             return;
         } else {
             //---usual case
@@ -185,6 +185,8 @@ private:
             }
         }
         if (maxIndexes.empty()) {
+            //LOG(WARNING) << "_setDetectedPeaks failed on centroid at mz " << givenCentroids[0]->mz;
+            //for(size_t i = 0; i < mzData.size(); i++) LOG(WARNING) << "ABU profile data for centroid " << givenCentroids[0]->mz << ":\t" << mzData[i] << "\t" << intData[i];
             return;
         }
 
@@ -307,6 +309,7 @@ public:
      *  For each peak in detectedPeaks compute centroid and puts the result in an empty vector
      *  Computing centroid means generating a curve based on the peak's datapoints
      *  And then using mathematical functions to retrieve the apex and the left and right fwhm
+     *  FIXME: peaks can be fitted, then optimized with ceres (that will recalculate fwhm !)
      */
     void optimize(
         vector<std::shared_ptr<Centroid<mz_t, int_t> > >&optimizedCentroids,
