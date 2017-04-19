@@ -140,7 +140,10 @@ struct PWIZ_API_DECL mzSpectrum {
          * Remove it when the ProteoWizard libraries will be updated
          * It is a bug seen on file IB12302LMU_1-D,1_01_5930.d, spectra have both CVs but they are centroided
          */
-        if(spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum) && spectrum->hasCVParam(pwiz::msdata::MS_centroid_spectrum)) originalMode = CENTROID;
+        if(spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum) && spectrum->hasCVParam(pwiz::msdata::MS_centroid_spectrum)) {
+            LOG(WARNING) << "Spectrum '" << s->id << "' has both PROFILE and CENTROID tags and will be considered as CENTROID";
+            originalMode = CENTROID;
+        }
         
         // set effective mode
         if(originalMode == CENTROID && wantedMode != CENTROID) {
@@ -148,7 +151,10 @@ struct PWIZ_API_DECL mzSpectrum {
                 effectiveMode = CENTROID;
             } else {
                 //LOG(ERROR) << "Error: MS" << _msLevel << " is " << modeToString(originalMode) << " and cannot be turned into " << modeToString(wantedMode);
-                exitOnError("Current file contains centroid data that cannot be turned into profile/fitted data");
+                //exitOnError("Current file contains centroid data that cannot be turned into profile/fitted data");
+                std::stringstream errorMessage;
+                errorMessage << "Current spectrum '" << s->id << "' is in " << modeToString(originalMode) << " and cannot be turned into " << modeToString(wantedMode) << "\nYou may use the '--safeMode' option to fall back to CENTROID mode automatically";
+                exitOnError(errorMessage.str());
             }
         } else {
             effectiveMode = wantedMode;

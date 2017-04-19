@@ -224,6 +224,10 @@ protected:
             LOG(INFO) << "Thermo metadata extractor created";
             return  std::unique_ptr<mzIMetadataExtractor>(new mzThermoMetadataExtractor(this->m_mzdbFile.name));
         }
+        case 2: {
+            LOG(INFO) << "Bruker metadata extractor created";
+            return std::unique_ptr<mzIMetadataExtractor>(new mzBrukerMetadataExtractor(this->m_mzdbFile.name));
+        }
         case 3: {
             LOG(INFO) << "AB Sciex metadata extractor created";
             return std::unique_ptr<mzIMetadataExtractor>(new mzABSciexMetadataExtractor(this->m_mzdbFile.name));

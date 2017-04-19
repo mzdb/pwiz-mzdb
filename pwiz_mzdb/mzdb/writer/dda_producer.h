@@ -154,6 +154,7 @@ public:
 
         unordered_map<int, SpectraContainerUPtr> spectraByMsLevel;
         HighResSpectrumSPtr currMs1(nullptr);
+        size_t currMs1Id = 0;
 
         size_t size = spectrumList->size();
         for(size_t i = 0; i < spectrumList->size(); i++) {
@@ -203,6 +204,7 @@ public:
             // set new precursor
             if (msLevel == 1 ) {
                 currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum, wantedMode, m_safeMode);
+                currMs1Id = i;
             }
 
             //init
@@ -221,7 +223,8 @@ public:
             auto& container = spectraByMsLevel[msLevel];
 
             if (container->empty() ) {
-                this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
+                currMs1Id == i ? container->addHighResSpectrum(currMs1) : this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
+                //this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
                 added = true;
             }
 
@@ -234,12 +237,14 @@ public:
                 c->parentSpectrum = currMs1;
                 //check if already been added
                 if (!added) {
-                    this->_addSpectrum(c, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
+                    currMs1Id == i ? c->addHighResSpectrum(currMs1) : this->_addSpectrum(c, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
+                    //this->_addSpectrum(c, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
                 }
                 spectraByMsLevel[msLevel] = std::move(c);
             } else {
                 if (!added) {
-                    this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
+                    currMs1Id == i ? container->addHighResSpectrum(currMs1) : this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
+                    //this->_addSpectrum(container, scanCount, cycleCount, isInHighRes, spectrum, centroidSpectrum, wantedMode);
                 }
             }
             // delete spectra objects

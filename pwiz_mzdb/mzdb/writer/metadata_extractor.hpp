@@ -183,7 +183,14 @@ class mzABSciexMetadataExtractor : public mzAbstractMetadataExtractor< mzABSciex
 
     /**/
     virtual inline pwiz::msdata::SamplePtr getSample() {
-        return pwiz::msdata::SamplePtr(new pwiz::msdata::Sample());
+        std::string filename = "", filenameId = "";
+        try {
+            if(_wiffFilePtr->getSampleCount() > 0) filename = _wiffFilePtr->getSampleNames().front();
+        } catch (exception& ) {}
+        try {
+            filenameId = std::to_string(_wiffFilePtr->getSampleNames().size());
+        } catch (exception& ) {}
+        return sample(new pwiz::msdata::Sample(filenameId, filename));
     }
 
     /// Always return true, WARNING
@@ -258,8 +265,6 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
         std::string instrumentMethods;
 
         for (int i=0; i < l->size(); ++i) {
-            //std::string v = l->value(i) + "\n";
-            //instrumentMethods += v;
             instrumentMethods += l->value(i) + "\n";
         }
         return UserText("instrumentMethods", instrumentMethods, XML_STRING);
@@ -280,6 +285,9 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
         }
 
 
+        // FIXME constructor takes (id, name), but we take the id instead of the name
+        // id=UPS1 5fmol R1
+        // name=D:\Data_LTQOrbitrap\Standards\UPS1\OVEMB150205_12.raw
         pwiz::msdata::SamplePtr sample(new pwiz::msdata::Sample(filename, filenameId));
         try {
             sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowComment),
@@ -316,10 +324,6 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
             std::string value = _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod);
             pwiz::msdata::UserParam userParam = pwiz::msdata::UserParam(name, value, XML_STRING);
             sample->userParams.push_back(userParam);
-            //delete userParam;
-            //sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod),
-            //                                                     _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod),
-            //                                                     XML_STRING));
         } catch (exception&) { }
 
         try {
@@ -367,6 +371,72 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
 };
 
 #endif
+
+
+#ifdef _WIN32
+
+/**
+ * The mzBrukerMetadataExtractor class
+ * =====================================
+ *
+ * Bruker metadata extractor
+ */
+class mzBrukerMetadataExtractor : public mzAbstractMetadataExtractor< mzBrukerMetadataExtractor, (int) pwiz::cv::MS_Bruker_BAF_format > {
+
+    pwiz::vendor_api::Bruker::CompassDataPtr _compassDataPtr;
+    double _lowMz, _highMz;
+
+    public:
+
+    /// Ctor
+    inline mzBrukerMetadataExtractor(std::string& f) : mzAbstractMetadataExtractor<mzBrukerMetadataExtractor,
+                                                        (int) pwiz::cv::MS_Bruker_BAF_format >(f) {
+        try{
+            pwiz::msdata::detail::Bruker::Reader_Bruker_Format format = pwiz::msdata::detail::Bruker::format(f);
+            if (format == pwiz::msdata::detail::Bruker::Reader_Bruker_Format_Unknown) throw std::exception("[Reader_Bruker::read] Path given is not a recognized Bruker format");
+            bfs::path rootpath = f;
+            if (bfs::is_regular_file(rootpath)) rootpath = rootpath.branch_path();
+            _compassDataPtr = CompassData::create(rootpath.string(), format);
+        } catch(exception& e) { LOG(ERROR) << "Bruker Exception: " << e.what(); };
+    }
+
+    /// Data fetch from api constructor, could methods details etc...
+    virtual inline UserText getExtraDataAsUserText() {
+        return UserText();
+    }
+
+    /**/
+    virtual inline pwiz::msdata::SamplePtr getSample() {
+        std::string filename = "", filenameId = "";
+        try {
+            filename = _compassDataPtr->getSampleName();
+        } catch(exception& e) { LOG(ERROR) << "Bruker getSampleName Exception: " << e.what(); };
+        try {
+            filenameId = _compassDataPtr->getAnalysisName();
+        } catch(exception& e) { LOG(ERROR) << "Bruker getAnalysisName Exception: " << e.what(); };
+        pwiz::msdata::SamplePtr sample(new pwiz::msdata::Sample(filenameId, filename));
+        return sample;
+    }
+
+    virtual inline bool isInHighRes(pwiz::msdata::SpectrumPtr p) {
+        return true;
+    }
+    virtual inline bool isInHighRes(pwiz::msdata::SpectrumPtr p, bool isNoLoss) {
+        return true;
+    }
+
+    virtual inline double getLowMass() {
+        return 0.0;
+    }
+
+    virtual inline double getHighMass() {
+        return 0.0;
+    }
+
+};
+
+#endif
+
 
 }
 
