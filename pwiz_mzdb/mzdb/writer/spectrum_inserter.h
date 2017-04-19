@@ -207,7 +207,7 @@ public:
             LOG(ERROR) << "ERROR...spectrum pointer is null";
             return;
         }
-
+        
         const auto& spec = spectrum->spectrum;
 
         if (! spec || spec == nullptr) {
@@ -549,7 +549,12 @@ public:
             int msLevel = 1;
             std::stringstream summary;
             summary << "\n\n************ Summary of the conversion ************\n\n";
-            summary << "Created file: " << mMzdbFile.outputFilename << "\n";
+            if(std::regex_match(toLower(mMzdbFile.outputFilename), std::regex(".*.mzdb.tmp$"))) {
+                summary << "Created file: " << mMzdbFile.outputFilename.substr(0, mMzdbFile.outputFilename.length() - 4) << "\n";
+            } else {
+                summary << "Created file: " << mMzdbFile.outputFilename << "\n";
+            }
+            //summary << "Created file: " << mMzdbFile.outputFilename << "\n";
             summary << "MS\tInput   \tOutput  \tNb spectra\n";
             // make sure to print all levels in the right order. It used to be 'while(true)' but just in case...
             // this code will have to be updated when mass spectrometers will be able to fragment a peptide more than 100 times !! (it should be fine for a while)

@@ -244,33 +244,6 @@ protected:
      * Insert controlled vocabulary terms and cv units in the database
      */
     void insertCollectedCVTerms();
-    
-    bool containsAllItems(std::vector<float> bigVector, std::vector<float> smallVector) {
-        // i must know if all items in smallVector are in bigVector
-        for(size_t i = 0; i < smallVector.size(); i++) {
-            float item = smallVector[i];
-            bool isFound = false;
-            size_t j = 0;
-            while(j < bigVector.size() && !isFound) {
-                if(bigVector[j] == item) isFound = true;
-                j++;
-            }
-            if(!isFound)
-                return false;
-        }
-        return true;
-    }
-    
-    bool contains(std::vector<float> v1, std::vector<float> v2) {
-        // irrelevant if vectors are too small
-        if(v1.size() + v2.size() <= 2)
-            return false;
-        if(v1.size() >= v2.size()) {
-            return containsAllItems(v1, v2);
-        } else {
-            return containsAllItems(v2, v1);
-        }
-    }
 
 public:
 

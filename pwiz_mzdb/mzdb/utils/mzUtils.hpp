@@ -396,6 +396,83 @@ inline int extractScanNumber(string spectrumTitle) {
     return 0;
 }
 
+inline bool containsAllItems(std::vector<double> bigVector, std::vector<double> smallVector) {
+    // i must know if all items in smallVector are in bigVector
+    for(size_t i = 0; i < smallVector.size(); i++) {
+        float item = smallVector[i];
+        bool isFound = false;
+        size_t j = 0;
+        while(j < bigVector.size() && !isFound) {
+            if(bigVector[j] == item) isFound = true;
+            j++;
+        }
+        if(!isFound) return false;
+    }
+    return true;
+}
+inline bool contains(std::vector<double> v1, std::vector<double> v2) {
+    // irrelevant if vectors are too small
+    if(v1.size() + v2.size() <= 2) return false;
+    if(v1.size() >= v2.size()) {
+        return containsAllItems(v1, v2);
+    } else {
+        return containsAllItems(v2, v1);
+    }
+}
+
+inline vector<double> determineIsolationWindowStarts(pwiz::msdata::SpectrumListPtr spectrumList) {
+    
+    int spectrumListSize = spectrumList->size();
+    
+    size_t nbMS1SpectraToCheck = 10; // 2 should suffice, but 10 is safer
+    size_t nbMS1SpectraChecked = 0;
+    size_t nbDiaLikeMS1Spectra = 0; // at the end, should be equal to nbMS1SpectraToCheck
+    size_t nbSpectraWithoutExpectedCvParams = 0;
+    size_t nbSpectraWithoutExpectedCvParamsToCheck = 100;
+    // reference and candidate values
+    vector<double> refTargets, cndTargets;
+    
+    for(size_t i = 0; i < spectrumList->size(); i++) {
+        pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(i, false);
+        const int& msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
+        if(msLevel == 1) {
+            // do nothing if first or second MS1 (there must be something to compare)
+            if(cndTargets.size() == 0) continue;
+            if(refTargets.size() == 0) refTargets = cndTargets;
+            // compare target and candidates
+            if(contains(refTargets, cndTargets)) nbDiaLikeMS1Spectra++;
+            // keep the candidate if it is larger than the reference (a DIA reference was a subset of the candidate, if DDA it doesnt matter if the reference changes)
+            if(refTargets.size() < cndTargets.size()) refTargets = cndTargets;
+            // reset the candidate
+            cndTargets.clear();
+            // increment the counter
+            nbMS1SpectraChecked++;
+        } else if(msLevel == 2) {
+            // look at all the MS2 spectra for the current MS1 and try to get the target value
+            // there may be more than one precursor on multiplexed data (but this algorithm does not seem to work on multiplexed data anyway)
+            pwiz::msdata::Precursor prec = spectrum->precursors[0];
+            if(prec.hasCVParam(pwiz::msdata::MS_isolation_window_target_m_z)) {
+                cndTargets.push_back(stod(prec.cvParam(pwiz::msdata::MS_isolation_window_target_m_z).value));
+            } else {
+                if(prec.isolationWindow.hasCVParam(pwiz::msdata::MS_isolation_window_target_m_z)) {
+                    cndTargets.push_back(stod(prec.isolationWindow.cvParam(pwiz::msdata::MS_isolation_window_target_m_z).value));
+                } else {
+                    nbSpectraWithoutExpectedCvParams++;
+                }
+            }
+        }
+        if(nbMS1SpectraChecked >= nbMS1SpectraToCheck)
+            break;
+        if(nbSpectraWithoutExpectedCvParams >= nbSpectraWithoutExpectedCvParamsToCheck)
+            break;
+    }
+    // check what has been seen
+    if(nbDiaLikeMS1Spectra != nbMS1SpectraToCheck) {
+        refTargets.clear();
+    }
+    return refTargets;
+}
+
 } // end namespace PWIZ HELPER
 
 
@@ -435,58 +512,14 @@ inline string modeToString(DataMode m) {
     if(m == FITTED)   return "FITTED";
     return "<unknown datamode>";
 }
-/**
- * return the effective dataMode given a pwiz spectrum
- * Most of the time it corresponds to the wantedMode except for
- * this kind of cases:
- * wanted mode: `profile` and the spectrum was acquired in centroid.
- *
- * @param s:pwiz::msdata::SpectrumPtr
- * @param wantedMode: DataMode dataMode wanted by the user for this msLevel
- * @param safeMode: if true, fall back to centroid mode if requested mode is not available
- * @return effective DataMode
- */
-//static DataMode getDataMode( const pwiz::msdata::SpectrumPtr s, DataMode wantedMode, bool safeMode)  {
-//
-//    //const pwiz::msdata::CVParam& isCentroided = s->cvParam(pwiz::msdata::MS_centroid_spectrum);
-//    //DataMode currentMode = !isCentroided.empty() ? CENTROID : PROFILE;
-//    //DataMode effectiveMode;
-//    //if (wantedMode == PROFILE && currentMode == PROFILE) {
-//    //    effectiveMode = PROFILE;
-//    //} else if ((wantedMode == CENTROID && currentMode == PROFILE) ||
-//    //             (wantedMode == FITTED && currentMode == PROFILE)) {
-//    //    effectiveMode = wantedMode;
-//    //} else {
-//    //    // current is CENTROID nothing to do
-//    //    effectiveMode = CENTROID;
-//    //}
-//    
-//    //DataMode currentMode = s->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
-//    //DataMode effectiveMode = wantedMode;
-//    //if (currentMode == CENTROID && wantedMode == PROFILE) {
-//    //    effectiveMode = CENTROID;
-//    //}
-//    //if(effectiveMode == 0) {
-//    //    effectiveMode = CENTROID;
-//    //}
-//    //return effectiveMode;
-//
-//    // what we have in the raw file
-//    DataMode currentMode = s->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
-//    // what the user requested
-//    DataMode effectiveMode = wantedMode;
-//    // profile or fitted data cannot be obtained from centroid data
-//    if(currentMode == CENTROID && wantedMode != CENTROID) {
-//        if(safeMode) {
-//            effectiveMode = CENTROID;
-//        } else {
-//            //printf("Current file contains centroid data that cannot be turned into profile/fitted data\n");
-//            throw runtime_error("Current file contains centroid data that cannot be turned into profile/fitted data");
-//        }
-//    }
-//    return effectiveMode;
-//}
 
+inline string toLower(std::string input) {
+    std::locale locale;
+    std::string output = "";
+    for (std::string::size_type i = 0; i < input.length(); i++)
+        output += std::tolower(input[i], locale);
+    return output;
+}
 
 
 /**

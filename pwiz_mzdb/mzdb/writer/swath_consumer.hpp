@@ -102,7 +102,7 @@ private:
                     break;
                 }
                 if (! m_isSwathIsolationWindowComputed) {
-                    this->_determineIsolationWindowStarts(cycleCollection);
+                    this->_determineIsolationWindowStarts(msdata);
                 }
 
                 m_cycles.push_back(std::move(cycleCollection));
@@ -244,50 +244,27 @@ private:
 
 
     /// For now, this is really complicated to get the good swath isolation window sizes
-    void _determineIsolationWindowStarts(SpectraContainerUPtr& cycle) {
-        vector<HighResSpectrumSPtr> highResSpec;
-        vector<LowResSpectrumSPtr> lowResSpec;
-        cycle->getSpectra(highResSpec, lowResSpec);
-
-        // fails if we will miss spectra in all swath spectra
-        //assert(lowResSpec.empty());
-        //assert(! higResSpec.empty());
-
-        //assume the precurors mz are ordered
-        // using the reporting method
-        auto lastMz = swathStart;
-        auto cc = 2;
-        for (auto& it = highResSpec.begin(); it != highResSpec.end(); ++it) {
-            auto windowCenter = (*it)->precursorMz();
-            auto diffWithPrev = windowCenter - lastMz;
-            auto newMz = windowCenter + diffWithPrev;
-            m_isolationWindowStarts.push_back(newMz - 1);
-            m_isolationWindowSizes.push_back(newMz - lastMz);
-            LOG(INFO) << "Swath Window #" << cc <<", Start: " << newMz - 1 << ",  Size: " <<  newMz - lastMz;
-            lastMz = newMz - 1;
-            ++cc;
+    void _determineIsolationWindowStarts(pwiz::msdata::MSDataPtr msdata) {
+        vector<double> refTargets = PwizHelper::determineIsolationWindowStarts(msdata->run.spectrumListPtr);
+        if(refTargets.size() > 0) {
+            for(int i = 0; i < refTargets.size() - 1; i++) {
+                int windowIndex = i + 1;
+                float windowStartMz = refTargets[i];
+                float windowSize = refTargets[i+1] - refTargets[i];
+                m_isolationWindowStarts.push_back(refTargets[i]);
+                m_isolationWindowSizes.push_back(refTargets[i+1] - refTargets[i]);
+                //LOG(INFO) << "Swath Window #" << windowIndex <<", Start: " << windowStartMz << ",  Size: " <<  windowSize;
+            }
         }
         m_isSwathIsolationWindowComputed = true;
-
-        //fastest solution some
-        //m_swathIsolationWindow = (highResSpec.front()->precursorMz() - mzSwathConsumer.swathStart) * 2;
     }
 
     ///
     int _findIsolationWindowIndexForMzPrec(double mz) {
-        auto beginIt = m_isolationWindowStarts.begin();
-        auto it = std::lower_bound(beginIt, m_isolationWindowStarts.end(), mz);
-        auto idx = std::distance(beginIt, it);
-
-        if (! idx)
-            LOG(ERROR) << "mz < to the lowest bound value:" << swathStart << "mz";
-
-        //  decrease once the index
-        --idx;
-
-        return idx;
-
-
+        for(int i = 0; i < m_isolationWindowStarts.size() - 1; i++) {
+            if(mz >= m_isolationWindowStarts[i] && mz < m_isolationWindowStarts[i+1]) return i;
+        }
+        return m_isolationWindowStarts.size() - 1;
     }
 
 public:
@@ -301,7 +278,7 @@ public:
         mzSpectrumInserter(mzdbFile, paramsCollecter, rawFileFormat, dataEncodings),
         mzBBInserter(mzdbFile), m_swathIsolationWindow(0.0), m_isSwathIsolationWindowComputed(false), swathStart(400.0) {
 
-        m_isolationWindowStarts.push_back(this->swathStart);
+        //m_isolationWindowStarts.push_back(this->swathStart);
     }
         
     ~mzSwathConsumer() {

@@ -111,7 +111,6 @@ private:
         SpectraContainerUPtr cycle(nullptr);
 
         for (size_t i = 0; i < spectrumList->size(); i++) {
-            scanCount = i + 1;
             try {
                 // Retrieve the input spectrum as is
                 pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(i, true);
@@ -195,6 +194,7 @@ private:
                 LOG(ERROR) << "\nCatch an unknown exception. Trying to recover...";
                 continue;
             }
+            scanCount++;
 
         } // end for
 

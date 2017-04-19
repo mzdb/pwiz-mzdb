@@ -701,6 +701,7 @@ void mzDBWriter::insertMetaData() {
     for (auto sample = samples.begin(); sample != samples.end(); ++sample) {
         m_paramsCollecter.updateCVMap(**sample);
         m_paramsCollecter.updateUserMap(**sample);
+        // FIXME use (*sample)->id instead
         string& name = (*sample)->name;
         sqlite3_bind_text(m_mzdbFile.stmt, 1, name.c_str(), name.length(), SQLITE_STATIC);
         string& sampleString = ISerializer::serialize(**sample, m_serializer);
@@ -1024,65 +1025,6 @@ void mzDBWriter::checkAndFixRunSliceNumberAnId() {
     closeMzDbFile();
 }
 
-/**
-* @brief checkRequestedDataModes
-* Make sure to use the right data modes and avoid cases where PROFILE data has been requested when input file only contains CENTROID data
-* Note: I can use this function to determine the real MAX_MS value
-*/
-//void mzDBWriter::checkRequestedDataModes(bool safeMode) {
-//    LOG(INFO) << "Check requested data modes";
-//    
-//    pwiz::msdata::SpectrumListPtr spectrumList = m_msdata->run.spectrumListPtr;
-//    int spectrumListSize = spectrumList->size();
-//    std::map<int, DataMode> msLevelsChecked;
-//    bool throwRuntimeError = false;
-//    
-//    // for each spectrum
-//    for (int i = 0; i < spectrumListSize;  ++i) {
-//        pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(i, false);
-//        // get its ms level (usually 1 or 2)
-//        const int& msLevel = spectrum->cvParam(MS_ms_level).valueAs<int>();
-//        // only check once each ms level
-//        if(!msLevelsChecked[msLevel]) {
-//            // get the current mode for this spectrum
-//            DataMode currentMode = spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum) ? PROFILE: CENTROID;
-//            //LOG(INFO) << "Found a spectrum at msLevel " << msLevel << "with DataMode " << currentMode;
-//            // get the requested mode for this ms level, if it's not in the map (maybe MS3 data ?) make it a CENTROID
-//            DataMode wantedMode = CENTROID;
-//            if(m_dataModeByMsLevel.find(msLevel) != m_dataModeByMsLevel.end()) {
-//                wantedMode = m_dataModeByMsLevel[msLevel];
-//            } else {
-//                LOG(INFO) << "Unexpected MS level, using CENTROID parameter...";
-//            }
-//            // check if it's possible
-//            if(currentMode == CENTROID && wantedMode != CENTROID) {
-//                if(safeMode) {
-//                    LOG(INFO) << "Safe mode: using CENTROID instead for MSLEVEL " << msLevel;
-//                    m_dataModeByMsLevel[msLevel] = CENTROID;
-//                } else {
-//                    LOG(ERROR) << "Error: MS" << msLevel << " is " << modeToString(currentMode) << " and cannot be turned into " << modeToString(wantedMode);
-//                    // throw the error at the end, so the user can see what he has in the file and adjust parameters
-//                    throwRuntimeError = true;
-//                    //throw runtime_error("Current file contains centroid data that cannot be turned into profile/fitted data");
-//                }
-//            }
-//            // add the ms level to the list of checked ms levels
-//            msLevelsChecked[msLevel] = currentMode;
-//            if(msLevel > max_ms_level)
-//                max_ms_level = msLevel;
-//        }
-//    }
-//    
-//    std::cout << "\nWhat I found :\n";
-//    for (auto it = msLevelsChecked.begin(); it != msLevelsChecked.end(); ++it) {
-//        std::cout << "ms " << it->first << " => current Mode: " << modeToString(it->second) << "\n";
-//    }
-//    
-//    if(throwRuntimeError) {
-//        throw runtime_error("Current file contains centroid data that cannot be turned into profile/fitted data");
-//    }
-//}
-
 int mzDBWriter::getMaxMsLevel() {
     return max_ms_level;
 }
@@ -1107,59 +1049,12 @@ void mzDBWriter::isSwathAcquisition() {
     
     LOG(INFO) << "DDA / DIA test";
     
-    pwiz::msdata::SpectrumListPtr spectrumList = m_msdata->run.spectrumListPtr;
-    int spectrumListSize = spectrumList->size();
-    
-    size_t nbMS1SpectraToCheck = 10; // 2 should suffice, but 10 is safer
-    size_t nbMS1SpectraChecked = 0;
-    size_t nbDiaLikeMS1Spectra = 0; // at the end, should be equal to nbMS1SpectraToCheck
-    size_t nbSpectraWithoutExpectedCvParams = 0;
-    size_t nbSpectraWithoutExpectedCvParamsToCheck = 100;
-    // reference and candidate values
-    // TODO the list of isolation windows for DIA analysis can be retrieved from here !
-    vector<float> refTargets, cndTargets;
-    
-    for(size_t i = 0; i < spectrumList->size(); i++) {
-        pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(i, false);
-        const int& msLevel = spectrum->cvParam(MS_ms_level).valueAs<int>();
-        if(msLevel == 1) {
-            // do nothing if first or second MS1 (there must be something to compare)
-            if(cndTargets.size() == 0)
-                continue;
-            if(refTargets.size() == 0)
-                refTargets = cndTargets;
-            // compare target and candidates
-            if(contains(refTargets, cndTargets))
-                nbDiaLikeMS1Spectra++;
-            // keep the candidate if it is larger than the reference (a DIA reference was a subset of the candidate, if DDA it doesnt matter if the reference changes)
-            if(refTargets.size() < cndTargets.size()) {
-                refTargets = cndTargets;
-            }
-            // reset the candidate
-            cndTargets.clear();
-            // increment the counter
-            nbMS1SpectraChecked++;
-        } else if(msLevel == 2) {
-            // look at all the MS2 spectra for the current MS1 and try to get the target value
-            // there may be more than one precursor on multiplexed data (but this algorithm does not seem to work on multiplexed data anyway)
-            pwiz::msdata::Precursor prec = spectrum->precursors[0];
-            if(prec.hasCVParam(MS_isolation_window_target_m_z)) {
-                cndTargets.push_back(stof(prec.cvParam(MS_isolation_window_target_m_z).value));
-            } else {
-                if(prec.isolationWindow.hasCVParam(MS_isolation_window_target_m_z)) {
-                    cndTargets.push_back(stof(prec.isolationWindow.cvParam(MS_isolation_window_target_m_z).value));
-                } else {
-                    nbSpectraWithoutExpectedCvParams++;
-                }
-            }
-        }
-        if(nbMS1SpectraChecked >= nbMS1SpectraToCheck)
-            break;
-        if(nbSpectraWithoutExpectedCvParams >= nbSpectraWithoutExpectedCvParamsToCheck)
-            break;
-    }
+    vector<double> refTargets = PwizHelper::determineIsolationWindowStarts(m_msdata->run.spectrumListPtr);
     // check what has been seen
-    if(nbDiaLikeMS1Spectra == nbMS1SpectraToCheck) {
+    if(refTargets.size() == 0) {
+        LOG(INFO) << "DDA Mode detected";
+        m_swathMode = false;
+    } else {
         LOG(INFO) << "DIA Mode detected";
         m_swathMode = true;
         // print the isolation windows
@@ -1169,9 +1064,6 @@ void mzDBWriter::isSwathAcquisition() {
         //    float windowSize = refTargets[i+1] - refTargets[i];
         //    LOG(INFO) << "Swath Window #" << windowIndex <<", Start: " << windowStartMz << ",  Size: " <<  windowSize;
         //}
-    } else {
-        LOG(INFO) << "DDA Mode detected";
-        m_swathMode = false;
     }
 }
 

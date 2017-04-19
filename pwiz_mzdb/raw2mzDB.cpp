@@ -102,12 +102,7 @@ namespace fs = boost::filesystem;
 int deleteIfExists(const string &filename) {
 
     if (std::ifstream(filename.c_str())) {
-        // FIXME these warnings are never printed because the function is called before setting log file
-        //LOG(WARNING) << "";
-        //LOG(WARNING) << "Found file with the same name";
-        //LOG(WARNING) << "Delete...";
         if (remove(filename.c_str()) != 0) {
-            //LOG(ERROR) << "Error trying to delete file, exiting...May the file is opened elsewhere ?";
             LOG(ERROR) << "File " << filename << " already exists and is locked, exiting...";
             exit(EXIT_FAILURE);
         } else {
@@ -261,14 +256,6 @@ string getBuildName(string date) {
     std::stringstream name;
     name << "raw2mzDB_" << SOFT_VERSION_STR << "_build" << date.substr(0,4) << date.substr(5,2) << date.substr(8,2);
     return name.str();
-}
-
-std::string toLower(std::string input) {
-    std::locale locale;
-    std::string output = "";
-    for (std::string::size_type i = 0; i < input.length(); i++)
-        output += std::tolower(input[i], locale);
-    return output;
 }
 
 bool fileExists(std::string inputFileName, bool quitIfFileDoesNotExist, const string& help) {
@@ -507,7 +494,7 @@ int main(int argc, char* argv[]) {
 
     //--- overriding default encoding to `fitted` for DIA mslevel 2
     if(boost::to_upper_copy(acquisitionMode) == "DIA") {
-        dataModeByMsLevel[2] = FITTED;
+        //dataModeByMsLevel[2] = FITTED;
 
         if (bbHeightMSn != 10000 || bbWidthMSn != 0) {
             LOG(WARNING) << "Warning: 'bbMzWidthMSn' and/or 'bbRtWidthMSn' when 'dia' is set will be ignored !";
