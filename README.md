@@ -19,10 +19,10 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 ### Roadmap v0.9.10
 
 Bug fixes:
-- [ ] The field mzdb.param_tree can be corrupted for some Thermo raw files (#39)
+- [x] The field mzdb.param_tree can be corrupted for some Thermo raw files (#39)
 - [x] Find and fix memory leak for AB Sciex data (#38)
 - [ ] Issue #26 is for AB Sciex DIA acquisition (and accession 1001954)
-- [ ] Issue #24 sample name is empty for AB Sciex analyses (also check for Bruker)
+- [x] Issue #24 sample name is empty for AB Sciex analyses (also check for Bruker)
 - [ ] Improve cycle filtering by checking cycle number before centroiding data (#40)
 
 ### Roadmap v1.0
@@ -109,7 +109,7 @@ Bug fixes:
 
 #### Download and setup
 
-* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9/raw2mzDB_0.9.9_build20170315.zip">zip archive</a>
+* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9/raw2mzDB_0.9.9_build20170420.zip">zip archive</a>
 * Raw2mzDB should work on any modern 64 bits Windows environment. If you encounter missing dlls issues, you may try to install Microsoft's .NET Framework 3.5 SP1 and 4.0. Also consider Visual C++ Redistributable for Visual Studio 2008, 2012 and 2013.
 
 #### Command line usage

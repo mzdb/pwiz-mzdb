@@ -248,9 +248,10 @@ public:
         const string& title = spec->id;
         if(!isScanOffsetComputed) {
             int scanNumber = PwizHelper::extractScanNumber(title);
-            if(scanNumber > 0) {
-                scanOffset = scanNumber - spectrum->id; // default is 0 (neutral offset)
-                LOG(WARNING) << "First scan number is " << scanOffset+1 << ", previous spectra could not be read";
+            scanOffset = scanNumber - spectrum->id; // default is 0 (neutral offset)
+            if(scanOffset != 0) {
+                // use scanOffset+1 instead of scanNumber, because current spectrum may not be the first spectrum
+                LOG(WARNING) << "First scan number is " << scanOffset+1 << ", previous spectra are not available";
             }
             isScanOffsetComputed = true;
         }
