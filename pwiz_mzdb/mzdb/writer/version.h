@@ -28,7 +28,7 @@ namespace mzdb {
 
 #define SCHEMA_VERSION_STR "0.7.0"
 #define SCHEMA_VERSION_INT 0.7.0
-#define SOFT_VERSION_STR "0.9.9"
-#define SOFT_VERSION_INT 0.9.9
+#define SOFT_VERSION_STR "0.9.10-beta"
+#define SOFT_VERSION_INT 0.9.10-beta
 
 }
