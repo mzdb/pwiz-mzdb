@@ -75,6 +75,7 @@ private:
 
     bool m_isSwathIsolationWindowComputed;
 
+
     //-----------------------------------------------------------------------------------------------------------
     void _consume( pwiz::msdata::MSDataPtr msdata,
                    ISerializer::xml_string_writer& serializer,
@@ -108,73 +109,41 @@ private:
                 m_cycles.push_back(std::move(cycleCollection));
 
             }
-
+            
+            SpectraContainerUPtr lastContainer;
             if(!toBeBroken) {
-                SpectraContainerUPtr lastContainer = std::move(m_cycles.back());
-    
-                if (! m_cycles.empty())
-                    m_cycles.erase(m_cycles.end() - 1);
-    
-                vector<HighResSpectrumSPtr> ms1Spectra;
-    
-                int bbFirstMs1ScanID = m_cycles.front()->parentSpectrum->id;
-                //int bbFirstMs2ScanID = m_cycles.front()->getBeginId();
-    
-                for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
-                    ms1Spectra.push_back( (*it)->parentSpectrum);
-                }
-    
-                //handle first level
-                progressionCount += ms1Spectra.size();
-                this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(1, //msLevel
-                                                                           bbMzWidthByMsLevel[1],
-                                                                           ms1Spectra, //highresspectra
-                                                                           vector<LowResSpectrumSPtr>(), //empty lowres spectra
-                                                                           runSlices[1]);
-    
-                map<int, int> firstBBSpectrumIDBySpectrumID;
-                this->_buildMSnBB(bbMzWidthByMsLevel, progressionCount, runSlices, firstBBSpectrumIDBySpectrumID);
-    
-                //insert scans using mzSpectrumInserter, insert cycle consecutively
-                for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
-                    //ms1Spectra.push_back( (*it)->parentSpectrum);
-                    this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID, &firstBBSpectrumIDBySpectrumID);
-                }
-    
-                m_cycles.clear();
+                lastContainer = std::move(m_cycles.back());
+                if (!m_cycles.empty()) m_cycles.erase(m_cycles.end() - 1);
+            }
+            
+            vector<HighResSpectrumSPtr> ms1Spectra;
+            int bbFirstMs1ScanID = m_cycles.front()->parentSpectrum->id;
+            //insert scans using mzSpectrumInserter, insert cycle consecutively
+            for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
+                ms1Spectra.push_back( (*it)->parentSpectrum);
+                this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID );
+            }
+            // handle first level
+            progressionCount += ms1Spectra.size();
+            this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(1, bbMzWidthByMsLevel[1], ms1Spectra, vector<LowResSpectrumSPtr>(), runSlices[1]);
+            // handle second level
+            this->_buildMSnBB(bbMzWidthByMsLevel, progressionCount, runSlices);
+            m_cycles.clear();
+            
+            if(!toBeBroken) {
                 m_cycles.push_back(std::move(lastContainer));
-    
-                // progression update computing the new progression
-                int newPercent = (int) (((float) progressionCount / nscans * 100));
-                if (newPercent == lastPercent + 2) {
-                    printProgBar(newPercent);
-                    lastPercent = newPercent;
-                }
-    
-                if (progressionCount >= nscans ) {
-                    //LOG(INFO) << "Inserter consumer finished: reaches final progression";
-                    break;
-                }
+            }
 
-            } else {
-                
-                // last loop
-                vector<HighResSpectrumSPtr> ms1Spectra;
-                int bbFirstMs1ScanID = m_cycles.front()->parentSpectrum->id;
-                for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
-                    ms1Spectra.push_back( (*it)->parentSpectrum);
-                }
-                //handle first level
-                progressionCount += ms1Spectra.size();
-                this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(1, bbMzWidthByMsLevel[1], ms1Spectra, vector<LowResSpectrumSPtr>(), runSlices[1]);
-                
-                map<int, int> firstBBSpectrumIDBySpectrumID;
-                this->_buildMSnBB(bbMzWidthByMsLevel, progressionCount, runSlices, firstBBSpectrumIDBySpectrumID);
-                
-                for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
-                    this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(*it, msdata, serializer, bbFirstMs1ScanID, &firstBBSpectrumIDBySpectrumID);
-                }
-                m_cycles.clear();
+            // progression update computing the new progression
+            int newPercent = (int) (((float) progressionCount / nscans * 100));
+            if (newPercent == lastPercent + 2) {
+                printProgBar(newPercent);
+                lastPercent = newPercent;
+            }
+
+            if (progressionCount >= nscans ) {
+                //LOG(INFO) << "Inserter consumer finished: reaches final progression";
+                break;
             }
 
         }
@@ -183,7 +152,7 @@ private:
 
     /// Try to build the msn bounding box using the same process
     /// Will work a priori only for constant swath window
-    void _buildMSnBB(map<int, double>& bbMzWidthByMsLevel, int& progressionCount, map<int, map<int, int> >& runSlices, map<int, int>& firstBBSpectrumIDBySpectrumID) {
+    void _buildMSnBB(map<int, double>& bbMzWidthByMsLevel, int& progressionCount, map<int, map<int, int> >& runSlices) {
         //first split all ms2 (using precursor mz) into good ms1 groups
         //auto ms1MzWidth = m_swathIsolationWindow;  //25.0;
 
@@ -202,10 +171,7 @@ private:
                 auto& spec = *specIt;
                 auto precMz = spec->precursorMz();
                 auto windowIndex = this->_findIsolationWindowIndexForMzPrec(precMz);
-                //auto ms1MzWidth =  m_isolationWindowSizes[windowIndex];//this->_findIsolationWidthForMzPrec(precMz);
-                //const int idx = precMz / ms1MzWidth;
                 ms2SpectraByPrecursorMzIndex[windowIndex].push_back(spec);
-                //isolationWidthByMzIndex[idx] = ms1MzWidth;
                 ++progressionCount;
             }
         }
@@ -220,13 +186,8 @@ private:
 
             auto& sp = ms2Spectra.front();
 
-//            printf("%d, %d, \n", sp->id, bbFirstMs2ScanID);
-//            if (sp->id != bbFirstMs2ScanID)
-//                    printf("GOOD to check this");
-
             for (auto specIt = ms2Spectra.begin(); specIt != ms2Spectra.end(); ++specIt) {
                 auto& spec = *specIt;
-                firstBBSpectrumIDBySpectrumID[spec->id] = sp->id;
             }
 
 
@@ -279,11 +240,6 @@ public:
         mzBBInserter(mzdbFile), m_swathIsolationWindow(0.0), m_isSwathIsolationWindowComputed(false), swathStart(400.0) {
 
         //m_isolationWindowStarts.push_back(this->swathStart);
-    }
-        
-    ~mzSwathConsumer() {
-        // at the end of the consuming (only one instance of it), write a description of what have been seen and done
-        printGlobalInformation();
     }
 
     boost::thread getConsumerThread(pwiz::msdata::MSDataPtr msdata,
