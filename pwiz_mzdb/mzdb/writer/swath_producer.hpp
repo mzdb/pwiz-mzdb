@@ -168,8 +168,6 @@ private:
                     currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, ++cycleCount, spectrum, centroidSpectrum, wantedMode, m_safeMode);
                     cycle = move(SpectraContainerUPtr(new SpectraContainer(2)));
                     cycle->parentSpectrum = currMs1;
-                    // removing this line because it makes raw2mzDB crash
-                    //cycle->addHighResSpectrum(currMs1);
                 } else {
                     bool isInHighRes = this->isInHighRes(spectrum, isNoLoss);
                     if (isInHighRes) {
