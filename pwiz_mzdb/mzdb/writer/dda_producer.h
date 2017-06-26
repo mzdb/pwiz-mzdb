@@ -168,6 +168,13 @@ public:
                 spectrum = spectrumList->spectrum(i, true); // size_t index, bool getBinaryData
                 // Retrieve the MS level
                 msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
+                
+                // increment cycle number
+                if (msLevel == 1 ) PwizHelper::checkCycleNumber(filetype, spectrum->id, ++cycleCount);
+                // do not process if the cycle is not asked
+                if(cycleCount < cycleRange.first) continue;
+                if(cycleRange.second != 0 && cycleCount > cycleRange.second) break;
+                
                 m_msLevels.insert(msLevel);
                 // Retrieve the effective mode
                 wantedMode = m_dataModeByMsLevel[msLevel];
@@ -187,18 +194,6 @@ public:
             } catch(...) {
                 LOG(ERROR) << "\nCatch an unknown exception. Trying to recover...";
                 continue;
-            }
-
-            // increment cycle number
-            if (msLevel == 1 ) {
-                PwizHelper::checkCycleNumber(filetype, spectrum->id, ++cycleCount);
-            }
-            
-            // do not process if the cycle is not asked
-            if(cycleCount < cycleRange.first) {
-                continue;
-            } else if(cycleRange.second != 0 && cycleCount > cycleRange.second) {
-                break;
             }
             
             // set new precursor

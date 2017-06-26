@@ -116,6 +116,13 @@ private:
                 pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(i, true);
                 // Retrieve the MS level
                 const int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
+                
+                // increment cycle number
+                if (msLevel == 1 ) PwizHelper::checkCycleNumber(filetype, spectrum->id, ++cycleCount);
+                // do not process if the cycle is not asked
+                if(cycleCount < cycleRange.first) continue;
+                if(cycleRange.second != 0 && cycleCount > cycleRange.second) break;
+                
                 // Retrieve the effective mode
                 DataMode wantedMode = m_dataModeByMsLevel[msLevel];
                 // If effective mode is not profile
@@ -147,15 +154,6 @@ private:
                     cycle = move(SpectraContainerUPtr(new SpectraContainer(2)));
                     cycle->parentSpectrum = currMs1;
                     ++scanCount;
-                }
-                // check cycle number (if available in metadata)
-                PwizHelper::checkCycleNumber(filetype, spectrum->id, cycleCount);
-                
-                // do not process if the cycle is not asked
-                if(cycleCount < cycleRange.first) {
-                    continue;
-                } else if(cycleRange.second != 0 && cycleCount > cycleRange.second) {
-                    break;
                 }
                 
                 // put spectra in cycle
