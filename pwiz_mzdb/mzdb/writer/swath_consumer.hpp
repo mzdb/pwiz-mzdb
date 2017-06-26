@@ -199,7 +199,7 @@ public:
                                     map<int, map<int, int> >& runSlices,
                                     int& progressionCount,
                                     int nscans ) {
-        return boost::thread(/
+        return boost::thread(
                              &mzSwathConsumer<QueueingPolicy,
                              SpectrumListType>::_consume,
                              this,
