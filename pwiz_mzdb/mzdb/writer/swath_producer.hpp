@@ -163,7 +163,7 @@ private:
                         this->_peakPickAndPush(cycle, filetype, params);
                     }
                     // make this spectra the precursor of the new cycle
-                    currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, ++cycleCount, spectrum, centroidSpectrum, wantedMode, m_safeMode);
+                    currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum, wantedMode, m_safeMode);
                     cycle = move(SpectraContainerUPtr(new SpectraContainer(2)));
                     cycle->parentSpectrum = currMs1;
                 } else {
