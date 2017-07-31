@@ -61,7 +61,7 @@ static void buildCentroidsByScanID(map<int, vector<std::shared_ptr<Centroid<mz_t
 
 
 /**
- * Caculation of the runSlice index for each peak it belongs to
+ * Calculation of the runSlice index for each peak it belongs to
  *
  * @param v
  * @param x Map <runSliceIdx, Map<scanID, corresponding detected centroids>

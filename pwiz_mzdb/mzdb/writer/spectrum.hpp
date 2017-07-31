@@ -88,6 +88,10 @@ struct PWIZ_API_DECL mzSpectrum {
 
     /// vector containing the result of the fitting i.e. centroids
     vector<std::shared_ptr<Centroid<mz_t, int_t> > > peaks;
+    
+    /// fixed value for storing peak number
+    /// peaks vector is lost when computing BBs and we still need to know its size if scan insertion is not done yet
+    int _nbPeaks;
 
     /// pointer to the original pwiz spectrum
     pwiz::msdata::SpectrumPtr spectrum;
@@ -244,7 +248,10 @@ struct PWIZ_API_DECL mzSpectrum {
       */
     inline void doPeakPicking(pwiz::msdata::CVID ppa, mzPeakFinderUtils::PeakPickerParams& params) {
         if (effectiveMode != PROFILE) {
+            int nb = peaks.size();
             mzPeakFinderProxy::computeCentroidsWidths<mz_t, int_t>(spectrum, peaks, ppa, params, effectiveMode);
+            // update peak number if already set
+            _nbPeaks = peaks.size();
         }
     }
 
@@ -257,10 +264,10 @@ struct PWIZ_API_DECL mzSpectrum {
      * return #mass peaks after fitting process
      * @return
      */
-    inline int nbPeaks() const throw(){
-        //if (effectiveMode != FITTED)
-        //    return initialPointsCount();
-        return peaks.size();
+    inline int nbPeaks() {
+        if (! _nbPeaks)
+            _nbPeaks = peaks.size();
+        return _nbPeaks;
     }
 
     inline int msLevel()  {

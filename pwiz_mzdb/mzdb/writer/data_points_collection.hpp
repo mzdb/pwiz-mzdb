@@ -109,7 +109,7 @@ private:
       * @param peakIndexes
       * @param params
       */
-     void _createPeakForIndexes( mzPeakFinderUtils::PeakAsMaximaMinimaIndexes& peakIndexes, mzPeakFinderUtils::PeakPickerParams& params ) {
+     void _createPeakForIndexes( mzPeakFinderUtils::PeakAsMaximaMinimaIndexes& peakIndexes, mzPeakFinderUtils::PeakPickerParams& params) {
 
         if (peakIndexes.isMissingOnlyLeft()) {
             //---missing left part of the peak, building apex and rightMin
@@ -146,7 +146,7 @@ private:
             return;
         } else {
             //---usual case
-            mz_uint v = std::min<unsigned int>( (unsigned int)(peakIndexes.rightMin ),  this->mzData.size() + 1); //TODO check size() - 1 if it does not bug
+            mz_uint v = std::min<unsigned int>( (unsigned int)(peakIndexes.rightMin ),  this->mzData.size()-1) + 1; //TODO check size() - 1 if it does not bug
 
             mz_uint v_2 = std::max<unsigned int>( (unsigned int)(peakIndexes.leftMin),  0 ); //TODO check size() - 1 if it does not bug
 
@@ -156,7 +156,7 @@ private:
 
             const vector<mz_t> mzp( this->mzData.begin() + v_2, this->mzData.begin() + v );
             const vector<int_t> intp( this->intData.begin() + v_2, this->intData.begin() + v );
-
+            
             this->_addPeak(mzp, intp, params);
 
         }
@@ -203,14 +203,15 @@ private:
     }
     
     void _peaksToFittedCentroids(vector<std::shared_ptr<Centroid<mz_t, int_t> > >&centroids) {
-        std::for_each(this->detectedPeaks.begin(), this->detectedPeaks.end(), [&centroids](PeakUPtr& peak) {
+        for(auto it = this->detectedPeaks.begin(); it != this->detectedPeaks.end(); ++it) {
             try {
+                PeakUPtr& peak = *it;
                 auto c = peak->_computeFittedCentroid();
                 centroids.push_back(c);
             } catch (exception& e) {
                 LOG(ERROR) << e.what();
             }
-        });
+        }
     }
 
     void _peaksToCentroids(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids) {
@@ -274,7 +275,7 @@ public:
     }
 
     /**
-     *
+     * @param givenCentroids the list of precalculated centroids within the range of mzData (intensity shoulb be close to the highest value in intData)
      */
     void setDetectedPeaks(vector<std::shared_ptr<Centroid<mz_t, int_t> > > &givenCentroids, mzPeakFinderUtils::PeakPickerParams& params, mzPeakFinderUtils::USE_CWT opt) {
         if (opt == mzPeakFinderUtils::CWT_ENABLED) {
@@ -350,12 +351,12 @@ public:
 
     /**
      * @brief DataPointsCollection constructor
-     * @param mz_
-     * @param int_
+     * @param mz_ Profile mz values
+     * @param int_ Profile intensity values
      * @param s
      */
     DataPointsCollection(const vector<mz_t>& mz_, const vector<int_t>& int_, const pwiz::msdata::SpectrumPtr& s) :
-        mzData(mz_), intData(int_), spectrum(s){
+        mzData(mz_), intData(int_), spectrum(s) {
     }
 };
 

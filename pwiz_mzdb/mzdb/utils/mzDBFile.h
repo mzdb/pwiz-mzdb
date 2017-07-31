@@ -112,7 +112,7 @@ struct MzDBFile : public pwiz::msdata::ParamContainer {
      * @param _bbWidthMsn retention time dimension in seconds for msLevel > 1
      * @param noLoss if true noLoss conversion, by default is set to false
      */
-    MzDBFile(string& _name, float _bbHeight, float _bbHeightMsn, float _bbWidth, float _bbWidthMsn, bool noLoss=false);
+    //MzDBFile(string& _name, float _bbHeight, float _bbHeightMsn, float _bbWidth, float _bbWidthMsn, bool noLoss=false);
     MzDBFile(string& _name, string& _outputFilename, float _bbHeight, float _bbHeightMsn, float _bbWidth, float _bbWidthMsn, bool noLoss=false);
 
     /**

@@ -65,104 +65,155 @@ private:
     vector<double> m_isolationWindowStarts; // for fast prec finding
     vector<double> m_isolationWindowSizes;
 
+    /*
+     * 1/ when calling insertScans, pass a map of <spectrum_id, first_bb_spectrum_id> with it
+     *    but remember that it needs a cycle object, so there must be a first pass when i split
+     *    the spectra for creating BBs, and during it storing the ids in a map for this cycle
+     *    So it would be a map<cycle_id, map<spectrum_id, first_bb_spectrum_id>>
+     * 2/ redo the entire function to separate MS1 and MS2 spectra
+     *    there must be a specific buffering for MS1 and another for MS2
+     */
+    
+    /*
+     * This function is used to compare spectra
+     * Is it required to sort vectors of spectra using precursor m/Z
+     * TODO check that the sort function is ordering from lower to higher mz
+     */
+    static bool compareHR(const HighResSpectrumSPtr &a, const HighResSpectrumSPtr &b) { return a->precursorMz() < b->precursorMz(); }
+    static bool compareLR(const LowResSpectrumSPtr &a, const LowResSpectrumSPtr &b) { return a->precursorMz() < b->precursorMz(); }
+    
     void _consume( pwiz::msdata::MSDataPtr msdata,
                    ISerializer::xml_string_writer& serializer,
                    map<int, double>& bbMzWidthByMsLevel,
-                   double& ms1RtWidth,
+                   map<int, double>& bbTimeWidthByMsLevel,
                    map<int, map<int, int> >& runSlices,
                    int& progressionCount,
                    int nscans ) {
+        double ms1RtWidth = bbTimeWidthByMsLevel[1];
+        double msnRtWidth = bbTimeWidthByMsLevel[2];
+        //ms1RtWidth = 60; msnRtWidth = 75;
         int lastPercent = 0;
         this->_determineIsolationWindowStarts(msdata);
+        size_t bbFirstMs1ScanID = 0;
         
+        vector<HighResSpectrumSPtr> ms1Buffer;
+        HighResSpectrumSPtr firstMs1Spectrum;
+        vector<HighResSpectrumSPtr> msnHighResBuffer;
+        HighResSpectrumSPtr firstMsnHighResSpectrum;
+        map<int, HighResSpectrumSPtr> parentSpectrumPerSpectrumId;
         while( 1 ) {
             SpectraContainerUPtr cycleCollection(nullptr);
+            // get the current cycle
             this->get(cycleCollection);
-
-            // create BB and RS when cycleCollection are grouper by RT of 15 (default value)
-            if(!m_cycles.empty() && m_cycles.back()->getBeginRt() - m_cycles.front()->getBeginRt() > ms1RtWidth) {
-                // put last cycleCollection away (to have a collection that remains below the ms1RtWidth window)
-                SpectraContainerUPtr lastContainer = std::move(m_cycles.back());
-                if(!m_cycles.empty()) m_cycles.erase(m_cycles.end() - 1);
-                size_t nbCycles = m_cycles.size();
-                
-                // create and insert BB and RS on the current group of cycles
-                _createAndInsertBBs(bbMzWidthByMsLevel, runSlices, progressionCount);
-                
-                // clear container and put back last container
-                m_cycles.clear();
-                m_cycles.push_back(std::move(lastContainer));
-            }
-
-            // quit loop when cycleCollection is null
+            // if null, exit
             if(cycleCollection == nullptr) break;
-            
-            // otherwise, insert scans in the database and append cycleCollection to the current group of cycleCollection
-            this->insertScans<h_mz_t, h_int_t, l_mz_t, l_int_t>(cycleCollection, msdata, serializer, cycleCollection->parentSpectrum->id);
-            m_cycles.push_back(std::move(cycleCollection));
-
-            // deal with progression counter
-            int newPercent = (int) (((float) progressionCount / nscans * 100.0));
-            if (newPercent == lastPercent + 2.0) {
-                mzdb::printProgBar(newPercent);
+            // deal with MS1 spectra (OK !!)
+            if(ms1Buffer.size() > 0 && cycleCollection->parentSpectrum->rt() - ms1Buffer[0]->rt() > ms1RtWidth) {
+                // deal with this buffer and empty it
+                _createAndInsertMs1(ms1Buffer, msdata, serializer, bbMzWidthByMsLevel, runSlices);
+                ms1Buffer.clear();
+            }
+            ms1Buffer.push_back(cycleCollection->parentSpectrum);
+            // if not, loop on each spectrum (high and low res !)
+            vector<HighResSpectrumSPtr> highResSpec;
+            vector<LowResSpectrumSPtr> lowResSpec;
+            cycleCollection->getSpectra(highResSpec, lowResSpec);
+            // do not consider first spectrum because it is the parentSpectrum (and already treated)
+            for (auto specIt = highResSpec.begin()+1; specIt != highResSpec.end(); ++specIt) {
+                auto& spectrum = *specIt;
+                float thisRt = spectrum->rt();
+                if(msnHighResBuffer.size() == 0) firstMsnHighResSpectrum = spectrum;
+                float firstRt = firstMsnHighResSpectrum->rt();
+                if(thisRt - firstRt > msnRtWidth) {
+                    _splitSpectraByIsolationWindow(msnHighResBuffer, msdata, serializer, bbMzWidthByMsLevel, runSlices, parentSpectrumPerSpectrumId);
+                    msnHighResBuffer.clear();
+                }
+                msnHighResBuffer.push_back(spectrum);
+                parentSpectrumPerSpectrumId[spectrum->id] = cycleCollection->parentSpectrum;
+            }
+            progressionCount += highResSpec.size();
+            int newPercent = (int) (((float) progressionCount / nscans * 100));
+            if (newPercent == lastPercent + 2) {
+                printProgBar(newPercent);
                 lastPercent = newPercent;
             }
         }
-        // when exiting the loop, create and insert BB and RS for the remaining cycles
-        if(!m_cycles.empty()) {
-            _createAndInsertBBs(bbMzWidthByMsLevel, runSlices, progressionCount);
-        }
+        // before exiting, deal with the two buffers if they are not empty
+        if(!ms1Buffer.empty()) _createAndInsertMs1(ms1Buffer, msdata, serializer, bbMzWidthByMsLevel, runSlices);
+        if(!msnHighResBuffer.empty()) _splitSpectraByIsolationWindow(msnHighResBuffer, msdata, serializer, bbMzWidthByMsLevel, runSlices, parentSpectrumPerSpectrumId);
         // exit properly
-        printProgBar(100);
+        //printProgBar(100);
     }
     
-    void _createAndInsertBBs(map<int, double>& bbMzWidthByMsLevel, map<int, map<int, int> >& runSlices, int& progressionCount) {
-        // prepare variables before inserting scans
-        vector<HighResSpectrumSPtr> ms1Spectra;
-        int bbFirstMs1ScanID = m_cycles.front()->parentSpectrum->id;
-        map<int, int> firstBBSpectrumIDBySpectrumID;
-        map<int, vector<HighResSpectrumSPtr> > ms2SpectraByPrecursorMzIndex;
-        
-        for (auto it = m_cycles.begin(); it != m_cycles.end(); ++it ) {
-            auto& cycle = *it;
-            ms1Spectra.push_back(cycle->parentSpectrum);
-            vector<HighResSpectrumSPtr> highResSpec;
-            vector<LowResSpectrumSPtr> lowResSpec;
-            cycle->getSpectra(highResSpec, lowResSpec);
-            for (auto specIt = highResSpec.begin(); specIt != highResSpec.end(); ++specIt) {
-                auto& spec = *specIt;
-                auto windowIndex = this->_findIsolationWindowIndexForMzPrec(spec->precursorMz());
-                ms2SpectraByPrecursorMzIndex[windowIndex].push_back(spec);
-            }
+    /*
+     * This procedure receives MS2 spectra in the same RT window
+     * It will split these spectra according to the isolation windows to produce bounding boxes
+     * Creation and insertions of bounding boxes, run slices and MS2 spectra is made here
+     */
+    void _splitSpectraByIsolationWindow(vector<HighResSpectrumSPtr> &spectra,
+                                          pwiz::msdata::MSDataPtr msdata,
+                                          ISerializer::xml_string_writer& serializer,
+                                          map<int, double>& bbMzWidthByMsLevel,
+                                          map<int, map<int, int> >& runSlices,
+                                          map<int, HighResSpectrumSPtr> &parentSpectrumPerSpectrumId) {
+        // we have a vector of spectra of same MS level and in the same RT window
+        // we must split these spectra into smaller vectors matching isolation windows
+        map<int, vector<HighResSpectrumSPtr>> spectraByPrecursorMzIndex;
+        for (auto specIt = spectra.begin(); specIt != spectra.end(); ++specIt) {
+            auto spectrum = *specIt;
+            auto windowIndex = this->_findIsolationWindowIndexForMzPrec(spectrum->precursorMz());
+            spectraByPrecursorMzIndex[windowIndex].push_back(spectrum);
         }
-        progressionCount += ms1Spectra.size();
-        // handle MS1 spectra
-        this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(1, bbMzWidthByMsLevel[1], ms1Spectra, vector<LowResSpectrumSPtr>(), runSlices[1]);
-        // handle MS2 spectra
-        for (auto mapIt = ms2SpectraByPrecursorMzIndex.begin(); mapIt != ms2SpectraByPrecursorMzIndex.end(); ++mapIt) {
+        // then create BBs and store first spectrum ids
+        map<int, int> firstSpectrumIdByPrecursorMzIndex;
+        for (auto mapIt = spectraByPrecursorMzIndex.begin(); mapIt != spectraByPrecursorMzIndex.end(); ++mapIt) {
             auto& windowIndex = mapIt->first;
             auto& ms2Spectra = mapIt->second;
-            for (auto specIt = ms2Spectra.begin(); specIt != ms2Spectra.end(); ++specIt) {
-                firstBBSpectrumIDBySpectrumID[(*specIt)->id] = ms2Spectra.front()->id;
-            }
-            progressionCount += ms2Spectra.size();
             auto minPrecMz = m_isolationWindowStarts[windowIndex];
             auto maxPrecMz = minPrecMz + m_isolationWindowSizes[windowIndex];
-            this->buildAndInsertData(2, bbMzWidthByMsLevel[2], ms2Spectra, vector<LowResSpectrumSPtr>(), runSlices[2], minPrecMz, maxPrecMz);
+            this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(2, bbMzWidthByMsLevel[2], ms2Spectra, vector<LowResSpectrumSPtr>(), runSlices[2], minPrecMz, maxPrecMz);
+            firstSpectrumIdByPrecursorMzIndex[windowIndex] = ms2Spectra.front()->id;
         }
+        // finally store all scans
+        for (auto specIt = spectra.begin(); specIt != spectra.end(); ++specIt) {
+            auto spectrum = *specIt;
+            auto windowIndex = this->_findIsolationWindowIndexForMzPrec(spectrum->precursorMz());
+            int firstSpectrumId = firstSpectrumIdByPrecursorMzIndex[windowIndex];
+            this->insertScan<h_mz_t, h_int_t>(spectrum, spectrum->cycle, firstSpectrumId, parentSpectrumPerSpectrumId[spectrum->id], msdata, serializer);
+            parentSpectrumPerSpectrumId.erase(spectrum->id);
+        }
+    }
+    
+    /*
+     * This procedure receives MS1 spectra in the same RT window
+     * Creation and insertions of bounding boxes, run slices and MS1 spectra is made here
+     */
+    void _createAndInsertMs1(vector<HighResSpectrumSPtr> &spectra,
+                            pwiz::msdata::MSDataPtr msdata,
+                            ISerializer::xml_string_writer& serializer,
+                            map<int, double>& bbMzWidthByMsLevel,
+                            map<int, map<int, int> >& runSlices) {
+        int bbFirstScanIDMS1 = spectra.front()->id;
+        // inserting spectra
+        for (auto specIt = spectra.begin(); specIt != spectra.end(); ++specIt) {
+            auto spectrum = *specIt;
+            this->insertScan<h_mz_t, h_int_t>(spectrum, spectrum->cycle, bbFirstScanIDMS1, spectrum, msdata, serializer);
+        }
+        // creating and inserting BBs
+        this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(1, bbMzWidthByMsLevel[1], spectra, vector<LowResSpectrumSPtr>(), runSlices[1]);
     }
 
     /// For now, this is really complicated to get the good swath isolation window sizes
     void _determineIsolationWindowStarts(pwiz::msdata::MSDataPtr msdata) {
         vector<double> refTargets = PwizHelper::determineIsolationWindowStarts(msdata->run.spectrumListPtr);
         if(refTargets.size() > 0) {
-            for(int i = 0; i < refTargets.size() - 1; i++) {
-                int windowIndex = i + 1;
-                float windowStartMz = refTargets[i];
-                float windowSize = refTargets[i+1] - refTargets[i];
-                m_isolationWindowStarts.push_back(refTargets[i]);
-                m_isolationWindowSizes.push_back(refTargets[i+1] - refTargets[i]);
-                //LOG(INFO) << "Swath Window #" << windowIndex <<", Start: " << windowStartMz << ",  Size: " <<  windowSize;
+            float windowStartMz, windowSize;
+            for(int i = 0; i < refTargets.size(); i++) {
+                windowStartMz = refTargets[i];
+                m_isolationWindowStarts.push_back(windowStartMz);
+                // do not update window size for the last window
+                if(i < refTargets.size() - 1) windowSize = refTargets[i+1] - refTargets[i];
+                m_isolationWindowSizes.push_back(windowSize);
             }
         }
     }
@@ -195,7 +246,7 @@ public:
     boost::thread getConsumerThread(pwiz::msdata::MSDataPtr msdata,
                                     ISerializer::xml_string_writer& serializer,
                                     map<int, double>& bbMzWidthByMsLevel,
-                                    double& ms1RtWidth,
+                                    map<int, double>& bbTimeWidthByMsLevel,
                                     map<int, map<int, int> >& runSlices,
                                     int& progressionCount,
                                     int nscans ) {
@@ -206,7 +257,7 @@ public:
                              std::ref(msdata),
                              std::ref(serializer),
                              std::ref(bbMzWidthByMsLevel),
-                             std::ref(ms1RtWidth),
+                             std::ref(bbTimeWidthByMsLevel),
                              std::ref(runSlices),
                              std::ref(progressionCount),
                              nscans

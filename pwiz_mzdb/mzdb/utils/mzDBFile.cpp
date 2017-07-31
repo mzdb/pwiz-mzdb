@@ -33,20 +33,20 @@ MzDBFile::MzDBFile(string& _name) : bbHeight(0), bbHeightMsn(0), bbWidth(0),
 
 }
 
-MzDBFile::MzDBFile(string& _name, float _bbHeight, float _bbHeightMsn,
-                   float _bbWidth, float _bbWidthMsn, bool _noLoss) :
-    name(_name),
-    bbHeight(_bbHeight),
-    bbHeightMsn(_bbHeightMsn),
-    bbWidth(_bbWidth),
-    bbWidthMsn(_bbWidthMsn),
-    sourceFileID(0),
-    sharedParamTreeID(0),
-    instrumentConfigurationID(0),
-    dataProcessingID(0),
-    noLoss(_noLoss) {
-
-}
+//MzDBFile::MzDBFile(string& _name, float _bbHeight, float _bbHeightMsn,
+//                   float _bbWidth, float _bbWidthMsn, bool _noLoss) :
+//    name(_name),
+//    bbHeight(_bbHeight),
+//    bbHeightMsn(_bbHeightMsn),
+//    bbWidth(_bbWidth),
+//    bbWidthMsn(_bbWidthMsn),
+//    sourceFileID(0),
+//    sharedParamTreeID(0),
+//    instrumentConfigurationID(0),
+//    dataProcessingID(0),
+//    noLoss(_noLoss) {
+//
+//}
 
 MzDBFile::MzDBFile(string& _name, string& _outputFilename, float _bbHeight, float _bbHeightMsn,
                    float _bbWidth, float _bbWidthMsn, bool _noLoss) :

@@ -402,14 +402,8 @@ public:
         // TODO check if it works: MAX_MS used to be fixed at 2 so this loop was never used before !!
         //for (int msnb = 2; msnb <= MAX_MS; ++msnb) {
         for (int msnb = 2; msnb <= max_ms_level; ++msnb) {
-            if (! this->getSwathAcquisition()) {
-                bbHeightManager[msnb] = invmsn;
-                bbWidthManager[msnb] = m_mzdbFile.bbWidthMsn;
-            } else {
-                // in swath acquisition bb sizes are the same as DDA msLevel1
-                bbHeightManager[msnb] = invms1;
-                bbWidthManager[msnb] = m_mzdbFile.bbWidth;
-            }
+            bbHeightManager[msnb] = invmsn;
+            bbWidthManager[msnb] = m_mzdbFile.bbWidthMsn;
         }
 
         //---begin a new transaction
@@ -442,7 +436,7 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "DIA producer/consumer";
                 auto prod = pcThreadBuilder.getDIAThermoProducerThread(levelsToCentroid, s, cycleRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDIAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager[1], runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDIAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {
@@ -458,7 +452,7 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getDIABrukerProducerThread(levelsToCentroid, s, cycleRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDIABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager[1], runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDIABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {
@@ -475,7 +469,7 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getSwathABIProducerThread(levelsToCentroid, s, cycleRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getSwathABIConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager[1], runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getSwathABIConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {
@@ -492,7 +486,7 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getDIAAgilentProducerThread(levelsToCentroid, s, cycleRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDIAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager[1], runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDIAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {
@@ -509,7 +503,7 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getDIAABI_T2DProducerThread(levelsToCentroid, s, cycleRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDIAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager[1], runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDIAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {
@@ -525,7 +519,7 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getSwathGenericProducerThread( levelsToCentroid, spectrumList.get(), cycleRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getSwathGenericConsumerThread( m_msdata, m_serializer, bbHeightManager, bbWidthManager[1], runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getSwathGenericConsumerThread( m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {

@@ -352,8 +352,12 @@ int main(int argc, char* argv[]) {
 
 
     //---bounding boxes sizes defaults
-    float bbWidth = 15, bbWidthMSn = 0; //15
-    float bbHeight = 5, bbHeightMSn = 10000; //5
+    //float bbWidth = 15, bbWidthMSn = 0; //15
+    //float bbHeight = 5, bbHeightMSn = 10000; //5
+    float bbWidth_default_dda = 15, bbWidthMSn_default_dda = 0, bbHeight_default_dda = 5, bbHeightMSn_default_dda = 10000;
+    float bbWidth_default_dia = 60, bbWidthMSn_default_dia = 75, bbHeight_default_dia = 5, bbHeightMSn_default_dia = 20;
+    float bbWidth = -1, bbWidthMSn = -1, bbHeight = -1, bbHeightMSn = -1;
+    
 
     //---32 bits intensity encoding by default
     bool noLoss = false;
@@ -387,10 +391,10 @@ int main(int argc, char* argv[]) {
                   "\t-p, --profile : idem but for profile mode \n"
                   "\t-f, --fitted : idem buf for fitted mode \n"
                   //"\t--ppm : ppm parameter for peak detection algorithm of WIFF files, default: 20\n"
-                  "\t-T, --bbTimeWidth : bounding box width for ms1 in seconds, default: 15s\n"
-                  "\t-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s\n"
-                  "\t-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da \n"
-                  "\t-m, --bbMzWidthMSn : bounding box height for msn in Da, default: 10000Da \n"
+                  "\t-T, --bbTimeWidth : bounding box width for ms1 in seconds, default: 15s for DDA, 60s for DIA\n"
+                  "\t-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s for DDA, 75s for DIA\n"
+                  "\t-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da for DDA and DIA\n"
+                  "\t-m, --bbMzWidthMSn : bounding box height for msn in Da, default: 10000Da for DDA, 20Da for DIA\n"
                   "\t-a, --acquisition : dda, dia or auto (converter will try to determine if the analysis is DIA or DDA), default: auto\n"
                   //"\t--bufferSize : low value (min 2) will enforce the program to use less memory (max 50), default: 3\n"
                   // "\t--max_nb_threads : maximum nb_threads to use, default: nb processors on the machine\n"
@@ -468,6 +472,7 @@ int main(int argc, char* argv[]) {
     // check output file name, use input file name if missing, make sure to have the right extension, delete former file if any
     checkOutputFile(outputFileName, filename);
 
+    // TODO allow the user to define another log file name, and just rename the log file into this name at the end
     // where should logs be written
     string logFile = "";
     if(boost::to_upper_copy(logToWhat) == "FILE" || boost::to_upper_copy(logToWhat) == "BOTH") {
@@ -492,20 +497,20 @@ int main(int argc, char* argv[]) {
         FLAGS_logtostderr = 1;
     }
 
-    //--- overriding default encoding to `fitted` for DIA mslevel 2
-    if(boost::to_upper_copy(acquisitionMode) == "DIA") {
-        //dataModeByMsLevel[2] = FITTED;
-
-        if (bbHeightMSn != 10000 || bbWidthMSn != 0) {
-            LOG(WARNING) << "Warning: 'bbMzWidthMSn' and/or 'bbRtWidthMSn' when 'dia' is set will be ignored !";
-        }
-
-        // create bounding box of the same dimensions than MS1
-        bbHeightMSn = bbHeight;
-        bbWidthMSn = bbWidth;
-
-        //dataModeByMsLevel[3] = FITTED;
-    }
+    ////--- overriding default encoding to `fitted` for DIA mslevel 2
+    //if(boost::to_upper_copy(acquisitionMode) == "DIA") {
+    //    //dataModeByMsLevel[2] = FITTED;
+    //
+    //    if (bbHeightMSn != 10000 || bbWidthMSn != 0) {
+    //        LOG(WARNING) << "Warning: 'bbMzWidthMSn' and/or 'bbRtWidthMSn' when 'dia' is set will be ignored !";
+    //    }
+    //
+    //    // create bounding box of the same dimensions than MS1
+    //    bbHeightMSn = bbHeight;
+    //    bbWidthMSn = bbWidth;
+    //
+    //    //dataModeByMsLevel[3] = FITTED;
+    //}
 
     //todo use set instead
     vector<int> modifiedIndex;
@@ -540,31 +545,6 @@ int main(int argc, char* argv[]) {
     auto& msData = msdList[0];
     auto originFileFormat = pwiz::msdata::identifyFileFormat(readers, f.name);
 
-    //---print gathered informations
-    std::stringstream summary;
-    summary << "\n\n************ Summary of the parameters ************\n\n";
-    summary << "Treating file: " << filename << " (" << pwiz::msdata::cvTermInfo(originFileFormat).name << ")\n";
-    for (auto it = dataModeByMsLevel.begin(); it != dataModeByMsLevel.end(); ++it) {
-        summary << "ms " << it->first << " => selected Mode: " << modeToString(it->second) << "\n";
-    }
-    
-    if(cycleRange.first > 1 || cycleRange.second != 0) {
-        summary << "Converting cycles from ";
-        if(cycleRange.first == 0) summary << "first"; else summary << "#" << cycleRange.first;
-        summary << " to ";
-        if(cycleRange.second == 0) summary << "last"; else summary << "#" << cycleRange.second;
-        summary << "\n";
-    }
-    summary << "\n";
-
-    summary << "Bounding box dimensions:\n";
-    summary << "MS 1\t" << "m/z: " << bbHeight << " Da, retention time: " << bbWidth << "sec\n";
-    summary << "MS n\t" << "m/z: " << bbHeightMSn << " Da, retention time: " << bbWidthMSn << "sec\n";
-
-    summary << "\n";
-    LOG(INFO) << summary.str();
-    //end parsing commandline
-
     mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, compress, safeMode);
     
     //---insert metadata
@@ -592,6 +572,44 @@ int main(int argc, char* argv[]) {
             LOG(ERROR) << "Unknown error checking DDA/SWATH Mode. Default to DDA...";
         }
     }
+    // set default values unless value is specified
+    if(writer.getSwathAcquisition()) {
+        if(bbWidth == -1) f.bbWidth = bbWidth_default_dia;
+        if(bbWidthMSn == -1) f.bbWidthMsn = bbWidthMSn_default_dia;
+        if(bbHeight == -1) f.bbHeight = bbHeight_default_dia; // abu use dda
+        if(bbHeightMSn == -1) f.bbHeightMsn = bbHeightMSn_default_dia; // abu use dda
+    } else {
+        if(bbWidth == -1) f.bbWidth = bbWidth_default_dda;
+        if(bbWidthMSn == -1) f.bbWidthMsn = bbWidthMSn_default_dda;
+        if(bbHeight == -1) f.bbHeight = bbHeight_default_dda;
+        if(bbHeightMSn == -1) f.bbHeightMsn = bbHeightMSn_default_dda;
+    }
+
+    //---print gathered informations
+    std::stringstream summary;
+    summary << "\n\n************ Summary of the parameters ************\n\n";
+    summary << "Treating file: " << filename << " (" << (writer.getSwathAcquisition() ? "DIA" : "DDA") << " " << pwiz::msdata::cvTermInfo(originFileFormat).name << ")\n";
+    //summary << "Acquisition mode : " << (writer.getSwathAcquisition() ? "DIA" : "DDA") << "\n";
+    for (auto it = dataModeByMsLevel.begin(); it != dataModeByMsLevel.end(); ++it) {
+        summary << "MS " << it->first << "\tSelected Mode: " << modeToString(it->second) << "\n";
+    }
+    
+    if(cycleRange.first > 1 || cycleRange.second != 0) {
+        summary << "Converting cycles from ";
+        if(cycleRange.first == 0) summary << "first"; else summary << "#" << cycleRange.first;
+        summary << " to ";
+        if(cycleRange.second == 0) summary << "last"; else summary << "#" << cycleRange.second;
+        summary << "\n";
+    }
+    summary << "\n";
+
+    summary << "Bounding box dimensions:\n";
+    summary << "MS 1\t" << "m/z: " << f.bbHeight << " Da, retention time: " << f.bbWidth << "sec\n";
+    summary << "MS n\t" << "m/z: " << f.bbHeightMsn << " Da, retention time: " << f.bbWidthMsn << "sec\n";
+
+    summary << "\n";
+    LOG(INFO) << summary.str();
+    //end parsing commandline
 
     //---create parameters for peak picking
     mzPeakFinderUtils::PeakPickerParams p;

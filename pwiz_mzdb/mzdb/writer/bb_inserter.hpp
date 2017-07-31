@@ -61,7 +61,7 @@ private:
                      map<int, vector<std::shared_ptr<Centroid<h_mz_t, h_int_t> > > >& highResPeaks,
                      map<int, vector<std::shared_ptr<Centroid<l_mz_t, l_int_t> > > >& lowResPeaks,
                      map<int, DataMode>& dataModes,
-                     double parentMinMz=0,
+                     double parentMinMz = 0,
                      double parentMaxMz = 0) {
 
         //useful typedef

@@ -447,11 +447,11 @@ public:
     inline  boost::thread getDIAThermoConsumerThread(pwiz::msdata::MSDataPtr msdata,
                                                      ISerializer::xml_string_writer& serializer,
                                                      map<int, double>& bbMzWidthByMsLevel,
-                                                     double& ms1RtWidth,
+                                                     map<int, double>& bbTimeWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
                                                      int cycleRange ) {
-        return this->mDiaThermoConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
+        return this->mDiaThermoConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
                                                            runSlices, progressionCount, cycleRange);
     }
 
@@ -471,11 +471,11 @@ public:
     inline  boost::thread getDIABrukerConsumerThread(pwiz::msdata::MSDataPtr msdata,
                                                      ISerializer::xml_string_writer& serializer,
                                                      map<int, double>& bbMzWidthByMsLevel,
-                                                     double& ms1RtWidth,
+                                                     map<int, double>& bbTimeWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
                                                      int cycleRange ) {
-        return this->mDiaBrukerConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
+        return this->mDiaBrukerConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
                                                            runSlices, progressionCount, cycleRange);
     }
 
@@ -507,11 +507,11 @@ public:
     inline  boost::thread getSwathABIConsumerThread(pwiz::msdata::MSDataPtr msdata,
                                                     ISerializer::xml_string_writer& serializer,
                                                     map<int, double>& bbMzWidthByMsLevel,
-                                                    double& ms1RtWidth,
+                                                    map<int, double>& bbTimeWidthByMsLevel,
                                                     map<int, map<int, int> >& runSlices,
                                                     int& progressionCount,
                                                     int cycleRange ) {
-        return this->mSwathABIConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
+        return this->mSwathABIConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
                                                           runSlices, progressionCount, cycleRange);
     }
 
@@ -519,11 +519,11 @@ public:
     inline  boost::thread getDIAAgilentConsumerThread(pwiz::msdata::MSDataPtr msdata,
                                                      ISerializer::xml_string_writer& serializer,
                                                      map<int, double>& bbMzWidthByMsLevel,
-                                                     double& ms1RtWidth,
+                                                     map<int, double>& bbTimeWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
                                                      int cycleRange ) {
-        return this->mDiaAgilentConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
+        return this->mDiaAgilentConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
                                                            runSlices, progressionCount, cycleRange);
     }
 
@@ -542,11 +542,11 @@ public:
     inline  boost::thread getDIAABI_T2DConsumerThread(pwiz::msdata::MSDataPtr msdata,
                                                      ISerializer::xml_string_writer& serializer,
                                                      map<int, double>& bbMzWidthByMsLevel,
-                                                     double& ms1RtWidth,
+                                                     map<int, double>& bbTimeWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
                                                      int cycleRange ) {
-        return this->mDiaABI_T2DConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
+        return this->mDiaABI_T2DConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
                                                            runSlices, progressionCount, cycleRange);
     }
 
@@ -566,11 +566,11 @@ public:
     inline  boost::thread getSwathGenericConsumerThread(pwiz::msdata::MSDataPtr msdata,
                                                         ISerializer::xml_string_writer& serializer,
                                                         map<int, double>& bbMzWidthByMsLevel,
-                                                        double& ms1RtWidth,
+                                                        map<int, double>& bbTimeWidthByMsLevel,
                                                         map<int, map<int, int> >& runSlices,
                                                         int& progressionCount,
                                                         int cycleRange ) {
-        return this->mSwathGenericConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, ms1RtWidth,
+        return this->mSwathGenericConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
                                                               runSlices, progressionCount, cycleRange);
     }
 

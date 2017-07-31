@@ -153,6 +153,7 @@ private:
                     // initialize cycle with it
                     cycle = move(SpectraContainerUPtr(new SpectraContainer(2)));
                     cycle->parentSpectrum = currMs1;
+                    cycle->addHighResSpectrum(currMs1); // add parent spectrum to the vector to match the behavior of the dda producer
                     ++scanCount;
                 }
                 
@@ -166,6 +167,7 @@ private:
                     currMs1 = std::make_shared<mzSpectrum<h_mz_t, h_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum, wantedMode, m_safeMode);
                     cycle = move(SpectraContainerUPtr(new SpectraContainer(2)));
                     cycle->parentSpectrum = currMs1;
+                    cycle->addHighResSpectrum(currMs1); // add parent spectrum to the vector to match the behavior of the dda producer
                 } else {
                     bool isInHighRes = this->isInHighRes(spectrum, isNoLoss);
                     if (isInHighRes) {

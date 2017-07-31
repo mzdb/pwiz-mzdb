@@ -303,8 +303,9 @@ public:
             _centroid->rwhm = MIN_SEMI_WIDTH;
         }
 
-        if (! mzMath::isFiniteNumber<mz_t>(_centroid->mz))
+        if (! mzMath::isFiniteNumber<mz_t>(_centroid->mz)) {
             _centroid->mz = _mzData[apexPos];
+        }
 
         return _centroid;
     }
