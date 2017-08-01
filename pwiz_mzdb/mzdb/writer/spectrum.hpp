@@ -265,8 +265,10 @@ struct PWIZ_API_DECL mzSpectrum {
      * @return
      */
     inline int nbPeaks() {
-        if (! _nbPeaks)
+        if(peaks.size() > 0) {
+            // store last non zero value (because peaks is emptied when creating BBs but its value may change so it cannot be lazy)
             _nbPeaks = peaks.size();
+        }
         return _nbPeaks;
     }
 
