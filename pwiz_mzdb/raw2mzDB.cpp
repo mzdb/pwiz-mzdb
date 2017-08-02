@@ -386,7 +386,7 @@ int main(int argc, char* argv[]) {
     const string help = "\n\nusage: raw2mzDB.exe --input filename <parameters>"
                   "\n\nOptions:\n\n"
                   "\t-i, --input : specify the input rawfile path\n"
-                  "\t-o, --output : specify the output filename (must be an absolute path)\n"
+                  "\t-o, --output : specify the output filename\n"
                   "\t-c, --centroid : centroidization, eg: -c 1 (centroidization msLevel 1) or -c 1-5 (centroidization msLevel 1 to msLevel 5) \n"
                   "\t-p, --profile : idem but for profile mode \n"
                   "\t-f, --fitted : idem buf for fitted mode \n"

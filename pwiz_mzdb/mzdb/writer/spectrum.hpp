@@ -289,8 +289,8 @@ struct PWIZ_API_DECL mzSpectrum {
     
     inline DataMode getEffectiveMode() {
         if(! effectiveMode) {
-            // really ?? it should not happen !!!
-            LOG(ERROR) << "Spectrum " << id << " has no effective mode !!";
+            // it can happen when converting MS3 analyses and not saying how to convert MS3 spectra
+            //LOG(ERROR) << "Spectrum " << id << " has no effective mode !!";
             effectiveMode = CENTROID;
         }
         return effectiveMode;
