@@ -2,7 +2,7 @@ pwiz-mzdb
 =========
 
 Raw2MzDB is an extension of the ProteoWizard framework enabling the support of the mzDB format.
-The current stable version is 0.9.9.
+The current stable version is 0.9.10.
 
 For details about mzDB concepts (scanSlice, runSlice...) and specifications, have a look to the [related repository](http://github.com/mzdb/mzdb-specs).
 
@@ -15,21 +15,6 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 </div>
 
 ## Roadmap
-
-### Roadmap v0.9.10
-
-Bug fixes:
-- [x] Issue #24 sample name is empty for AB Sciex analyses (also check for Bruker)
-- [x] Issue #26 is for AB Sciex DIA acquisition (and accession 1001954)
-- [x] Issue #38: Find and fix memory leak for AB Sciex data
-- [x] Issue #39: The field mzdb.param_tree can be corrupted for some Thermo raw files
-- [x] Issue #57: Check MS3 analyses
-- [x] Issue #60: Missing spectra in some mzDB files
-- [x] Issue #61: Problem with DIA analyses
-
-Improvements
-- [x] Issue #40: Improve cycle filtering by checking cycle number before centroiding data
-- [x] Issue #62: Improving DIA storing in bounding boxes
 
 ### Roadmap v1.0
 
@@ -58,11 +43,25 @@ Database schema
 ### Roadmap Other
 - [ ] Integration of the project with existing msconvert tool (#55)
 - [ ] Linux build for "mzML -> mzDB" and "Thermo RAW file -> mzDB" (#56)
-- [ ] Check MS3 analyses (#57)
 - [ ] ~~add missing CvTerms~~ (not present in Pwiz Msdata object, neither in converted mzML files) compare a mzML from mzDB and mzML from raw file (#58)
 - [ ] Implement an mzDB validator using mzDB-access (#59)
 
 ## Change log
+
+### Roadmap v0.9.10
+
+Bug fixes:
+- [x] Issue #24 sample name is empty for AB Sciex analyses (also check for Bruker)
+- [x] Issue #26 is for AB Sciex DIA acquisition (and accession 1001954)
+- [x] Issue #38: Find and fix memory leak for AB Sciex data
+- [x] Issue #39: The field mzdb.param_tree can be corrupted for some Thermo raw files
+- [x] Issue #57: Check MS3 analyses
+- [x] Issue #60: Missing spectra in some mzDB files
+- [x] Issue #61: Problem with DIA analyses
+
+Improvements
+- [x] Issue #40: Improve cycle filtering by checking cycle number before centroiding data
+- [x] Issue #62: Improving DIA storing in bounding boxes
 
 ### Release 0.9.9
 
@@ -115,7 +114,7 @@ Bug fixes:
 
 #### Download and setup
 
-* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.9/raw2mzDB_0.9.9_build20170420.zip">zip archive</a>
+* Download the <a href="https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.10/raw2mzDB_0.9.10_build20170802.zip">zip archive</a>
 * Raw2mzDB should work on any modern 64 bits Windows environment. If you encounter missing dlls issues, you may try to install Microsoft's .NET Framework 3.5 SP1 and 4.0. Also consider Visual C++ Redistributable for Visual Studio 2008, 2012 and 2013.
 
 #### Command line usage
@@ -143,19 +142,20 @@ usage: raw2mzDB.exe --input filename <parameters>
 Options:
 
 	-i, --input : specify the input rawfile path
-	-o, --output : specify the output filename (must be an absolute path)
+	-o, --output : specify the output filename
 	-c, --centroid : centroidization, eg: -c 1 (centroidization msLevel 1) or -c 1-5 (centroidization msLevel 1 to msLevel 5) 
 	-p, --profile : idem but for profile mode 
 	-f, --fitted : idem buf for fitted mode 
-	-T, --bbTimeWidth : bounding box width for ms1 in seconds, default: 15s
-	-t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s
-	-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da 
-	-m, --bbMzWidthMSn : bounding box height for msn in Da, default: 10000Da 
+    -T, --bbTimeWidth : bounding box width for ms1 in seconds, default: 15s for DDA, 60s for DIA
+    -t, --bbTimeWidthMSn : bounding box width for ms > 1 in seconds, default: 0s for DDA, 75s for DIA
+    -M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da for DDA and DIA
+    -m, --bbMzWidthMSn : bounding box height for msn in Da, default: 10000Da for DDA, 20Da for DIA
 	-a, --acquisition : dda, dia or auto (converter will try to determine if the analysis is DIA or DDA), default: auto
-	--no_loss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)
+    --noLoss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)
  	--cycles : only convert the selected range of cycles, eg: 1-10 (first ten cycles) or 10- (from cycle 10 to the end) ; using this option will disable progress information
-	-s, --safe_mode : use centroid mode if the requested mode is not available
+	-s, --safeMode : use centroid mode if the requested mode is not available
     --log : console, file or both (log file will be put in the same directory as the output file), default: console
+    -v, --version: display version information
 	-h --help : show help
 ```
 
