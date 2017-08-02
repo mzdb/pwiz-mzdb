@@ -19,11 +19,17 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 ### Roadmap v0.9.10
 
 Bug fixes:
-- [x] The field mzdb.param_tree can be corrupted for some Thermo raw files (#39)
-- [x] Find and fix memory leak for AB Sciex data (#38)
-- [ ] Issue #26 is for AB Sciex DIA acquisition (and accession 1001954)
 - [x] Issue #24 sample name is empty for AB Sciex analyses (also check for Bruker)
-- [ ] Improve cycle filtering by checking cycle number before centroiding data (#40)
+- [x] Issue #26 is for AB Sciex DIA acquisition (and accession 1001954)
+- [x] Issue #38: Find and fix memory leak for AB Sciex data
+- [x] Issue #39: The field mzdb.param_tree can be corrupted for some Thermo raw files
+- [x] Issue #57: Check MS3 analyses
+- [x] Issue #60: Missing spectra in some mzDB files
+- [x] Issue #61: Problem with DIA analyses
+
+Improvements
+- [x] Issue #40: Improve cycle filtering by checking cycle number before centroiding data
+- [x] Issue #62: Improving DIA storing in bounding boxes
 
 ### Roadmap v1.0
 

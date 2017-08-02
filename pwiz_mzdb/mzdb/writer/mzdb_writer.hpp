@@ -399,12 +399,9 @@ public:
         bbHeightManager[1] = invms1;
         bbWidthManager[1] = m_mzdbFile.bbWidth;
 
-        // TODO check if it works: MAX_MS used to be fixed at 2 so this loop was never used before !!
-        //for (int msnb = 2; msnb <= MAX_MS; ++msnb) {
-        for (int msnb = 2; msnb <= max_ms_level; ++msnb) {
-            bbHeightManager[msnb] = invmsn;
-            bbWidthManager[msnb] = m_mzdbFile.bbWidthMsn;
-        }
+        // use a single value for every MS level > 1
+        bbHeightManager[2] = invmsn;
+        bbWidthManager[2] = m_mzdbFile.bbWidthMsn;
 
         //---begin a new transaction
         sqlite3_exec(m_mzdbFile.db, "BEGIN;", 0, 0, 0);

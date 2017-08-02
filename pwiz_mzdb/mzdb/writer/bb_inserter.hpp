@@ -110,9 +110,6 @@ private:
         auto lastRunSliceIdx = bbs.back()->runSliceIdx();
 
         if (m_lastMinRunSliceIdx && firstRunSliceIdx < m_lastMinRunSliceIdx) {
-            //printf("The first spectrum does not contain a low mass contained in the first runSlice.\n");
-            //printf("This is a bug and it will be fixed in a next release of raw2mzdb.\n");
-            //exit(0);
             LOG(ERROR) << "The first spectrum does not contain a low mass contained in the first runSlice.";
             LOG(ERROR) << "This is a bug and it will be fixed in a next release of raw2mzdb.";
             exit(EXIT_FAILURE);
@@ -134,7 +131,12 @@ private:
                     sqlite3_bind_double(m_mzdbFile.stmt, 5, moz + invBBheight);
                     sqlite3_bind_null(m_mzdbFile.stmt, 6);
                     sqlite3_bind_int(m_mzdbFile.stmt, 7, 1);
-                    sqlite3_step(m_mzdbFile.stmt);
+                    int rc = sqlite3_step(m_mzdbFile.stmt);
+                    if (rc != SQLITE_DONE) {
+                        LOG(ERROR) << "Error inserting run slice, request was:";
+                        LOG(INFO) << "INSERT INTO run_slice VALUES (" << m_runSliceCount << ", " << msLevel << ", " << m_runSliceCount << ", " << moz << ", " << (moz+invBBheight) << ", null, 1);";
+                        LOG(ERROR) << "SQLITE ERROR CODE: " << rc <<":" << sqlite3_errmsg(m_mzdbFile.db);
+                    }
                     sqlite3_reset(m_mzdbFile.stmt);
                     m_runSliceCount++;
                 }
@@ -158,7 +160,12 @@ private:
                 sqlite3_bind_double(m_mzdbFile.stmt, 5, moz + invBBheight);
                 sqlite3_bind_null(m_mzdbFile.stmt, 6);
                 sqlite3_bind_int(m_mzdbFile.stmt, 7, 1);
-                sqlite3_step(m_mzdbFile.stmt);
+                int rc = sqlite3_step(m_mzdbFile.stmt);
+                if (rc != SQLITE_DONE) {
+                    LOG(ERROR) << "Error inserting run slice, request was:";
+                    LOG(INFO) << "INSERT INTO run_slice VALUES (" << m_runSliceCount << ", " << msLevel << ", " << m_runSliceCount << ", " << moz << ", " << (moz+invBBheight) << ", null, 1);";
+                    LOG(ERROR) << "SQLITE ERROR CODE: " << rc <<":" << sqlite3_errmsg(m_mzdbFile.db);
+                }
                 sqlite3_reset(m_mzdbFile.stmt);
                 m_runSliceCount++;
             }

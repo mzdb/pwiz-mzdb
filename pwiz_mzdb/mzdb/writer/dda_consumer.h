@@ -63,7 +63,7 @@ class mzDDAConsumer:  QueueingPolicy, mzSpectrumInserter, mzBBInserter {
 
 private:
     // list of all possible data encodings, those who are really used will be inserted on the fly in spectrum_inserter.h
-    vector<DataEncoding> m_dataEncodings;
+
 public:
 
     /**
@@ -106,9 +106,9 @@ public:
             const int& msLevel = cycleCollection->msLevel;
 
             // TODO check if spectra are correctly inserted (spectrum values are distinguished for PROFILE and CENTROID/FITTED)
-            this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(msLevel, bbMzWidthByMsLevel[msLevel],
-                                                                       highResSpectra, lowResSpectra, runSlices[msLevel]);
-
+            double bbMzWidth = (msLevel == 1 ? bbMzWidthByMsLevel[1] : bbMzWidthByMsLevel[2]);
+            this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(msLevel, bbMzWidth, highResSpectra, lowResSpectra, runSlices[msLevel]);
+            
             int newPercent = (int) (((float) progressionCount / nscans * 100.0));
             if (newPercent == lastPercent + 2.0) {
                 mzdb::printProgBar(newPercent);
@@ -128,7 +128,6 @@ public:
                   mzParamsCollecter& paramsCollecter,
                   pwiz::msdata::CVID rawFileFormat,
                   vector<DataEncoding> dataEncodings):
-        m_dataEncodings(dataEncodings),
         QueueingPolicy(queue),
         mzSpectrumInserter(mzdbFile, paramsCollecter, rawFileFormat, dataEncodings),
         mzBBInserter(mzdbFile) {}
