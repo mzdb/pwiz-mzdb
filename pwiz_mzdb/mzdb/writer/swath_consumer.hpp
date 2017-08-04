@@ -26,7 +26,7 @@
 
 #include <set>
 
-#include "../lib/sqlite3/include/sqlite3.h"
+#include "../lib/sqlite3/sqlite3.h"
 
 #include "cycle_obj.hpp"
 #include "spectrum_inserter.h"

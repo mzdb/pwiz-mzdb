@@ -16,7 +16,7 @@
 #include "pwiz/data/msdata/References.hpp"
 #include "pwiz/data/msdata/IO.hpp"
 
-#include "../../lib/sqlite3/include/sqlite3.h"
+#include "../../lib/sqlite3/sqlite3.h"
 
 #include "mzScan.hpp"
 #include "../../utils/mzUtils.hpp"

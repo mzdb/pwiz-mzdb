@@ -28,7 +28,7 @@
 #include "pwiz/data/msdata/IO.hpp"
 #include "pwiz_aux/msrc/utility/vendor_api/ABI/WiffFile.hpp"
 
-#include "../lib/sqlite3/include/sqlite3.h"
+#include "../lib/sqlite3/sqlite3.h"
 
 #include "../utils/mzDBFile.h"
 #include "params_collecter.h"
@@ -451,6 +451,7 @@ public:
         sqlite3_finalize(mMzdbFile.stmt);
         mMzdbFile.stmt = 0;
         
+        // TODO maybe a memory leak here, try to insert if not present already
         originalModesByMsLevel.insert (std::make_pair<int, DataMode>(msLevel, spectrum->getOriginalMode()));
         effectiveModesByMsLevel.insert (std::make_pair<int, DataMode>(msLevel, effectiveMode));
         auto it = nbSpectraByMsLevel.find(msLevel);

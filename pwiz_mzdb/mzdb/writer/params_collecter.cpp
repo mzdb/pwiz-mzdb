@@ -1,4 +1,4 @@
-#include "../lib/sqlite3/include/sqlite3.h"
+#include "../lib/sqlite3/sqlite3.h"
 
 #include "params_collecter.h"
 

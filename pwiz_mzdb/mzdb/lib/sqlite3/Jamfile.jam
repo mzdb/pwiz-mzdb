@@ -2,11 +2,4 @@ lib sqlite3
 : #sources
         sqlite3.c
 
-: #requirments
-        #<optimization>speed
-        <include>include
-
 : <toolset>msvc <variant>release <link>static <cxxflags>"/Ox /Gy /GA /Gr /GF"          #<optimization>speed #default-build
-: #usage-requirments
-        <include>include
-;

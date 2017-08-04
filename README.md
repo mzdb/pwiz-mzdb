@@ -27,7 +27,7 @@ Improvements
 - [ ] Add FK constraints (set "PRAGMA foreign_keys = ON" after sqlite3_open) + see "DEFERRABLE INITIALLY DEFERRED" change below (#44)
 - [ ] Evaluate the performance benefits of "PRAGMA optimize;" (https://sqlite.org/pragma.html#pragma_optimize)
 - [ ] Update ProteoWizard libraries (#45)
-- [ ] Update SQLite library (#46)
+- [x] Update SQLite library (#46)
 
 Database schema
 - [ ] Add "DEFERRABLE INITIALLY DEFERRED" constraint to all FKs (#47)

@@ -17,7 +17,7 @@
 #include <iostream>
 #include "boost/algorithm/string.hpp"
 
-#include "../lib/sqlite3/include/sqlite3.h"
+#include "../lib/sqlite3/sqlite3.h"
 #include "../lib/pugixml/include/pugixml.hpp"
 
 #include "../utils/mzUtils.hpp"

@@ -65,7 +65,8 @@
 
 //--- SQLite import
 //#include "../lib/sqlite3/include/sqlite3.h"
-#include "libraries/SQLite/sqlite3.h"
+//#include "libraries/SQLite/sqlite3.h"
+#include "../lib/sqlite3/sqlite3.h"
 #include "../lib/pugixml/include/pugixml.hpp"
 
 //--- MzDB import

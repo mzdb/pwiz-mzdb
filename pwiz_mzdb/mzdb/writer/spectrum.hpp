@@ -141,8 +141,9 @@ struct PWIZ_API_DECL mzSpectrum {
         /*
          * FIXME
          * This fix is related to https://github.com/mzdb/pwiz-mzdb/issues/45
+         * and discussed here: https://sourceforge.net/p/proteowizard/mailman/message/35229351/
          * Remove it when the ProteoWizard libraries will be updated
-         * It is a bug seen on file IB12302LMU_1-D,1_01_5930.d, spectra have both CVs but they are centroided
+         * It is a bug seen on file IMPACT II files (such as IB12302LMU_1-D,1_01_5930.d), spectra have both CVs but they are centroided
          */
         if(spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum) && spectrum->hasCVParam(pwiz::msdata::MS_centroid_spectrum)) {
             LOG(WARNING) << "Spectrum '" << s->id << "' has both PROFILE and CENTROID tags and will be considered as CENTROID";

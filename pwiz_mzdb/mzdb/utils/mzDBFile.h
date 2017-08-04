@@ -30,7 +30,7 @@
 #include "pwiz/data/msdata/MSData.hpp"
 
 /** mzdb includes */
-#include "../lib/sqlite3/include/sqlite3.h"
+#include "../lib/sqlite3/sqlite3.h"
 #include "mzIDeserializer.h"
 #include "glog/logging.h"
 
