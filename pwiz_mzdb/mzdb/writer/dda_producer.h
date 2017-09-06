@@ -279,11 +279,12 @@ public:
     mzDDAProducer( typename QueueingPolicy::QueueType& queue,
                    MzDBFile& mzdbFile,
                    map<int, DataMode>& dataModeByMsLevel,
+                   map<int, double> resolutions,
                    bool safeMode):
         QueueingPolicy(queue),
         MetadataExtractionPolicy(mzdbFile.name),
         isNoLoss(mzdbFile.isNoLoss()), 
-        m_peakPicker(dataModeByMsLevel/*, safeMode*/),
+        m_peakPicker(dataModeByMsLevel, resolutions),
         m_dataModeByMsLevel(dataModeByMsLevel),
         m_safeMode(safeMode) {
         }

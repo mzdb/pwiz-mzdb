@@ -132,7 +132,7 @@ struct PWIZ_API_DECL mzSpectrum {
             spectrumToMzDbPeaks(cs, peaks); // fills this.peaks with peaks centroided with vendors algorithms (TODO check if it's true !)
         } else {
             // effectiveMode == PROFILE
-            spectrumToMzDbPeaks(s, peaks); // fils this.peaks with input peaks
+            spectrumToMzDbPeaks(s, peaks); // fills this.peaks with input peaks
         }
         // at this  point, this.peaks cannot be empty
         
@@ -247,10 +247,10 @@ struct PWIZ_API_DECL mzSpectrum {
       * @param ppa CVID representing filetype
       * @param peak picking params object
       */
-    inline void doPeakPicking(pwiz::msdata::CVID ppa, mzPeakFinderUtils::PeakPickerParams& params) {
+    inline void doPeakPicking(pwiz::msdata::CVID ppa, mzPeakFinderUtils::PeakPickerParams& params, map<int, double> resolutions) {
         if (effectiveMode != PROFILE) {
             int nb = peaks.size();
-            mzPeakFinderProxy::computeCentroidsWidths<mz_t, int_t>(spectrum, peaks, ppa, params, effectiveMode);
+            mzPeakFinderProxy::computeCentroidsWidths<mz_t, int_t>(spectrum, peaks, ppa, params, effectiveMode, resolutions);
             // update peak number if already set
             _nbPeaks = peaks.size();
         }

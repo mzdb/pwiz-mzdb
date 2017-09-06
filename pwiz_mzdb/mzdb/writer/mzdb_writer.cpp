@@ -475,6 +475,7 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
                                      CVID originFileFormat,
                                      map<int, DataMode>& dataModeByMsLevel,
                                      string buildDate,
+                                     map<int, double> resolutions,
                                      bool compress,
                                      bool safeMode):
     m_mzdbFile(f),
@@ -488,6 +489,8 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
     
     // store build date
     m_buildDate(buildDate),
+    
+    m_resolutions(resolutions),
 
     // booleans determining if using compression (generally not a good idea for thermo rawfiles)
     // but interesting when converting Wiff files. swathMode: Enable or disable the swath mode
@@ -510,6 +513,8 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
     m_metadataExtractor = std::move(this->getMetadataExtractor());
     
     this->buildDataEncodingRowByID();
+    
+    this->computeResolutions();
 }
 
 
@@ -558,6 +563,16 @@ void mzDBWriter::insertMetaData() {
         buildVersion += " " + m_buildDate;
     }
     m_mzdbFile.userParams.push_back(UserParam(BUILD_VERSION, buildVersion, XML_STRING));
+    
+    // MS resolutions, either calculated or provided by the user
+    if(m_storeResolutions) {
+        stringstream resolutions;
+        for(size_t i = 0; i < m_resolutions.size(); i++) {
+            if(i > 0) resolutions << ";";
+            resolutions << "MS" << (i+1) << ":" << m_resolutions[i+1];
+        }
+        m_mzdbFile.userParams.push_back(UserParam(RESOLUTIONS_STR, resolutions.str(), XML_STRING));
+    }
 
     m_mzdbFile.userParams.push_back( this->m_metadataExtractor->getExtraDataAsUserText());
 
@@ -1064,6 +1079,157 @@ void mzDBWriter::isSwathAcquisition() {
         //    float windowSize = refTargets[i+1] - refTargets[i];
         //    LOG(INFO) << "Swath Window #" << windowIndex <<", Start: " << windowStartMz << ",  Size: " <<  windowSize;
         //}
+    }
+}
+
+vector<double> computeResolution(pwiz::msdata::detail::SpectrumList_ABI* spectrumList, int msLevel, int id) {
+    int minPeaksPerSpectrum = 10;
+    vector<double> resolutions;
+    
+    // get spectrum in profile and centroid mode
+    pwiz::util::IntegerSet levelsToCentroid;
+    levelsToCentroid.insert(msLevel);
+    pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(id, true);
+    pwiz::msdata::SpectrumPtr centroidSpectrum = spectrumList->spectrum(id, true, levelsToCentroid);
+
+    // check that there's enough peaks (more than 10) ; if not, another spectrum will be selected (outside this function)
+    if(centroidSpectrum->getMZArray()->data.size() > minPeaksPerSpectrum) {
+    
+        // compute all FWHM for this spectrum
+        const vector<double>& mzBuffer = spectrum->getMZArray()->data;
+        const vector<double>& intBuffer = spectrum->getIntensityArray()->data;
+        DataPointsCollection<double, double> spectrumData(mzBuffer, intBuffer, spectrum);
+        mzPeakFinderUtils::PeakPickerParams p;
+        vector<std::shared_ptr<Centroid<double, double>>> centroids;
+        vector<pwiz::msdata::MZIntensityPair> pairs;
+        centroidSpectrum->getMZIntensityPairs(pairs);
+        centroids.resize(pairs.size());
+        float rt = static_cast<float>(centroidSpectrum->scanList.scans[0].cvParam(pwiz::msdata::MS_scan_start_time).timeInSeconds());
+        double maxIntensity = 0;
+        std::transform(pairs.begin(), pairs.end(), centroids.begin(), [&rt, &maxIntensity, centroidSpectrum](pwiz::msdata::MZIntensityPair& p) -> std::shared_ptr<Centroid<double, double> > {
+            double mz = (double)p.mz;
+            double ints = (double)p.intensity;
+            if(p.intensity > maxIntensity) maxIntensity = p.intensity;
+            return std::make_shared<Centroid<double, double> >(mz, ints, rt);
+        });
+        spectrumData.setDetectedPeaks(centroids, p, mzPeakFinderUtils::CWT_DISABLED);
+        vector<std::shared_ptr<Centroid<double, double>>> optimizedCentroids;
+        spectrumData.optimize(optimizedCentroids, mzPeakFinderUtils::GAUSS_OPTIMIZATION, true);
+        
+        // compute resolution on centroids with intensity at least 50% of the highest intensity
+        double minIntensity = maxIntensity / 2;
+        for(size_t i = 0; i < optimizedCentroids.size(); i++) {
+            auto centroid = optimizedCentroids[i];
+            if(centroid->intensity > minIntensity) {
+                double mz = centroid->mz;
+                double mzLwhm = mz - centroid->lwhm;
+                double mzRwhm = mz + centroid->rwhm;
+                double div = mzRwhm - mzLwhm;
+                double resolution = (div > 0 ? mz / div : -1);
+                if(resolution > 0) resolutions.push_back(mz / div);
+            }
+        }
+    }
+    return resolutions;
+}
+
+void mzDBWriter::computeResolutions() {
+    /*
+     * what we want
+     * - resolution for each ms level
+     * what we ignore
+     * - the number of ms levels
+     * - the number of spectrum per ms level
+     * what we should know at the end
+     * - the resolution per ms level
+     * - the real number of ms level
+     *
+     */
+    
+    // resolutions will be stored if they are provided by the user, or if they are computed here
+    m_storeResolutions = true;
+    
+    // compute resolutions only if resolutions have not been given and if data is AB Sciex (because it's not used otherwise)
+    if(m_resolutions.size() == 0) {
+        double defaultResolution = 20000;
+        // if raw file is not AB Sciex wiff file, use default values
+        if(m_originFileFormat != MS_ABI_WIFF_format) { // or use m_Mode != 3 ?
+            LOG(INFO) << "Using default resolution";
+            m_storeResolutions = false; // do not store default values
+            // put default resolutions for all ms levels (but they wont be used for these file types)
+            for(size_t msLevel = 1; msLevel <= max_ms_level; msLevel++) {
+                m_resolutions[msLevel] = defaultResolution;
+            }
+        } else {
+            LOG(INFO) << "Computing resolutions";
+            int nbSpectraToConsider = 10; // the number of spectra to consider per ms level
+            pwiz::util::IntegerSet levelsToCentroid;
+            // first loop to get a map containing the number of spectrum per ms level
+            map<int, bool> profileMsLevels;
+            map<int, vector<size_t>> spectrumIdsPerMsLevel;
+            auto* spectrumList = static_cast<pwiz::msdata::detail::SpectrumList_ABI*>(m_msdata->run.spectrumListPtr.get());
+            // avoid first and last 20%
+            size_t nbSpectra = spectrumList->size();
+            int pct20 = nbSpectra * 0.2;
+            for(size_t i = pct20; i < nbSpectra - pct20; i++) {
+            //for(size_t i = 0; i < spectrumList->size(); i++) {
+                pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(i, false);
+                int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
+                profileMsLevels[msLevel] = spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum);
+                if(profileMsLevels[msLevel]) levelsToCentroid.insert(msLevel);
+                spectrumIdsPerMsLevel[msLevel].push_back(i);
+            }
+            // max_ms_level does not seem to be used...
+            max_ms_level = profileMsLevels.size();
+            
+            // for each ms level, define the spectra to treat
+            map<int, vector<double>> resolutionsPerMsLevel;
+            for(size_t msLevel = 1; msLevel <= max_ms_level; msLevel++) {
+                // select ids all along the gradient
+                int totalNbSpectra = spectrumIdsPerMsLevel[msLevel].size();
+                int incr = (int)(totalNbSpectra / (nbSpectraToConsider+1));
+                int id = incr;
+                if(profileMsLevels[msLevel]) {
+                    while(id < totalNbSpectra) {
+                        // compute resolution for this spectrum
+                        int spectrumId = id;
+                        vector<double> resolution = computeResolution(spectrumList, msLevel, spectrumIdsPerMsLevel[msLevel][spectrumId]);
+                        // if this spectrum does not have enough peaks, select the next one for the same MS level
+                        while(resolution.size() == 0) {
+                            resolution = computeResolution(spectrumList, msLevel, spectrumIdsPerMsLevel[msLevel][++spectrumId]);
+                        }
+                        resolutionsPerMsLevel[msLevel].insert(resolutionsPerMsLevel[msLevel].end(), resolution.begin(), resolution.end());
+                        id += incr;
+                    }
+                }
+            }
+            // at the end, compute the average resolution per ms level
+            for(size_t msLevel = 1; msLevel <= max_ms_level; msLevel++) {
+                double summedResolutions = 0;
+                size_t nbResolutions = resolutionsPerMsLevel[msLevel].size();
+                if(profileMsLevels[msLevel] && nbResolutions > 0) {
+                    for(size_t i = 0; i < nbResolutions; i++) {
+                        summedResolutions += resolutionsPerMsLevel[msLevel][i];
+                    }
+                    // round the resolution
+                    double r = summedResolutions / nbResolutions;
+                    int div = 10;
+                    while(r > div) div = div * 10;
+                    // div should be divided again by 10
+                    // multiply by 2 so we can round 3402 to 3500 instead of 3000
+                    int res = (int)((2*10*r / div) + 0.5) * (div / (2*10));
+                    m_resolutions[msLevel] = (double)res;
+                } else {
+                    LOG(WARNING) << "MS" << msLevel << " resolution could not be calculated, using default resolution (" << defaultResolution << ")";
+                    m_resolutions[msLevel] = defaultResolution;
+                }
+            }
+        }
+    }
+    
+    for(int i = 0; i < m_resolutions.size(); i++) {
+        int msLevel = i+1;
+        LOG(INFO) << "MS" << msLevel << " resolution: " << m_resolutions[msLevel];
     }
 }
 

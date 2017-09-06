@@ -168,6 +168,9 @@ protected:
     bool m_swathMode;
     
     bool m_safeMode;
+    
+    bool m_storeResolutions;
+    map<int, double> m_resolutions;
 
     /// xml serializer using pugi:xml
     ISerializer::xml_string_writer m_serializer;
@@ -198,6 +201,8 @@ protected:
      * Function that computes the dataEncoding ID from the DataMode wanted by msLevel
      */
     void buildDataEncodingRowByID();
+    
+    void computeResolutions();
 
     /**
      * @brief createTables
@@ -282,7 +287,7 @@ public:
     /**
      * @brief getMaxMsLevel()
      * Function returning the top ms level
-     * Default is 2 but it is updated in the function checkRequestedDataModes called in the constructor
+     * Default is 2 but can be updated by the function computeResolutions called in the constructor
      */
     PWIZ_API_DECL int getMaxMsLevel();
     
@@ -313,6 +318,7 @@ public:
                              pwiz::msdata::CVID originFileFormat,
                              std::map<int, DataMode>& m,
                              string buildDate,
+                             map<int, double> resolutions,
                              bool compress,
                              bool safeMode);
 
@@ -425,6 +431,7 @@ public:
                     m_dataModeByMsLevel,
                     //m_dataEncodingByID,
                     m_dataEncodings,
+                    m_resolutions,
                     m_safeMode);
 
         if (m_Mode == 1) {

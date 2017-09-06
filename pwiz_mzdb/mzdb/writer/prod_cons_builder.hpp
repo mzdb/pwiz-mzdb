@@ -236,6 +236,7 @@ public:
               map<int, DataMode>& dataModeByMsLevel,
               //map<int, DataEncoding>& dataEncodingByID,
               vector<DataEncoding> dataEncodings,
+              map<int, double> resolutions,
               bool safeMode):
         //producers
         mDiaThermoProducer(nullptr),
@@ -277,33 +278,33 @@ public:
     {
 
         if (mode == 1) {
-            mDiaThermoProducer = unique_ptr<DIAThermoProducer>(new DIAThermoProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
-            mDdaThermoProducer = unique_ptr<DDAThermoProducer>(new DDAThermoProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDiaThermoProducer = unique_ptr<DIAThermoProducer>(new DIAThermoProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
+            mDdaThermoProducer = unique_ptr<DDAThermoProducer>(new DDAThermoProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
             mDiaThermoConsumer = unique_ptr<DIAThermoConsumer>(new DIAThermoConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
             mDdaThermoConsumer = unique_ptr<DDAThermoConsumer>(new DDAThermoConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         } else if (mode == 2) {
-            mDiaBrukerProducer = unique_ptr<DIABrukerProducer>(new DIABrukerProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
-            mDdaBrukerProducer = unique_ptr<DDABrukerProducer>(new DDABrukerProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDiaBrukerProducer = unique_ptr<DIABrukerProducer>(new DIABrukerProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
+            mDdaBrukerProducer = unique_ptr<DDABrukerProducer>(new DDABrukerProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
             mDiaBrukerConsumer = unique_ptr<DIABrukerConsumer>(new DIABrukerConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
             mDdaBrukerConsumer = unique_ptr<DDABrukerConsumer>(new DDABrukerConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         } else if (mode == 3) {
-            mSwathABIProducer = unique_ptr<SwathABIProducer>(new SwathABIProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
-            mDdaABIProducer = unique_ptr<DDAABIProducer>(new DDAABIProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mSwathABIProducer = unique_ptr<SwathABIProducer>(new SwathABIProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
+            mDdaABIProducer = unique_ptr<DDAABIProducer>(new DDAABIProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
             mSwathABIConsumer = unique_ptr<SwathABIConsumer>(new SwathABIConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
             mDdaABIConsumer = unique_ptr<DDAABIConsumer>(new DDAABIConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         } else if (mode == 4) {
-            mDiaAgilentProducer = unique_ptr<DIAAgilentProducer>(new DIAAgilentProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
-            mDdaAgilentProducer = unique_ptr<DDAAgilentProducer>(new DDAAgilentProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDiaAgilentProducer = unique_ptr<DIAAgilentProducer>(new DIAAgilentProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
+            mDdaAgilentProducer = unique_ptr<DDAAgilentProducer>(new DDAAgilentProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
             mDiaAgilentConsumer = unique_ptr<DIAAgilentConsumer>(new DIAAgilentConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
             mDdaAgilentConsumer = unique_ptr<DDAAgilentConsumer>(new DDAAgilentConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         } else if (mode == 5) {
-            mDiaABI_T2DProducer = unique_ptr<DIAABI_T2DProducer>(new DIAABI_T2DProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
-            mDdaABI_T2DProducer = unique_ptr<DDAABI_T2DProducer>(new DDAABI_T2DProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mDiaABI_T2DProducer = unique_ptr<DIAABI_T2DProducer>(new DIAABI_T2DProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
+            mDdaABI_T2DProducer = unique_ptr<DDAABI_T2DProducer>(new DDAABI_T2DProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
             mDiaABI_T2DConsumer = unique_ptr<DIAABI_T2DConsumer>(new DIAABI_T2DConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
             mDdaABI_T2DConsumer = unique_ptr<DDAABI_T2DConsumer>(new DDAABI_T2DConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         } else {
-            mSwathGenericProducer = unique_ptr<SwathGenericProducer>(new SwathGenericProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
-            mDdaGenericProducer = unique_ptr<DDAGenericProducer>(new DDAGenericProducer(queue, mzdbFile, dataModeByMsLevel, safeMode));
+            mSwathGenericProducer = unique_ptr<SwathGenericProducer>(new SwathGenericProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
+            mDdaGenericProducer = unique_ptr<DDAGenericProducer>(new DDAGenericProducer(queue, mzdbFile, dataModeByMsLevel, resolutions, safeMode));
             mSwathGenericConsumer = unique_ptr<SwathGenericConsumer>(new SwathGenericConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
             mDdaGenericConsumer = unique_ptr<DDAGenericConsumer>(new DDAGenericConsumer(queue, mzdbFile, paramsCollecter, rawFileFormat, dataEncodings));
         }

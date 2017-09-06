@@ -228,6 +228,23 @@ void parseRange(string& range, DataMode mode,
     }
 }
 
+void parseResolutions(string& resolutionAsString, map<int, double>& resolutions, const string& help) {
+    if(resolutionAsString != "" && toLower(resolutionAsString) != "auto") { // if auto, resolutions will be computer later (after opening raw file)
+        // resolutionAsString must be like "40000-30000"
+        vector<string> splitted;
+        boost::split(splitted, resolutionAsString, boost::is_any_of("-"));
+        try {
+            for(int i = 0; i < splitted.size(); i++) {
+                resolutions[i+1] = boost::lexical_cast<double>(splitted[i]);
+            }
+        } catch (boost::bad_lexical_cast &) {
+            LOG(ERROR) << "Error, resolution values must be integers";
+            std::cout << help << endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 string getExecutableDirectory(string argv0) {
     //boost::filesystem::path argv0AsPath = argv0;
     //boost::filesystem::path exePath = boost::filesystem::system_complete(argv0AsPath);
@@ -358,6 +375,9 @@ int main(int argc, char* argv[]) {
     float bbWidth_default_dia = 60, bbWidthMSn_default_dia = 75, bbHeight_default_dia = 5, bbHeightMSn_default_dia = 20;
     float bbWidth = -1, bbWidthMSn = -1, bbHeight = -1, bbHeightMSn = -1;
     
+    // MS resolution (only used for AB Sciex centroid computation so far)
+    string resolutionStr = "";
+    map<int, double> resolutions;
 
     //---32 bits intensity encoding by default
     bool noLoss = false;
@@ -396,6 +416,7 @@ int main(int argc, char* argv[]) {
                   "\t-M, --bbMzWidth : bounding box height for ms1 in Da, default: 5Da for DDA and DIA\n"
                   "\t-m, --bbMzWidthMSn : bounding box height for msn in Da, default: 10000Da for DDA, 20Da for DIA\n"
                   "\t-a, --acquisition : dda, dia or auto (converter will try to determine if the analysis is DIA or DDA), default: auto\n"
+                  "\t-r, --resolution : resolution per msLevel or auto to compute resolution, eg: 40000-30000 for specific MS1 and MS2 resolutions, default is auto\n"
                   //"\t--bufferSize : low value (min 2) will enforce the program to use less memory (max 50), default: 3\n"
                   // "\t--max_nb_threads : maximum nb_threads to use, default: nb processors on the machine\n"
                   "\t--noLoss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
@@ -425,6 +446,7 @@ int main(int argc, char* argv[]) {
     ops >> Option('M', "bbMzWidth", bbHeight);
     ops >> Option('t', "bbTimeWidthMSn", bbWidthMSn);
     ops >> Option('m', "bbMzWidthMSn", bbHeightMSn);
+    ops >> Option('r', "resolution", resolutionStr);
     //ops >> Option('s', "serialize", serialization);
     ops >> Option('o', "output", outputFileName);
     ops >> Option("log", logToWhat);
@@ -518,6 +540,8 @@ int main(int argc, char* argv[]) {
     parseRange(profile, PROFILE, dataModeByMsLevel, modifiedIndex, help);
     parseRange(fitted, FITTED, dataModeByMsLevel, modifiedIndex, help);
     parseRange(centroid, CENTROID, dataModeByMsLevel, modifiedIndex, help);
+    
+    parseResolutions(resolutionStr, resolutions, help);
 
     pair<int, int> cycleRange = parseCycleRange(cycleRangeStr);
 
@@ -545,7 +569,7 @@ int main(int argc, char* argv[]) {
     auto& msData = msdList[0];
     auto originFileFormat = pwiz::msdata::identifyFileFormat(readers, f.name);
 
-    mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, compress, safeMode);
+    mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, resolutions, compress, safeMode);
     
     //---insert metadata
     try {

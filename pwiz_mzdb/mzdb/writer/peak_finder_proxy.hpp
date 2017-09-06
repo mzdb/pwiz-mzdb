@@ -81,7 +81,8 @@ public:
                                                                          vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids,
                                                                          pwiz::msdata::CVID fileType,
                                                                          mzPeakFinderUtils::PeakPickerParams& peakPickerParams,
-                                                                         DataMode wantedMode) {
+                                                                         DataMode wantedMode,
+                                                                         map<int, double> resolutions) {
         if (!spectrum || spectrum == nullptr) {
             // do nothing is the spectrum is null
             LOG(ERROR) << "Call to computeCentroidsWidths with a null spectrum";
@@ -92,7 +93,7 @@ public:
         switch (fileType) {
             case pwiz::msdata::MS_ABI_WIFF_format :{
                 bool detectPeaks = true; // re-detect peaks anyway because the default algorithm is not efficient enough
-                mzPeakFinderQTof::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM);
+                mzPeakFinderQTof::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, resolutions, detectPeaks, computeFWHM);
                 break;
             }
             case pwiz::msdata::MS_Thermo_RAW_format : {

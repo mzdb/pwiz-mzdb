@@ -48,6 +48,7 @@ private:
     map<int, DataMode>& m_dataModeByMsLevel;
     
     //bool m_safeMode;
+    map<int, double> m_resolutions;
 
     /**
      * Launches peak picking for each spectrum in its own thread.
@@ -65,8 +66,7 @@ private:
             boost::thread_group g;
             size_t counter = ( N - j < maxNbThreads ) ? N - j : maxNbThreads;
             for (size_t i = 0; i < counter; ++i) {
-                //g.create_thread(std::bind(&mzSpectrum<mz_t, int_t>::doPeakPicking, spectra.at(j + i), m, filetype, params/ m_safeMode));
-                g.create_thread(std::bind(&mzSpectrum<mz_t, int_t>::doPeakPicking, spectra.at(j + i), /*m,*/ filetype, params/*, m_safeMode*/));
+                g.create_thread(std::bind(&mzSpectrum<mz_t, int_t>::doPeakPicking, spectra.at(j + i), filetype, params, m_resolutions));
             }
             g.join_all();
         }
@@ -94,10 +94,10 @@ private:
 
 public:
     /* constructor */
-    inline mzMultiThreadedPeakPicker (map<int, DataMode>& dataModeByMsLevel): m_dataModeByMsLevel(dataModeByMsLevel) {}
-    //inline mzMultiThreadedPeakPicker (map<int, DataMode>& dataModeByMsLevel, bool safeMode):
-    //    m_dataModeByMsLevel(dataModeByMsLevel),
-    //    m_safeMode(safeMode) {}
+    inline mzMultiThreadedPeakPicker (map<int, DataMode>& dataModeByMsLevel,
+                                      map<int, double> resolutions):
+        m_dataModeByMsLevel(dataModeByMsLevel),
+        m_resolutions(resolutions) {}
 
 
     inline map<int, DataMode>& getDataModeByMsLevel() {

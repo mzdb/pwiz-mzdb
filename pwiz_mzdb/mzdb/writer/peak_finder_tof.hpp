@@ -59,6 +59,7 @@ template<class mz_t, class int_t>
 static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
                       vector<std::shared_ptr<Centroid<mz_t, int_t> > >& centroids,
                       mzPeakFinderUtils::PeakPickerParams& params,
+                      map<int, double> resolutions,
                       bool detectPeaks = false,
                       bool computeFWHM = true) {
     try {
@@ -72,10 +73,10 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
         // TODO make sure to detect peaks only once with AB Sciex data (don't detect peaks before this point, or run qtofpeakpicker in the first place and not here)
 
         if(detectPeaks) {
-            //construct peak picker
+            //construct peak picker using QTOFPeakPicker : http://proteowizard.sourceforge.net/tools/qtofpeakpicker.html
             std::pair<double, double> range = std::make_pair(mzs.front(),mzs.back());
-            // TODO qtofpeakpicker options should be automatically computed or left to the user through CLI options
-            double resolution = 20000; // TODO find real value if it's in metadata or try to compute it, default value = 20000
+            int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>(); // default value = 20000
+            double resolution = (msLevel <= resolutions.size() ? resolutions[msLevel] : 20000);
             double smoothwidth = 1; // default value = 1
             uint32_t integrationWidth = 0; // default value = 2, mzdb best value: 0
             double intensityThreshold = 0; // default value = 10, mzdb best value: 0
