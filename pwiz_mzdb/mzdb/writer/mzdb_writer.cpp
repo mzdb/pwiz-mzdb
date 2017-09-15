@@ -1082,7 +1082,7 @@ void mzDBWriter::isSwathAcquisition() {
     }
 }
 
-vector<double> computeResolution(pwiz::msdata::detail::SpectrumList_ABI* spectrumList, int msLevel, int id) {
+vector<double> computeResolution(pwiz::msdata::detail::SpectrumList_ABI* spectrumList, int msLevel, int id, double minIntensityFactor, double maxIntensityFactor) {
     int minPeaksPerSpectrum = 10;
     vector<double> resolutions;
     
@@ -1116,24 +1116,37 @@ vector<double> computeResolution(pwiz::msdata::detail::SpectrumList_ABI* spectru
         vector<std::shared_ptr<Centroid<double, double>>> optimizedCentroids;
         spectrumData.optimize(optimizedCentroids, mzPeakFinderUtils::GAUSS_OPTIMIZATION, true);
         
-        // compute resolution on centroids with intensity at least 50% of the highest intensity
-        double minIntensity = maxIntensity / 2;
+        // compute resolution on "ordinary" centroids (not the lowest neither the highest peaks)
+        double minIntensity = maxIntensity * minIntensityFactor;
+        maxIntensity = maxIntensity * maxIntensityFactor;
         for(size_t i = 0; i < optimizedCentroids.size(); i++) {
             auto centroid = optimizedCentroids[i];
-            if(centroid->intensity > minIntensity) {
+            if(centroid->intensity > minIntensity && centroid->intensity < maxIntensity) {
                 double mz = centroid->mz;
                 double mzLwhm = mz - centroid->lwhm;
                 double mzRwhm = mz + centroid->rwhm;
                 double div = mzRwhm - mzLwhm;
-                double resolution = (div > 0 ? mz / div : -1);
-                if(resolution > 0) resolutions.push_back(mz / div);
+                if(div > 0) resolutions.push_back(mz / div);
             }
         }
     }
     return resolutions;
 }
 
-void mzDBWriter::computeResolutions() {
+double roundResolution(double r) {
+    // find divider (if resolution is 20000, divider should be 10000)
+    int div = 10;
+    while(r > div) div = div * 10;
+    div /= 10;
+    // round resolution
+    // multiply resolution by 2 so 24237 would be rounded to 25000
+    // divide by div and add 0.49 before rounding, at the end it will round 20100 to 20000 and 24000 to 25000
+    // divide by 2 and multiply by div to cancel what have been done before
+    // these operations should produce a number similar to the input value but rounded
+    return (floor((r * 2) / div) / 2) * div;
+}
+
+void mzDBWriter::computeResolutions(int nbSpectraToConsider, double minIntensityFactor, double maxIntensityFactor) {
     /*
      * what we want
      * - resolution for each ms level
@@ -1146,37 +1159,38 @@ void mzDBWriter::computeResolutions() {
      *
      */
     
-    // resolutions will be stored if they are provided by the user, or if they are computed here
+    // resolutions will be stored in the mzDB file if they are provided by the user, or if they are computed here
     m_storeResolutions = true;
+    // temporary map to know which MS level is in profile mode
+    map<int, bool> profileMsLevels;
     
-    // compute resolutions only if resolutions have not been given and if data is AB Sciex (because it's not used otherwise)
+    //m_resolutions.clear();
+    
+    // do nothing if user has provided resolutions using CLI
+    // it is possible that he gave only MS1 and MS2 values but no MS3 value, in this case the default value will be used
     if(m_resolutions.size() == 0) {
-        double defaultResolution = 20000;
         // if raw file is not AB Sciex wiff file, use default values
         if(m_originFileFormat != MS_ABI_WIFF_format) { // or use m_Mode != 3 ?
-            LOG(INFO) << "Using default resolution";
-            m_storeResolutions = false; // do not store default values
+            LOG(INFO) << "Using default resolution (" << DEFAULT_RESOLUTION << ")";
+            m_storeResolutions = false; // no need to store these values
             // put default resolutions for all ms levels (but they wont be used for these file types)
             for(size_t msLevel = 1; msLevel <= max_ms_level; msLevel++) {
-                m_resolutions[msLevel] = defaultResolution;
+                m_resolutions[msLevel] = DEFAULT_RESOLUTION;
             }
         } else {
-            LOG(INFO) << "Computing resolutions";
-            int nbSpectraToConsider = 10; // the number of spectra to consider per ms level
+            LOG(INFO) << "Computing resolutions...";
             pwiz::util::IntegerSet levelsToCentroid;
             // first loop to get a map containing the number of spectrum per ms level
-            map<int, bool> profileMsLevels;
             map<int, vector<size_t>> spectrumIdsPerMsLevel;
             auto* spectrumList = static_cast<pwiz::msdata::detail::SpectrumList_ABI*>(m_msdata->run.spectrumListPtr.get());
             // avoid first and last 20%
             size_t nbSpectra = spectrumList->size();
             int pct20 = nbSpectra * 0.2;
             for(size_t i = pct20; i < nbSpectra - pct20; i++) {
-            //for(size_t i = 0; i < spectrumList->size(); i++) {
                 pwiz::msdata::SpectrumPtr spectrum = spectrumList->spectrum(i, false);
                 int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
                 profileMsLevels[msLevel] = spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum);
-                if(profileMsLevels[msLevel]) levelsToCentroid.insert(msLevel);
+                if(profileMsLevels[msLevel] && spectrumIdsPerMsLevel[msLevel].size() == 0) levelsToCentroid.insert(msLevel);
                 spectrumIdsPerMsLevel[msLevel].push_back(i);
             }
             // max_ms_level does not seem to be used...
@@ -1184,7 +1198,8 @@ void mzDBWriter::computeResolutions() {
             
             // for each ms level, define the spectra to treat
             map<int, vector<double>> resolutionsPerMsLevel;
-            for(size_t msLevel = 1; msLevel <= max_ms_level; msLevel++) {
+            // do not consider MS1 spectra
+            for(size_t msLevel = 2; msLevel <= max_ms_level; msLevel++) {
                 // select ids all along the gradient
                 int totalNbSpectra = spectrumIdsPerMsLevel[msLevel].size();
                 int incr = (int)(totalNbSpectra / (nbSpectraToConsider+1));
@@ -1193,35 +1208,40 @@ void mzDBWriter::computeResolutions() {
                     while(id < totalNbSpectra) {
                         // compute resolution for this spectrum
                         int spectrumId = id;
-                        vector<double> resolution = computeResolution(spectrumList, msLevel, spectrumIdsPerMsLevel[msLevel][spectrumId]);
+                        vector<double> resolution = computeResolution(spectrumList, msLevel, spectrumIdsPerMsLevel[msLevel][spectrumId], minIntensityFactor, maxIntensityFactor);
                         // if this spectrum does not have enough peaks, select the next one for the same MS level
-                        while(resolution.size() == 0) {
-                            resolution = computeResolution(spectrumList, msLevel, spectrumIdsPerMsLevel[msLevel][++spectrumId]);
+                        while(resolution.size() == 0 && spectrumId < id + incr) {
+                            resolution = computeResolution(spectrumList, msLevel, spectrumIdsPerMsLevel[msLevel][++spectrumId], minIntensityFactor, maxIntensityFactor);
                         }
                         resolutionsPerMsLevel[msLevel].insert(resolutionsPerMsLevel[msLevel].end(), resolution.begin(), resolution.end());
                         id += incr;
                     }
                 }
             }
-            // at the end, compute the average resolution per ms level
-            for(size_t msLevel = 1; msLevel <= max_ms_level; msLevel++) {
-                double summedResolutions = 0;
+            
+            // at the end, compute the average and/or median resolution per ms level
+            m_resolutions[1] = DEFAULT_RESOLUTION; // except for MS1
+            for(size_t msLevel = 2; msLevel <= max_ms_level; msLevel++) {
                 size_t nbResolutions = resolutionsPerMsLevel[msLevel].size();
-                if(profileMsLevels[msLevel] && nbResolutions > 0) {
-                    for(size_t i = 0; i < nbResolutions; i++) {
-                        summedResolutions += resolutionsPerMsLevel[msLevel][i];
+                if(profileMsLevels[msLevel]) {
+                    if(nbResolutions > 0) {
+                        //// average resolution
+                        //double summedResolutions = 0;
+                        //for(size_t i = 0; i < nbResolutions; i++) {
+                        //    summedResolutions += resolutionsPerMsLevel[msLevel][i];
+                        //}
+                        //double resolution = roundResolution(summedResolutions / nbResolutions);
+                        // median resolution
+                        size_t n = nbResolutions / 2;
+                        nth_element(resolutionsPerMsLevel[msLevel].begin(), resolutionsPerMsLevel[msLevel].begin() + n, resolutionsPerMsLevel[msLevel].end());
+                        double resolution = roundResolution(resolutionsPerMsLevel[msLevel][n]);
+                        m_resolutions[msLevel] = resolution;
+                    } else {
+                        LOG(WARNING) << "MS" << msLevel << " resolution could not be calculated, using default resolution (" << DEFAULT_RESOLUTION << ")";
+                        m_resolutions[msLevel] = DEFAULT_RESOLUTION;
                     }
-                    // round the resolution
-                    double r = summedResolutions / nbResolutions;
-                    int div = 10;
-                    while(r > div) div = div * 10;
-                    // div should be divided again by 10
-                    // multiply by 2 so we can round 3402 to 3500 instead of 3000
-                    int res = (int)((2*10*r / div) + 0.5) * (div / (2*10));
-                    m_resolutions[msLevel] = (double)res;
                 } else {
-                    LOG(WARNING) << "MS" << msLevel << " resolution could not be calculated, using default resolution (" << defaultResolution << ")";
-                    m_resolutions[msLevel] = defaultResolution;
+                    m_resolutions[msLevel] = DEFAULT_RESOLUTION;
                 }
             }
         }
@@ -1229,8 +1249,12 @@ void mzDBWriter::computeResolutions() {
     
     for(int i = 0; i < m_resolutions.size(); i++) {
         int msLevel = i+1;
-        LOG(INFO) << "MS" << msLevel << " resolution: " << m_resolutions[msLevel];
+        LOG(INFO) << "MS" << msLevel << " resolution [" << (profileMsLevels[msLevel] ? "PROFILE" : "CENTROID") << "]: " << m_resolutions[msLevel];
     }
+}
+
+void mzDBWriter::computeResolutions() {
+    computeResolutions(60, 0.35, 0.65);
 }
 
 }//end mzdb namesapce

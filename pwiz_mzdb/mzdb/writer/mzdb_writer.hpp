@@ -257,6 +257,7 @@ protected:
 
 public:
 
+    void computeResolutions(int nbSpectraToConsider, double minIntensityFactor, double maxIntensityFactor);
     /**
      * @brief checkMetaData
      *  build and modify missing metadata

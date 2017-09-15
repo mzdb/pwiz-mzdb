@@ -92,7 +92,10 @@ public:
         bool computeFWHM = computeFullWidthAtHalfMaximum(wantedMode); // true means that FWHM must be calculated, false means that we want centroid peaks only
         switch (fileType) {
             case pwiz::msdata::MS_ABI_WIFF_format :{
-                bool detectPeaks = true; // re-detect peaks anyway because the default algorithm is not efficient enough
+                //bool detectPeaks = true; // re-detect peaks anyway because the default algorithm is not efficient enough
+                // default algorithm is fine with MS1 data but not really with other MS levels
+                int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
+                bool detectPeaks = (msLevel == 1 ? false : true);
                 mzPeakFinderQTof::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, resolutions, detectPeaks, computeFWHM);
                 break;
             }
@@ -127,6 +130,28 @@ public:
                 break;
             }
         }
+        // The following code should only be run for test purpose !!
+        // we want to check intensities before and after centroiding peaks
+        //if(true) {
+        //    const vector<double>& mzs = spectrum->getMZArray()->data;
+        //    const vector<double>& ints = spectrum->getIntensityArray()->data;
+        //    int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
+        //    //if(msLevel == 1) {
+        //        size_t peakId = 0;
+        //        double total = 0;
+        //        for(size_t i = 0; i < centroids.size(); i++) {
+        //            while(peakId < mzs.size() && mzs[peakId] < centroids[i]->mz) {
+        //                peakId++;
+        //            }
+        //            total += ints[peakId] / centroids[i]->intensity;
+        //            //double diff = ints[peakId] > centroids[i]->intensity ? ints[peakId] - centroids[i]->intensity : centroids[i]->intensity - ints[peakId];
+        //            //if(peakId < mzs.size() && diff > 10 && ints[peakId] > 10) {
+        //            //    LOG(INFO) << "ABU\t" << spectrum->id << "\t" << msLevel << "\t" << mzs[peakId] << "\t" << ints[peakId] << "\t" << centroids[i]->intensity << "\t" << (ints[peakId] / centroids[i]->intensity);
+        //            //}
+        //        }
+        //        LOG(INFO) << "ABU\t" << spectrum->id << "\t" << msLevel << "\t" << total / centroids.size();
+        //    //}
+        //}
     }
 };
 

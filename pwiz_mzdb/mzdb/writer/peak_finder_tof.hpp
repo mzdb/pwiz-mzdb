@@ -75,8 +75,9 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
         if(detectPeaks) {
             //construct peak picker using QTOFPeakPicker : http://proteowizard.sourceforge.net/tools/qtofpeakpicker.html
             std::pair<double, double> range = std::make_pair(mzs.front(),mzs.back());
-            int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>(); // default value = 20000
-            double resolution = (msLevel <= resolutions.size() ? resolutions[msLevel] : 20000);
+            int msLevel = spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>();
+            //double resolution = (msLevel <= resolutions.size() ? resolutions[msLevel] : 20000);
+            double resolution = (msLevel <= resolutions.size() ? resolutions[msLevel] : DEFAULT_RESOLUTION);
             double smoothwidth = 1; // default value = 1
             uint32_t integrationWidth = 0; // default value = 2, mzdb best value: 0
             double intensityThreshold = 0; // default value = 10, mzdb best value: 0

@@ -185,6 +185,10 @@ namespace mzdb {
 /* versionning */
 #define BUILD_VERSION "build_version"
 
+/* resolutions */
+#define RESOLUTIONS_STR "resolutions"
+#define DEFAULT_RESOLUTION 20000
+
 /**useful typedef */
 typedef unsigned char byte;
 typedef unsigned int mz_uint;
