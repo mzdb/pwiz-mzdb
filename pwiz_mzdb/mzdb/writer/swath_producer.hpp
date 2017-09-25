@@ -101,11 +101,13 @@ private:
     void _produce(pwiz::util::IntegerSet& levelsToCentroid,
                   SpectrumListType* spectrumList,
                   pair<int, int>& cycleRange,
+                  pair<int, int>& rtRange,
                   pwiz::msdata::CVID filetype,
                   mzPeakFinderUtils::PeakPickerParams& params) {
 
         /* initialiazing counter */
         int cycleCount = 0, scanCount = 1;
+        float lastMs1Rt = 0;
 
         HighResSpectrumSPtr currMs1(nullptr);
         SpectraContainerUPtr cycle(nullptr);
@@ -119,9 +121,16 @@ private:
                 
                 // increment cycle number
                 if (msLevel == 1 ) PwizHelper::checkCycleNumber(filetype, spectrum->id, ++cycleCount);
+                float rt = static_cast<float>(spectrum->scanList.scans[0].cvParam(pwiz::msdata::MS_scan_start_time).timeInSeconds());
+                if (msLevel == 1 ) lastMs1Rt = rt;
                 // do not process if the cycle is not asked
                 if(cycleCount < cycleRange.first) continue;
                 if(cycleRange.second != 0 && cycleCount > cycleRange.second) break;
+                // do not process if the rt is not asked
+                if(rt < rtRange.first) continue;
+                if(rtRange.second != 0 && rt > rtRange.second) break;
+                // also do not process MSn spectra if their precursor has been filtered
+                if(lastMs1Rt < rtRange.first) continue;
                 
                 // Retrieve the effective mode
                 DataMode wantedMode = m_dataModeByMsLevel[msLevel];
@@ -225,6 +234,7 @@ public:
     boost::thread getProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                     SpectrumListType* spectrumList,
                                     pair<int, int>& cycleRange,
+                                    pair<int, int>& rtRange,
                                     pwiz::msdata::CVID filetype,
                                     mzPeakFinderUtils::PeakPickerParams& params) {
 
@@ -236,6 +246,7 @@ public:
                              ref(levelsToCentroid),
                              spectrumList,
                              cycleRange,
+                             rtRange,
                              filetype,
                              ref(params));
 

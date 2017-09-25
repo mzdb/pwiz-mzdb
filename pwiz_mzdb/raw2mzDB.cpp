@@ -362,7 +362,7 @@ int main(int argc, char* argv[]) {
 //        LOG(INFO) << "Setting custom translator for SEH exception.";
 //        _set_se_translator(trans_func);
 //    #endif
-    string filename = "", centroid = "", profile = "", fitted = "", outputFileName = "", serialization = "xml", cycleRangeStr="";
+    string filename = "", centroid = "", profile = "", fitted = "", outputFileName = "", serialization = "xml", cycleRangeStr = "", rtRangeStr = "";
     string logToWhat = "";
     bool compress = false;
     //double ppm = 20.0;
@@ -421,6 +421,7 @@ int main(int argc, char* argv[]) {
                   // "\t--max_nb_threads : maximum nb_threads to use, default: nb processors on the machine\n"
                   "\t--noLoss : if present, leads to 64 bits conversion of mz and intenstites (larger ouput file)\n "
                   "\t--cycles : only convert the selected range of cycles, eg: 1-10 (first ten cycles) or 10- (from cycle 10 to the end) ; using this option will disable progress information\n"
+                  "\t--rt : only convert the spectra in the given RT range (in seconds), eg: 1-10 (first ten seconds) or 10- (from second 10 to the end) ; using this option will disable progress information\n"
                   "\t-s, --safeMode : use centroid mode if the requested mode is not available\n"
                   "\t--log : console, file or both (log file will be put in the same directory as the output file), default: console\n"
                   "\t-v, --version: display version information\n"
@@ -450,7 +451,8 @@ int main(int argc, char* argv[]) {
     //ops >> Option('s', "serialize", serialization);
     ops >> Option('o', "output", outputFileName);
     ops >> Option("log", logToWhat);
-    ops >> Option('n', "cycles", cycleRangeStr);
+    ops >> Option("cycles", cycleRangeStr);
+    ops >> Option("rt", rtRangeStr);
     ops >> OptionPresent("noLoss", noLoss);
     ops >> Option('a', "acquisition", acquisitionMode);
     ops >> OptionPresent('s', "safeMode", safeMode);
@@ -543,7 +545,13 @@ int main(int argc, char* argv[]) {
     
     parseResolutions(resolutionStr, resolutions, help);
 
+    // filtering on cycles and RT at the same time should not be permitted
+    if(cycleRangeStr != "" && rtRangeStr != "") {
+        LOG(FATAL) << "Filtering on cycles and RT is not allowed";
+        exit(EXIT_FAILURE);
+    }
     pair<int, int> cycleRange = parseCycleRange(cycleRangeStr);
+    pair<int, int> rtRange = parseCycleRange(rtRangeStr);
 
     //--- Starting launching code
     // create a mzDBFile
@@ -625,6 +633,11 @@ int main(int argc, char* argv[]) {
         if(cycleRange.second == 0) summary << "last"; else summary << "#" << cycleRange.second;
         summary << "\n";
     }
+    if(rtRange.first > 0 || rtRange.second != 0) {
+        summary << "Converting spectra from RT=" << rtRange.first << " seconds to ";
+        if(rtRange.second == 0) summary << "the end"; else summary << "RT=" << rtRange.second << " seconds";
+        summary << "\n";
+    }
     summary << "\n";
 
     summary << "Bounding box dimensions:\n";
@@ -645,14 +658,14 @@ int main(int argc, char* argv[]) {
     try {
         if (noLoss) {
             //LOG(INFO) << "No-loss mode encoding: all ms Mz-64, all ms Int-64";
-            writer.writeNoLossMzDB(outputFileNameTmp, cycleRange, nbCycles, p);
+            writer.writeNoLossMzDB(outputFileNameTmp, cycleRange, rtRange, nbCycles, p);
         } else {
             if (false) { // If msInstrument only good at ms1
                 //LOG(INFO) << "ms1 Mz-64, all ms Int-32 encoding";
-                writer.writeMzDBMzMs1Hi(outputFileNameTmp, cycleRange, nbCycles, p);
+                writer.writeMzDBMzMs1Hi(outputFileNameTmp, cycleRange, rtRange, nbCycles, p);
             } else {
                 //LOG(INFO) << "all ms Mz-64, all ms Int-32 encoding";
-                writer.writeMzDBMzHi(outputFileNameTmp, cycleRange, nbCycles, p);
+                writer.writeMzDBMzHi(outputFileNameTmp, cycleRange, rtRange, nbCycles, p);
             }
         }
         

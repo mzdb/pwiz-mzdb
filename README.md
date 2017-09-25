@@ -19,7 +19,7 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 ### Roadmap v1.0
 
 New features:
-- [ ] Add an option to filter spectra upon retention time (RT range) (#41)
+- [x] Add an option to filter spectra upon retention time (RT range) (#41)
 - [ ] Restore the mzDB2mzML.exe (#42)
 
 Improvements

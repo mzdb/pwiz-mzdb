@@ -315,19 +315,21 @@ public:
     inline boost::thread getDIAThermoProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListThermo* spectrumList,
                                                     pair<int, int>& cycleRange,
+                                                    pair<int, int>& rtRange,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
-        return this->mDiaThermoProducer->getProducerThread(levelsToCentroid, spectrumList, cycleRange, filetype, params);
+        return this->mDiaThermoProducer->getProducerThread(levelsToCentroid, spectrumList, cycleRange, rtRange, filetype, params);
     }
 
     /** DDA thermo producer  */
     inline  boost::thread getDDAThermoProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                      SpectrumListThermo* spectrumList,
                                                      pair<int, int>& cycleRange,
+                                                     pair<int, int>& rtRange,
                                                      map<int, double>& bbWidthManager,
                                                      pwiz::msdata::CVID filetype,
                                                      mzPeakFinderUtils::PeakPickerParams& params) {
-        return this->mDdaThermoProducer->getProducerThread(levelsToCentroid, spectrumList, cycleRange, bbWidthManager, filetype, params);
+        return this->mDdaThermoProducer->getProducerThread(levelsToCentroid, spectrumList, cycleRange, rtRange, bbWidthManager, filetype, params);
     }
 
 
@@ -335,20 +337,22 @@ public:
     inline boost::thread getDIABrukerProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListBruker* spectrumList,
                                                     pair<int, int>& cycleRange,
+                                                    pair<int, int>& rtRange,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
-        return this->mDiaBrukerProducer->getProducerThread(levelsToCentroid, spectrumList, cycleRange, filetype, params);
+        return this->mDiaBrukerProducer->getProducerThread(levelsToCentroid, spectrumList, cycleRange, rtRange, filetype, params);
     }
 
     /** bruker producer  */
     inline  boost::thread getDDABrukerProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                      SpectrumListBruker* spectrumList,
                                                      pair<int, int>& cycleRange,
+                                                     pair<int, int>& rtRange,
                                                      map<int, double>& bbWidthManager,
                                                      pwiz::msdata::CVID filetype,
                                                      mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDdaBrukerProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           cycleRange, bbWidthManager, filetype,
+                                                           cycleRange, rtRange, bbWidthManager, filetype,
                                                            params);
     }
 
@@ -357,11 +361,12 @@ public:
     inline  boost::thread getDDAABIProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                   SpectrumListABI* spectrumList,
                                                   pair<int, int>& cycleRange,
+                                                  pair<int, int>& rtRange,
                                                   map<int, double>& bbWidthManager,
                                                   pwiz::msdata::CVID filetype,
                                                   mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDdaABIProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                        cycleRange, bbWidthManager, filetype,
+                                                        cycleRange, rtRange, bbWidthManager, filetype,
                                                         params);
     }
 
@@ -369,10 +374,11 @@ public:
     inline  boost::thread getSwathABIProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListABI* spectrumList,
                                                     pair<int, int>& cycleRange,
+                                                    pair<int, int>& rtRange,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mSwathABIProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                          cycleRange, filetype, params);
+                                                          cycleRange, rtRange, filetype, params);
     }
 
 
@@ -380,21 +386,23 @@ public:
     inline boost::thread getDIAAgilentProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListAgilent* spectrumList,
                                                     pair<int, int>& cycleRange,
+                                                    pair<int, int>& rtRange,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDiaAgilentProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           cycleRange, filetype, params);
+                                                           cycleRange, rtRange, filetype, params);
     }
 
     /** DDA agilent producer  */
     inline  boost::thread getDDAAgilentProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                      SpectrumListAgilent* spectrumList,
                                                      pair<int, int>& cycleRange,
+                                                     pair<int, int>& rtRange,
                                                      map<int, double>& bbWidthManager,
                                                      pwiz::msdata::CVID filetype,
                                                      mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDdaAgilentProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           cycleRange, bbWidthManager, filetype,
+                                                           cycleRange, rtRange, bbWidthManager, filetype,
                                                            params);
     }
 
@@ -403,21 +411,23 @@ public:
     inline boost::thread getDIAABI_T2DProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                     SpectrumListABI_T2D* spectrumList,
                                                     pair<int, int>& cycleRange,
+                                                    pair<int, int>& rtRange,
                                                     pwiz::msdata::CVID filetype,
                                                     mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDiaABI_T2DProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           cycleRange, filetype, params);
+                                                           cycleRange, rtRange, filetype, params);
     }
 
     /** DDA abi t2d producer  */
     inline  boost::thread getDDAABI_T2DProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                      SpectrumListABI_T2D* spectrumList,
                                                      pair<int, int>& cycleRange,
+                                                     pair<int, int>& rtRange,
                                                      map<int, double>& bbWidthManager,
                                                      pwiz::msdata::CVID filetype,
                                                      mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDdaABI_T2DProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                           cycleRange, bbWidthManager, filetype,
+                                                           cycleRange, rtRange, bbWidthManager, filetype,
                                                            params);
     }
 
@@ -426,21 +436,23 @@ public:
     inline  boost::thread getSwathGenericProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                         SpectrumList* spectrumList,
                                                         pair<int, int>& cycleRange,
+                                                        pair<int, int>& rtRange,
                                                         pwiz::msdata::CVID filetype,
                                                         mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mSwathGenericProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                              cycleRange, filetype, params);
+                                                              cycleRange, rtRange, filetype, params);
     }
 
     /** */
     inline  boost::thread getDDAGenericProducerThread(pwiz::util::IntegerSet& levelsToCentroid,
                                                       SpectrumList* spectrumList,
                                                       pair<int, int>& cycleRange,
+                                                      pair<int, int>& rtRange,
                                                       map<int, double>& bbWidthManager,
                                                       pwiz::msdata::CVID filetype,
                                                       mzPeakFinderUtils::PeakPickerParams& params) {
         return this->mDdaGenericProducer->getProducerThread(levelsToCentroid, spectrumList,
-                                                            cycleRange, bbWidthManager, filetype, params);
+                                                            cycleRange, rtRange, bbWidthManager, filetype, params);
     }
 
     //consumers

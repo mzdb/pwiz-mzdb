@@ -336,6 +336,7 @@ public:
     PWIZ_API_DECL void writeMzDB(string& filename,
                                  //pair<int, int>& nscans,
                                  pair<int, int>& cycleRange,
+                                 pair<int, int>& rtRange,
                                  int nbCycles, // primary needed for swath acquisition
                                  mzPeakFinderUtils::PeakPickerParams& params) {
 
@@ -441,13 +442,13 @@ public:
 
             if (m_swathMode) {
                 LOG(INFO) << "DIA producer/consumer";
-                auto prod = pcThreadBuilder.getDIAThermoProducerThread(levelsToCentroid, s, cycleRange, m_originFileFormat, params);
+                auto prod = pcThreadBuilder.getDIAThermoProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDIAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
-                auto prod = pcThreadBuilder.getDDAThermoProducerThread(levelsToCentroid, s, cycleRange, bbWidthManager, m_originFileFormat, params);
+                auto prod = pcThreadBuilder.getDDAThermoProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
             }
@@ -457,14 +458,14 @@ public:
             LOG(INFO) << "Bruker spectrumList";
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
-                auto prod = pcThreadBuilder.getDIABrukerProducerThread(levelsToCentroid, s, cycleRange, m_originFileFormat, params);
+                auto prod = pcThreadBuilder.getDIABrukerProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDIABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
 
-                auto prod = pcThreadBuilder.getDDABrukerProducerThread(levelsToCentroid, s, cycleRange, bbWidthManager, m_originFileFormat, params);
+                auto prod = pcThreadBuilder.getDDABrukerProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
             }
@@ -474,14 +475,14 @@ public:
             LOG(INFO) << "ABI spectrumList";
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
-                auto prod = pcThreadBuilder.getSwathABIProducerThread(levelsToCentroid, s, cycleRange, m_originFileFormat, params);
+                auto prod = pcThreadBuilder.getSwathABIProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getSwathABIConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
 
-                auto prod = pcThreadBuilder.getDDAABIProducerThread(levelsToCentroid, s, cycleRange, bbWidthManager, m_originFileFormat, params);
+                auto prod = pcThreadBuilder.getDDAABIProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAABIConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
             }
@@ -491,14 +492,14 @@ public:
             LOG(INFO) << "Agilent spectrumList";
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
-                auto prod = pcThreadBuilder.getDIAAgilentProducerThread(levelsToCentroid, s, cycleRange, m_originFileFormat, params);
+                auto prod = pcThreadBuilder.getDIAAgilentProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDIAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
 
-                auto prod = pcThreadBuilder.getDDAAgilentProducerThread(levelsToCentroid, s, cycleRange, bbWidthManager, m_originFileFormat, params);
+                auto prod = pcThreadBuilder.getDDAAgilentProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
             }
@@ -508,14 +509,14 @@ public:
             LOG(INFO) << "ABI_T2D  spectrumList";
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
-                auto prod = pcThreadBuilder.getDIAABI_T2DProducerThread(levelsToCentroid, s, cycleRange, m_originFileFormat, params);
+                auto prod = pcThreadBuilder.getDIAABI_T2DProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDIAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
 
-                auto prod = pcThreadBuilder.getDDAABI_T2DProducerThread(levelsToCentroid, s, cycleRange, bbWidthManager, m_originFileFormat, params);
+                auto prod = pcThreadBuilder.getDDAABI_T2DProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
             }
@@ -524,13 +525,13 @@ public:
             LOG(INFO) << "Default spectrumList";
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
-                auto prod = pcThreadBuilder.getSwathGenericProducerThread( levelsToCentroid, spectrumList.get(), cycleRange, m_originFileFormat, params);
+                auto prod = pcThreadBuilder.getSwathGenericProducerThread( levelsToCentroid, spectrumList.get(), cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getSwathGenericConsumerThread( m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
-                auto prod = pcThreadBuilder.getDDAGenericProducerThread( levelsToCentroid, spectrumList.get(), cycleRange, bbWidthManager, m_originFileFormat,params);
+                auto prod = pcThreadBuilder.getDDAGenericProducerThread( levelsToCentroid, spectrumList.get(), cycleRange, rtRange, bbWidthManager, m_originFileFormat,params);
                 auto cons = pcThreadBuilder.getDDAGenericConsumerThread( m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
                 prod.join(); cons.join();
             }
@@ -568,35 +569,39 @@ public:
     /// All informations are encoded as 64-bits double.
     void PWIZ_API_DECL writeNoLossMzDB(string& filename,
                                        pair<int, int>& cycleRange,
+                                       pair<int, int>& rtRange,
                                        int nbCycles,
                                        mzPeakFinderUtils::PeakPickerParams& params) {
-        this->writeMzDB<double, double, double, double>(filename, cycleRange, nbCycles, params);
+        this->writeMzDB<double, double, double, double>(filename, cycleRange, rtRange, nbCycles, params);
     }
 
     /// Mz of all spectrum are encoded as 64-bits double. Intensities are stored
     /// as 32-bits float
     void PWIZ_API_DECL  writeMzDBMzHi(string& filename,
                                       pair<int, int>& cycleRange,
+                                      pair<int, int>& rtRange,
                                       int nbCycles,
                                       mzPeakFinderUtils::PeakPickerParams& params) {
-        this->writeMzDB<double, float, double, float>(filename, cycleRange, nbCycles, params);
+        this->writeMzDB<double, float, double, float>(filename, cycleRange, rtRange, nbCycles, params);
 
     }
 
     /// only Mz of spectrum from msLevel = 1 are converted into 64-bits double
     void PWIZ_API_DECL  writeMzDBMzMs1Hi(string& filename,
                                          pair<int, int>& cycleRange,
+                                        pair<int, int>& rtRange,
                                          int nbCycles,
                                          mzPeakFinderUtils::PeakPickerParams& params) {
-        this->writeMzDB<double, float, float, float>(filename, cycleRange, nbCycles, params);
+        this->writeMzDB<double, float, float, float>(filename, cycleRange, rtRange, nbCycles, params);
     }
 
     /// all data encoded as 32-bits float. Useful for low resolution instrument ?
     void PWIZ_API_DECL  writeMzDBAllLow(string& filename,
                                         pair<int, int>& cycleRange,
+                                        pair<int, int>& rtRange,
                                         int nbCycles,
                                         mzPeakFinderUtils::PeakPickerParams& params) {
-        this->writeMzDB<float, float, float, float>(filename, cycleRange, nbCycles, params);
+        this->writeMzDB<float, float, float, float>(filename, cycleRange, rtRange, nbCycles, params);
     }
     
     void PWIZ_API_DECL closeMzDbFile() {
