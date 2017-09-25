@@ -72,14 +72,15 @@ public:
      * @param bbMzWidthByMsLevel
      * @param runSlices
      * @param progressionCount
-     * @param nscans
+     * @param spectrumListSize
      */
     void _consume( pwiz::msdata::MSDataPtr& msdata,
                    ISerializer::xml_string_writer& serializer,
                    map<int, double>& bbMzWidthByMsLevel,
                    map<int, map<int, int> >& runSlices,
                    int& progressionCount,
-                   int nscans)  {
+                   int spectrumListSize,
+                   bool progressInformationEnabled)  {
 
         int lastPercent = 0;
         while ( 1 ) {
@@ -109,15 +110,17 @@ public:
             double bbMzWidth = (msLevel == 1 ? bbMzWidthByMsLevel[1] : bbMzWidthByMsLevel[2]);
             this->buildAndInsertData<h_mz_t, h_int_t, l_mz_t, l_int_t>(msLevel, bbMzWidth, highResSpectra, lowResSpectra, runSlices[msLevel]);
             
-            int newPercent = (int) (((float) progressionCount / nscans * 100.0));
-            if (newPercent == lastPercent + 2.0) {
-                mzdb::printProgBar(newPercent);
-                lastPercent = newPercent;
-            }
-
-            if (progressionCount == nscans) {
-                //LOG(INFO) << "Inserter consumer finished: reaches final progression";
-                break;
+            if(progressInformationEnabled) {
+                int newPercent = (int) (((float) progressionCount / spectrumListSize * 100.0));
+                if (newPercent == lastPercent + 2.0) {
+                    mzdb::printProgBar(newPercent);
+                    lastPercent = newPercent;
+                }
+    
+                if (progressionCount == spectrumListSize) {
+                    //LOG(INFO) << "Inserter consumer finished: reaches final progression";
+                    break;
+                }
             }
         }
     }
@@ -143,7 +146,8 @@ public:
                                     map<int, double>& bbMzWidthByMsLevel,
                                     map<int, map<int, int> >& runSlices,
                                     int& progressionCount,
-                                    int nscans ) {
+                                    int spectrumListSize,
+                                    bool progressInformationEnabled) {
         return boost::thread( //boost::bind(
                               &mzDDAConsumer<QueueingPolicy,
                               SpectrumListType>::_consume,
@@ -153,7 +157,8 @@ public:
                               std::ref(bbMzWidthByMsLevel),
                               std::ref(runSlices),
                               std::ref(progressionCount),
-                              nscans
+                              spectrumListSize,
+                              progressInformationEnabled
                               );
 
     } // end function

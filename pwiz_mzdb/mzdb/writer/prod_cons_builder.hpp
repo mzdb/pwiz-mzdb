@@ -463,9 +463,10 @@ public:
                                                      map<int, double>& bbTimeWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int cycleRange ) {
+                                                     int spectrumListSize,
+                                                     bool progressInformationEnabled) {
         return this->mDiaThermoConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
-                                                           runSlices, progressionCount, cycleRange);
+                                                           runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
     /** */
@@ -474,9 +475,10 @@ public:
                                                      map<int, double>& bbMzWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int cycleRange ) {
+                                                     int spectrumListSize,
+                                                     bool progressInformationEnabled ) {
         return this->mDdaThermoConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                           runSlices, progressionCount, cycleRange);
+                                                           runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
 
@@ -487,9 +489,10 @@ public:
                                                      map<int, double>& bbTimeWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int cycleRange ) {
+                                                     int spectrumListSize,
+                                                     bool progressInformationEnabled ) {
         return this->mDiaBrukerConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
-                                                           runSlices, progressionCount, cycleRange);
+                                                           runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
     /** dda bruker consumer */
@@ -498,9 +501,10 @@ public:
                                                      map<int, double>& bbMzWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int cycleRange ) {
+                                                     int spectrumListSize,
+                                                     bool progressInformationEnabled ) {
         return this->mDdaBrukerConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                           runSlices, progressionCount, cycleRange);
+                                                           runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
 
@@ -511,9 +515,10 @@ public:
                                                   map<int, double>& bbMzWidthByMsLevel,
                                                   map<int, map<int, int> >& runSlices,
                                                   int& progressionCount,
-                                                  int cycleRange ) {
+                                                  int spectrumListSize,
+                                                  bool progressInformationEnabled ) {
         return this->mDdaABIConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                        runSlices, progressionCount, cycleRange);
+                                                        runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
     /** swath abi consumer */
@@ -523,9 +528,10 @@ public:
                                                     map<int, double>& bbTimeWidthByMsLevel,
                                                     map<int, map<int, int> >& runSlices,
                                                     int& progressionCount,
-                                                    int cycleRange ) {
+                                                    int spectrumListSize,
+                                                    bool progressInformationEnabled ) {
         return this->mSwathABIConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
-                                                          runSlices, progressionCount, cycleRange);
+                                                          runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
     /** dia agilent */
@@ -535,9 +541,10 @@ public:
                                                      map<int, double>& bbTimeWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int cycleRange ) {
+                                                     int spectrumListSize,
+                                                     bool progressInformationEnabled ) {
         return this->mDiaAgilentConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
-                                                           runSlices, progressionCount, cycleRange);
+                                                           runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
     /** dda agilent */
@@ -546,9 +553,10 @@ public:
                                                      map<int, double>& bbMzWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int cycleRange ) {
+                                                     int spectrumListSize,
+                                                     bool progressInformationEnabled ) {
         return this->mDdaAgilentConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                           runSlices, progressionCount, cycleRange);
+                                                           runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
     /** dia abi t2D */
@@ -558,9 +566,10 @@ public:
                                                      map<int, double>& bbTimeWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int cycleRange ) {
+                                                     int spectrumListSize,
+                                                     bool progressInformationEnabled ) {
         return this->mDiaABI_T2DConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
-                                                           runSlices, progressionCount, cycleRange);
+                                                           runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
     /** dda abi t2D */
@@ -569,9 +578,10 @@ public:
                                                      map<int, double>& bbMzWidthByMsLevel,
                                                      map<int, map<int, int> >& runSlices,
                                                      int& progressionCount,
-                                                     int cycleRange ) {
+                                                     int spectrumListSize,
+                                                     bool progressInformationEnabled ) {
         return this->mDdaABI_T2DConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                           runSlices, progressionCount, cycleRange);
+                                                           runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
 
@@ -582,9 +592,10 @@ public:
                                                         map<int, double>& bbTimeWidthByMsLevel,
                                                         map<int, map<int, int> >& runSlices,
                                                         int& progressionCount,
-                                                        int cycleRange ) {
+                                                        int spectrumListSize,
+                                                        bool progressInformationEnabled ) {
         return this->mSwathGenericConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel, bbTimeWidthByMsLevel,
-                                                              runSlices, progressionCount, cycleRange);
+                                                              runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
     /** */
@@ -593,9 +604,10 @@ public:
                                                       map<int, double>& bbMzWidthByMsLevel,
                                                       map<int, map<int, int> >& runSlices,
                                                       int& progressionCount,
-                                                      int cycleRange ) {
+                                                      int spectrumListSize,
+                                                      bool progressInformationEnabled ) {
         return this->mDdaGenericConsumer->getConsumerThread(msdata, serializer, bbMzWidthByMsLevel,
-                                                            runSlices, progressionCount, cycleRange);
+                                                            runSlices, progressionCount, spectrumListSize, progressInformationEnabled);
     }
 
 };

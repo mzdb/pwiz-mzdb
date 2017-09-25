@@ -420,6 +420,9 @@ public:
         size_t nbProc = boost::thread::hardware_concurrency();
         LOG(INFO) << "#detected core(s): " << nbProc;
 
+        bool progressInformationEnabled = true;
+        if(cycleRange.first != 0 || cycleRange.second != 0 || rtRange.first > 0 || rtRange.second != 0) progressInformationEnabled = false;
+        
         // iterate (get spectra for example) on it. Increasing nbCycles leads to an increase of performance
         // (time of conversion) but can use many more RAM. Could also use non blocking FollyQueue follyQueue(100)
         // from facebook;
@@ -443,13 +446,13 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "DIA producer/consumer";
                 auto prod = pcThreadBuilder.getDIAThermoProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDIAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDIAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
                 auto prod = pcThreadBuilder.getDDAThermoProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDDAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDDAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
             }
 
@@ -459,14 +462,14 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getDIABrukerProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDIABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDIABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
 
                 auto prod = pcThreadBuilder.getDDABrukerProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDDABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDDABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
             }
 
@@ -476,14 +479,14 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getSwathABIProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getSwathABIConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getSwathABIConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
 
                 auto prod = pcThreadBuilder.getDDAABIProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDDAABIConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDDAABIConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
             }
 
@@ -493,14 +496,14 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getDIAAgilentProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDIAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDIAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
 
                 auto prod = pcThreadBuilder.getDDAAgilentProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDDAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDDAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
             }
 
@@ -510,14 +513,14 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getDIAABI_T2DProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDIAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDIAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
 
                 auto prod = pcThreadBuilder.getDDAABI_T2DProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getDDAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDDAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
             }
 
@@ -526,13 +529,13 @@ public:
             if (m_swathMode) {
                 LOG(INFO) << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getSwathGenericProducerThread( levelsToCentroid, spectrumList.get(), cycleRange, rtRange, m_originFileFormat, params);
-                auto cons = pcThreadBuilder.getSwathGenericConsumerThread( m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getSwathGenericConsumerThread( m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
                 LOG(INFO) << "DDA producer/consumer";
                 auto prod = pcThreadBuilder.getDDAGenericProducerThread( levelsToCentroid, spectrumList.get(), cycleRange, rtRange, bbWidthManager, m_originFileFormat,params);
-                auto cons = pcThreadBuilder.getDDAGenericConsumerThread( m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize);
+                auto cons = pcThreadBuilder.getDDAGenericConsumerThread( m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
             }
         }

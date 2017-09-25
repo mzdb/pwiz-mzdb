@@ -88,7 +88,8 @@ private:
                    map<int, double>& bbTimeWidthByMsLevel,
                    map<int, map<int, int> >& runSlices,
                    int& progressionCount,
-                   int nscans ) {
+                   int spectrumListSize,
+                   bool progressInformationEnabled) {
         double ms1RtWidth = bbTimeWidthByMsLevel[1];
         double msnRtWidth = bbTimeWidthByMsLevel[2];
         //ms1RtWidth = 60; msnRtWidth = 75;
@@ -131,11 +132,13 @@ private:
                 msnHighResBuffer.push_back(spectrum);
                 parentSpectrumPerSpectrumId[spectrum->id] = cycleCollection->parentSpectrum;
             }
-            progressionCount += highResSpec.size();
-            int newPercent = (int) (((float) progressionCount / nscans * 100));
-            if (newPercent == lastPercent + 2) {
-                printProgBar(newPercent);
-                lastPercent = newPercent;
+            if(progressInformationEnabled) {
+                progressionCount += highResSpec.size();
+                int newPercent = (int) (((float) progressionCount / spectrumListSize * 100));
+                if (newPercent == lastPercent + 2) {
+                    printProgBar(newPercent);
+                    lastPercent = newPercent;
+                }
             }
         }
         // before exiting, deal with the two buffers if they are not empty
@@ -249,7 +252,8 @@ public:
                                     map<int, double>& bbTimeWidthByMsLevel,
                                     map<int, map<int, int> >& runSlices,
                                     int& progressionCount,
-                                    int nscans ) {
+                                    int spectrumListSize,
+                                    bool progressInformationEnabled) {
         return boost::thread(
                              &mzSwathConsumer<QueueingPolicy,
                              SpectrumListType>::_consume,
@@ -260,7 +264,8 @@ public:
                              std::ref(bbTimeWidthByMsLevel),
                              std::ref(runSlices),
                              std::ref(progressionCount),
-                             nscans
+                             spectrumListSize,
+                             progressInformationEnabled
                              );
 
     }
