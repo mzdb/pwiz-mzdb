@@ -54,27 +54,16 @@
 
 //  normalize macros  ------------------------------------------------------------------//
 
-// #if !defined(BOOST_FILESYSTEM_DYN_LINK) && !defined(BOOST_FILESYSTEM_STATIC_LINK) \
-//   && !defined(BOOST_ALL_DYN_LINK) && !defined(BOOST_ALL_STATIC_LINK)
-//# ifndef BOOST_FILESYSTEM_STATIC_LINK
-#ifdef BOOST_FILESYSTEM_DYN_LINK
-# undef BOOST_FILESYSTEM_DYN_LINK
-#endif
-
-
-#ifndef BOOST_FILESYSTEM_STATIC_LINK
+#if !defined(BOOST_FILESYSTEM_DYN_LINK) && !defined(BOOST_FILESYSTEM_STATIC_LINK) \
+  && !defined(BOOST_ALL_DYN_LINK) && !defined(BOOST_ALL_STATIC_LINK)
 # define BOOST_FILESYSTEM_STATIC_LINK
 #endif
 
-
-//# endif
-//#endif
-
-// #if defined(BOOST_ALL_DYN_LINK) && !defined(BOOST_FILESYSTEM_DYN_LINK)
-// # define BOOST_FILESYSTEM_DYN_LINK 
-// #elif defined(BOOST_ALL_STATIC_LINK) && !defined(BOOST_FILESYSTEM_STATIC_LINK)
-// # define BOOST_FILESYSTEM_STATIC_LINK 
-// #endif
+#if defined(BOOST_ALL_DYN_LINK) && !defined(BOOST_FILESYSTEM_DYN_LINK)
+# define BOOST_FILESYSTEM_DYN_LINK 
+#elif defined(BOOST_ALL_STATIC_LINK) && !defined(BOOST_FILESYSTEM_STATIC_LINK)
+# define BOOST_FILESYSTEM_STATIC_LINK 
+#endif
 
 #if defined(BOOST_FILESYSTEM_DYN_LINK) && defined(BOOST_FILESYSTEM_STATIC_LINK)
 # error Must not define both BOOST_FILESYSTEM_DYN_LINK and BOOST_FILESYSTEM_STATIC_LINK
