@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_Agilent.cpp 6585 2014-08-07 22:49:28Z chambm $
+// $Id: SpectrumList_Agilent.cpp 10496 2017-02-21 17:50:44Z pcbrefugee $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -149,7 +149,7 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLev
     {
         //result->set(MS_base_peak_intensity, scanRecordPtr->getBasePeakIntensity(), MS_number_of_detector_counts);
         //result->set(MS_total_ion_current, scanRecordPtr->getTic(), MS_number_of_detector_counts);
-        scan.set(MS_scan_start_time, scanRecordPtr->getRetentionTime() / 60, UO_minute);
+        scan.set(MS_scan_start_time, scanRecordPtr->getRetentionTime(), UO_minute);
     }
     else
     {
@@ -431,7 +431,7 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLev
             // Agilent profile mode data returns all zero-intensity samples, so we filter out
             // samples that aren't adjacent to a non-zero-intensity sample value.
 
-            double lowestObservedMz = 0, highestObservedMz = 0;
+            double lowestObservedMz = numeric_limits<double>::max(), highestObservedMz = 0;
             result->defaultArrayLength = 0;
 
             // special case for the first sample
@@ -503,6 +503,10 @@ PWIZ_API_DECL pwiz::analysis::Spectrum3DPtr SpectrumList_Agilent::spectrum3d(dou
     return result;
 }
 
+PWIZ_API_DECL bool SpectrumList_Agilent::canConvertDriftTimeAndCCS() const { return rawfile_->canConvertDriftTimeAndCCS(); };
+PWIZ_API_DECL double SpectrumList_Agilent::driftTimeToCCS(double driftTime, double mz, int charge) const { return rawfile_->driftTimeToCCS(driftTime, mz, charge); }
+PWIZ_API_DECL double SpectrumList_Agilent::ccsToDriftTime(double ccs, double mz, int charge) const { return rawfile_->ccsToDriftTime(ccs, mz, charge); }
+
 
 PWIZ_API_DECL void SpectrumList_Agilent::createIndex() const
 {
@@ -520,7 +524,7 @@ PWIZ_API_DECL void SpectrumList_Agilent::createIndex() const
         for (int i = 0; i < frames; ++i)
 		{
             FramePtr frame = rawfile_->getIonMobilityFrame(i);
-            scanTimeToFrameMap_[frame->getRetentionTime()] = i;
+            scanTimeToFrameMap_[frame->getRetentionTime() * 60.0] = i; // frames report RT in minutes as of MIDAC 8
 
             if (config_.combineIonMobilitySpectra)
             {
@@ -592,7 +596,9 @@ PWIZ_API_DECL void SpectrumList_Agilent::createIndex() const
 		// if any of these types are present, we enumerate each spectrum
 		if (scanTypes & MSScanType_Scan ||
 			scanTypes & MSScanType_ProductIon ||
-			scanTypes & MSScanType_PrecursorIon)
+			scanTypes & MSScanType_PrecursorIon ||
+            scanTypes & MSScanType_SelectedIon ||
+            scanTypes & MSScanType_MultipleReaction)
 		{
 			int size = rawfile_->getTotalScansPresent();
 			index_.reserve(size);
@@ -603,9 +609,9 @@ PWIZ_API_DECL void SpectrumList_Agilent::createIndex() const
 				MSScanType scanType = scanRecordPtr->getMSScanType();
 
 				// these spectra are chromatogram-centric
-				if (scanType == MSScanType_SelectedIon ||
-					scanType == MSScanType_TotalIon ||
-					scanType == MSScanType_MultipleReaction)
+				if ((!config_.simAsSpectra && scanType == MSScanType_SelectedIon) ||
+					(!config_.srmAsSpectra && scanType == MSScanType_MultipleReaction) ||
+                    scanType == MSScanType_TotalIon)
 					continue;
 
 				index_.push_back(IndexEntry());
@@ -651,6 +657,9 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, bool getB
 PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLevel detailLevel) const {return SpectrumPtr();}
 PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLevel detailLevel, const pwiz::util::IntegerSet& msLevelsToCentroid) const {return SpectrumPtr();}
 PWIZ_API_DECL pwiz::analysis::Spectrum3DPtr SpectrumList_Agilent::spectrum3d(double scanStartTime, const boost::icl::interval_set<double>& driftTimeRanges) const {return pwiz::analysis::Spectrum3DPtr();}
+PWIZ_API_DECL bool SpectrumList_Agilent::canConvertDriftTimeAndCCS() const { return false; }
+PWIZ_API_DECL double SpectrumList_Agilent::driftTimeToCCS(double driftTime, double mz, int charge) const {return 0;}
+PWIZ_API_DECL double SpectrumList_Agilent::ccsToDriftTime(double ccs, double mz, int charge) const {return 0;}
 
 } // detail
 } // msdata

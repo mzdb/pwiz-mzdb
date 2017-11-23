@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Thermo.cpp 7303 2015-03-13 20:19:40Z chambm $
+// $Id: Reader_Thermo.cpp 8904 2015-09-29 19:20:14Z chambm $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -228,7 +228,7 @@ void fillInMetadata(const string& filename, RawFile& rawfile, MSData& msd, const
     }
 
     msd.run.id = msd.id;
-    msd.run.startTimeStamp = encode_xml_datetime(rawfile.getCreationDate());
+    msd.run.startTimeStamp = encode_xml_datetime(rawfile.getCreationDate(config.adjustUnknownTimeZonesToHostTimeZone));
 }
 
 } // namespace

@@ -16,8 +16,8 @@ IF EXIST build-nt-x86 rmdir /s /q build-nt-x86
 IF EXIST build-nt-x86_64 rmdir /s /q build-nt-x86_64
 
 if %VERBOSE%==1 echo   Cleaning libraries...
-IF EXIST libraries\boost-build\engine\bin.nt rmdir /s /q libraries\boost-build\engine\bin.nt
-IF EXIST libraries\boost-build\engine\bootstrap rmdir /s /q libraries\boost-build\engine\bootstrap
+IF EXIST libraries\boost-build\src\engine\bin.nt rmdir /s /q libraries\boost-build\src\engine\bin.nt
+IF EXIST libraries\boost-build\src\engine\bootstrap rmdir /s /q libraries\boost-build\src\engine\bootstrap
 IF EXIST libraries\boost_1_43_0 rmdir /s /q libraries\boost_1_43_0
 IF EXIST libraries\boost_1_54_0 rmdir /s /q libraries\boost_1_54_0
 IF EXIST libraries\boost_1_56_0 rmdir /s /q libraries\boost_1_56_0
@@ -42,15 +42,18 @@ del /f /q pwiz\analysis\Version.cpp > nul 2>&1
 if %VERBOSE%==1 echo   Cleaning vendor dlls...
 del /f /q pwiz_aux\msrc\utility\vendor_api\ABI\*.dll > nul 2>&1
 del /f /q pwiz_aux\msrc\utility\vendor_api\ABI\LicenseKey.h > nul 2>&1
+rmdir /s /q pwiz_aux\msrc\utility\vendor_api\ABI\vc10 > nul 2>&1
+rmdir /s /q pwiz_aux\msrc\utility\vendor_api\ABI\vc9 > nul 2>&1
 
 del /f /q pwiz_aux\msrc\utility\vendor_api\Agilent\*.dll > nul 2>&1
 rmdir /s /q pwiz_aux\msrc\utility\vendor_api\Agilent\x86 > nul 2>&1
 rmdir /s /q pwiz_aux\msrc\utility\vendor_api\Agilent\x64 > nul 2>&1
 del /f /q pwiz_aux\msrc\utility\vendor_api\Agilent\EULA.* > nul 2>&1
 rmdir /s /q pwiz_aux\msrc\utility\vendor_api\Agilent\Documents > nul 2>&1
-del /f /q pwiz_aux\msrc\utility\vendor_api\Bruker\*.dll > nul 2>&1
 del /f /q pwiz_aux\msrc\utility\vendor_api\Bruker\*.manifest > nul 2>&1
-del /f /q pwiz_aux\msrc\utility\vendor_api\Bruker\*.xml > nul 2>&1
+del /f /q pwiz_aux\msrc\utility\vendor_api\Bruker\baf2sql_c.h > nul 2>&1
+del /f /q pwiz_aux\msrc\utility\vendor_api\Bruker\baf2sql_cpp.h > nul 2>&1
+del /f /q pwiz_aux\msrc\utility\vendor_api\Bruker\schema.h > nul 2>&1
 rmdir /s /q pwiz_aux\msrc\utility\vendor_api\Bruker\install_pwiz_vendor_api_bruker_stub > nul 2>&1
 rmdir /s /q pwiz_aux\msrc\utility\vendor_api\Bruker\x86 > nul 2>&1
 rmdir /s /q pwiz_aux\msrc\utility\vendor_api\Bruker\x64 > nul 2>&1

@@ -1,5 +1,5 @@
 //
-// $Id: RawFileTypes.h 7303 2015-03-13 20:19:40Z chambm $
+// $Id: RawFileTypes.h 11511 2017-10-25 16:39:22Z chambm $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -107,6 +107,8 @@ enum PWIZ_API_DECL InstrumentModelType
     InstrumentModelType_Accela_PDA,
     InstrumentModelType_Orbitrap_Fusion,
     InstrumentModelType_Orbitrap_Fusion_ETD,
+    InstrumentModelType_TSQ_Quantiva,
+    InstrumentModelType_TSQ_Endura,
 
     InstrumentModelType_Count,
 };
@@ -137,6 +139,7 @@ inline InstrumentModelType parseInstrumentModelType(const std::string& instrumen
     else if (type == "DSQ")                     return InstrumentModelType_DSQ;
     else if (type == "POLARISQ")                return InstrumentModelType_PolarisQ;
     else if (type == "SURVEYOR MSQ")            return InstrumentModelType_Surveyor_MSQ;
+    else if (type == "MSQ PLUS")                return InstrumentModelType_Surveyor_MSQ;
     else if (type == "TEMPUS TOF")              return InstrumentModelType_Tempus_TOF;
     else if (type == "TRACE DSQ")               return InstrumentModelType_Trace_DSQ;
     else if (type == "TRITON")                  return InstrumentModelType_Triton;
@@ -165,11 +168,13 @@ inline InstrumentModelType parseInstrumentModelType(const std::string& instrumen
     else if (type == "MALDI LTQ XL")            return InstrumentModelType_MALDI_LTQ_XL;
     else if (type == "MALDI LTQ ORBITRAP")      return InstrumentModelType_MALDI_LTQ_Orbitrap;
     else if (type == "TSQ QUANTUM")             return InstrumentModelType_TSQ_Quantum;
-    else if (type == "TSQ QUANTUM ACCESS")      return InstrumentModelType_TSQ_Quantum_Access;
+    else if (bal::contains(type, "TSQ QUANTUM ACCESS")) return InstrumentModelType_TSQ_Quantum_Access;
     else if (type == "TSQ QUANTUM ULTRA")       return InstrumentModelType_TSQ_Quantum_Ultra;
     else if (type == "TSQ QUANTUM ULTRA AM")    return InstrumentModelType_TSQ_Quantum_Ultra_AM;
     else if (type == "TSQ VANTAGE STANDARD")    return InstrumentModelType_TSQ_Vantage_Standard;
     else if (type == "TSQ VANTAGE EMR")         return InstrumentModelType_TSQ_Vantage_EMR;
+    else if (type == "TSQ QUANTIVA")            return InstrumentModelType_TSQ_Quantiva;
+    else if (type == "TSQ ENDURA")              return InstrumentModelType_TSQ_Endura;
     else if (type == "ELEMENT XR")              return InstrumentModelType_Element_XR;
     else if (type == "ELEMENT GD")              return InstrumentModelType_Element_GD;
     else if (type == "GC ISOLINK")              return InstrumentModelType_GC_IsoLink;
@@ -237,6 +242,8 @@ inline std::vector<IonizationType> getIonSourcesForInstrumentModel(InstrumentMod
         case InstrumentModelType_TSQ_Quantum_Ultra_AM:
         case InstrumentModelType_TSQ_Vantage_Standard:
         case InstrumentModelType_TSQ_Vantage_EMR:
+        case InstrumentModelType_TSQ_Quantiva:
+        case InstrumentModelType_TSQ_Endura:
             ionSources.push_back(IonizationType_ESI);
             break;
 
@@ -372,6 +379,8 @@ inline MassAnalyzerType convertScanFilterMassAnalyzer(ScanFilterMassAnalyzerType
         case InstrumentModelType_TSQ_Vantage_Standard:
         case InstrumentModelType_TSQ_Vantage_EMR:
         case InstrumentModelType_GC_Quantum:
+        case InstrumentModelType_TSQ_Quantiva:
+        case InstrumentModelType_TSQ_Endura:
             return MassAnalyzerType_Triple_Quadrupole;
 
         case InstrumentModelType_LCQ_Advantage:
@@ -470,6 +479,8 @@ inline std::vector<MassAnalyzerType> getMassAnalyzersForInstrumentModel(Instrume
         case InstrumentModelType_TSQ_Vantage_Standard:
         case InstrumentModelType_TSQ_Vantage_EMR:
         case InstrumentModelType_GC_Quantum:
+        case InstrumentModelType_TSQ_Quantiva:
+        case InstrumentModelType_TSQ_Endura:
             massAnalyzers.push_back(MassAnalyzerType_Triple_Quadrupole);
             break;
 
@@ -596,6 +607,8 @@ inline std::vector<DetectorType> getDetectorsForInstrumentModel(InstrumentModelT
         case InstrumentModelType_DSQ_II:
         case InstrumentModelType_ISQ:
         case InstrumentModelType_GC_IsoLink:
+        case InstrumentModelType_TSQ_Quantiva:
+        case InstrumentModelType_TSQ_Endura:
             detectors.push_back(DetectorType_Electron_Multiplier);
             break;
 

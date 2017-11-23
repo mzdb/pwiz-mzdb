@@ -1,5 +1,5 @@
 //
-// $Id: MSData.cpp 6385 2014-06-12 22:56:04Z chambm $
+// $Id: MSData.cpp 10794 2017-04-25 20:19:20Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -392,7 +392,7 @@ BinaryDataArray::BinaryDataArray()
 DataProcessing^ BinaryDataArray::dataProcessing::get() {return NATIVE_SHARED_PTR_TO_CLI(b::DataProcessingPtr, DataProcessing, (*base_)->dataProcessingPtr);}
 void BinaryDataArray::dataProcessing::set(DataProcessing^ value) {(*base_)->dataProcessingPtr = CLI_TO_NATIVE_SHARED_PTR(b::DataProcessingPtr, value);}
 
-BinaryData^ BinaryDataArray::data::get() {return gcnew BinaryData(&(*base_)->data, this);}
+BinaryData^ BinaryDataArray::data::get() {return base_->get() ? gcnew BinaryData(&(*base_)->data, this) : nullptr;}
 void BinaryDataArray::data::set(BinaryData^ value) {(*base_)->data = *value->base_;}
 
 bool BinaryDataArray::empty()

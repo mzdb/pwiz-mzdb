@@ -1,5 +1,5 @@
 //
-// $Id: MS2Deisotoper.hpp 6389 2014-06-13 19:46:19Z frenchwr $
+// $Id: MS2Deisotoper.hpp 11567 2017-11-09 23:53:32Z chambm $
 //
 //
 // Original author: Chris Paulse <cpaulse <a.t> systemsbiology.org>
@@ -57,7 +57,7 @@ struct PWIZ_API_DECL MS2Deisotoper : public SpectrumDataFilter
     };
 
     MS2Deisotoper(const MS2Deisotoper::Config params_) : params(params_) {}
-    virtual void operator () (const pwiz::msdata::SpectrumPtr) const;
+    virtual void operator () (const pwiz::msdata::SpectrumPtr&) const;
     virtual void describe(pwiz::msdata::ProcessingMethod&) const;
 
     const MS2Deisotoper::Config params;

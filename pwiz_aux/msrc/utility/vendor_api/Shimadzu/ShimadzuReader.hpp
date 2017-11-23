@@ -1,5 +1,5 @@
 //
-// $Id: ShimadzuReader.hpp 6234 2014-05-23 21:19:09Z nickshulman $
+// $Id: ShimadzuReader.hpp 8738 2015-08-06 22:19:25Z kaipot $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -46,6 +46,7 @@ struct PWIZ_API_DECL SRMTransition
     short event;
     short segment;
     double collisionEnergy;
+    short polarity;
     double Q1;
     double Q3;
     //TimeRange acquiredTimeRange;

@@ -1,5 +1,5 @@
 /*
-    $Id: ScanFilter.h 6526 2014-07-21 17:57:57Z chambm $
+    $Id: ScanFilter.h 11016 2017-06-30 15:32:02Z chambm $
     Description: parsing for Thermo/Xcalibur "filter line".
     Date: July 25, 2007
 
@@ -89,6 +89,9 @@ class PWIZ_API_DECL ScanFilter
 
 	std::vector<double> precursorMZs_; // one entry per ms level for level >= 2
 	std::vector<double> precursorEnergies_; // relative units; one entry per ms level for level >= 2
+
+    std::vector<ActivationType> saTypes_; // only seen with Fusion Lumos so far
+    std::vector<double> saEnergies_;
 
 	std::vector<double> scanRangeMin_;
 	std::vector<double> scanRangeMax_;

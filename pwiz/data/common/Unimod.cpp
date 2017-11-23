@@ -1,5 +1,5 @@
 //
-// $Id: Unimod.cpp 6865 2014-10-31 21:47:12Z chambm $
+// $Id: Unimod.cpp 11365 2017-09-12 19:19:41Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -51,6 +51,7 @@ struct UnimodData : public boost::singleton<UnimodData>
         map<string, Formula> brickFormulaByTitle;
 
         brickFormulaByTitle["Hex"] = Formula("H10 C6 O5");
+        brickFormulaByTitle["HexN"] = Formula("H11 C6 O4 N1");
         brickFormulaByTitle["HexNAc"] = Formula("H13 C8 N1 O5");
         brickFormulaByTitle["dHex"] = Formula("C6 H10 O4");
         brickFormulaByTitle["HexA"] = Formula("C6 H8 O6");
@@ -60,6 +61,7 @@ struct UnimodData : public boost::singleton<UnimodData>
         brickFormulaByTitle["NeuGc"] = Formula("C11 H17 N1 O9");
         brickFormulaByTitle["Pent"] = Formula("C5 H8 O4");
         brickFormulaByTitle["Hep"] = Formula("C7 H12 O6");
+        brickFormulaByTitle["Me"] = Formula("C1 H2");
 
         brickFormulaByTitle["C"] = Formula("C1");
         brickFormulaByTitle["H"] = Formula("H1");
@@ -76,7 +78,7 @@ struct UnimodData : public boost::singleton<UnimodData>
         map<string, Site> siteMap;
         siteMap["N-term"] = Site::NTerminus;
         siteMap["C-term"] = Site::CTerminus;
-        BOOST_FOREACH(char aa, string("ABCDEFGHIJKLMNPQRSTUVWXYZ"))
+        for(char aa : string("ABCDEFGHIJKLMNPQRSTUVWXYZ"))
             siteMap[string(1, aa)] = site(aa);
 
         map<string, Position> positionMap;
@@ -100,10 +102,11 @@ struct UnimodData : public boost::singleton<UnimodData>
         classificationMap["Post-translational"] = Classification::PostTranslational;
         classificationMap["Pre-translational"] = Classification::PreTranslational;
         classificationMap["AA substitution"] = Classification::Substitution;
+        classificationMap["Synth. pep. protect. gp."] = Classification::SynthPepProtectGP;
 
         vector<string> formulaTokens;
 
-        BOOST_FOREACH(CVID cvid, cvids())
+        for(CVID cvid : cvids())
         {
             const CVTermInfo& term = cvTermInfo(cvid);
             if (!bal::starts_with(term.id, "UNIMOD") || bal::ends_with(term.id, ":0"))
@@ -125,7 +128,7 @@ struct UnimodData : public boost::singleton<UnimodData>
                 bal::split(formulaTokens, itr->second, bal::is_space());
 
                 // <brick>(<quantity>) if quantity>1 or just <brick> for quantity=1
-                BOOST_FOREACH(string& token, formulaTokens)
+                for(string& token : formulaTokens)
                 {
                     Formula brickFormula;
 
@@ -220,10 +223,10 @@ struct UnimodData : public boost::singleton<UnimodData>
                 indexByMonoisotopicMass.insert(make_pair(mod.deltaMonoisotopicMass(), modIndex));
                 indexByAverageMass.insert(make_pair(mod.deltaAverageMass(), modIndex));
             }
-            catch (exception&)
+            catch (exception& e)
             {
                 // TODO: log this error
-                //cerr << "[UnimodData::ctor] error parsing term \"" << term.id << "\": " << e.what() << "\n";
+                cerr << "[UnimodData::ctor] error parsing term \"" << term.id << "\": " << e.what() << "\n";
                 //throw runtime_error("[UnimodData::ctor] error parsing mod \"" + title + "\"");
             }
         }
@@ -351,7 +354,7 @@ vector<Modification> modifications(double mass,
         if (!indeterminate(approved) && approved != mod.approved)
             continue;
 
-        BOOST_FOREACH(const Modification::Specificity& specificity, mod.specificities)
+        for(const Modification::Specificity& specificity : mod.specificities)
         {
             if ((site == Site::Any || site[specificity.site]) &&
                 (position == Position::Anywhere || position == specificity.position) &&
@@ -370,10 +373,10 @@ vector<Modification> modifications(double mass,
         vector<Modification> avgResults = modifications(mass, tolerance, false, approved,
                                                        site, position, classification, hidden);
         set<CVID> existingResults;
-        BOOST_FOREACH(const Modification& mod, result)
+        for(const Modification& mod : result)
             existingResults.insert(mod.cvid);
 
-        BOOST_FOREACH(const Modification& mod, avgResults)
+        for(const Modification& mod : avgResults)
             if (!existingResults.count(mod.cvid))
                 result.push_back(mod);
     }

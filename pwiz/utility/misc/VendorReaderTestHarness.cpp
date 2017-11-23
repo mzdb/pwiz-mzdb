@@ -1,5 +1,5 @@
 ﻿//
-// $Id: VendorReaderTestHarness.cpp 7155 2015-02-03 22:38:32Z chambm $
+// $Id: VendorReaderTestHarness.cpp 11022 2017-07-03 17:43:28Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -245,10 +245,13 @@ void testRead(const Reader& reader, const string& rawpath, bool requireUnicodeSu
 {
     if (os_) *os_ << "testRead(): " << rawpath << endl;
 
+    Reader::Config readerConfig;
+    readerConfig.adjustUnknownTimeZonesToHostTimeZone = false; // do not adjust times, because we don't want the test to depend on the time zone of the test agent
+
     // read file into MSData object
     vector<MSDataPtr> msds;
     string rawheader = pwiz::util::read_file_header(rawpath, 512);
-    reader.read(rawpath, rawheader, msds);
+    reader.read(rawpath, rawheader, msds, readerConfig);
 
     string sourceName = BFS_STRING(bfs::path(rawpath).filename());
 
@@ -298,6 +301,7 @@ void testRead(const Reader& reader, const string& rawpath, bool requireUnicodeSu
             bal::contains(fileType, "Waters") ||
             bal::contains(fileType, "MassHunter") ||
             fileType == "Bruker FID" ||
+            fileType == "Bruker TDF" ||
             fileType == "UIMF" ||
             bal::contains(fileType, "T2D"))
             diffConfig_non_mzML.ignoreIdentity = true;
@@ -354,7 +358,7 @@ void testRead(const Reader& reader, const string& rawpath, bool requireUnicodeSu
     for (size_t i = 0; i < msdCount; ++i)
     {
         MSData msd_reverse;
-        reader.read(rawpath, rawheader, msd_reverse, i);
+        reader.read(rawpath, rawheader, msd_reverse, i, readerConfig);
 
         if (msd_reverse.run.spectrumListPtr.get())
             for (size_t j = 0, end = msd_reverse.run.spectrumListPtr->size(); j < end; ++j)
@@ -398,7 +402,7 @@ void testRead(const Reader& reader, const string& rawpath, bool requireUnicodeSu
     try
     {
         rawheader = pwiz::util::read_file_header(newRawPath.string(), 512);
-        reader.read(newRawPath.string(), rawheader, msds);
+        reader.read(newRawPath.string(), rawheader, msds, readerConfig);
         msdCount = msds.size();
 
         bfs::path sourceNameAsPath(sourceName);
@@ -482,7 +486,9 @@ void generate(const Reader& reader, const string& rawpath)
 {
     // read file into MSData object
     vector<MSDataPtr> msds;
-    reader.read(rawpath, "dummy", msds);
+    Reader::Config readerConfig;
+    readerConfig.adjustUnknownTimeZonesToHostTimeZone = false;
+    reader.read(rawpath, "dummy", msds, readerConfig);
     MSDataFile::WriteConfig config;
     config.indexed = false;
     config.binaryDataEncoderConfig.precision = BinaryDataEncoder::Precision_32;
@@ -553,6 +559,7 @@ int testReader(const Reader& reader, const vector<string>& args, bool testAccept
         throw runtime_error(string("Invalid arguments: ") + bal::join(args, " ") +
                             "\nUsage: " + args[0] + " [-v] [--generate-mzML] <source path 1> [source path 2] ..."); 
 
+    int totalTests = 0, failedTests = 0;
     bfs::detail::utf8_codecvt_facet utf8;
     for (size_t i = 0; i < rawpaths.size(); ++i)
     {
@@ -567,7 +574,16 @@ int testReader(const Reader& reader, const vector<string>& args, bool testAccept
                 generate(reader, rawpath);
             else
             {
-                test(reader, testAcceptOnly, requireUnicodeSupport, rawpath);
+                ++totalTests;
+                try
+                {
+                    test(reader, testAcceptOnly, requireUnicodeSupport, rawpath);
+                }
+                catch (exception& e)
+                {
+                    cerr << "Error testing on " << filepath.filename().string() << ": " << e.what() << endl;
+                    ++failedTests;
+                }
 
                 /* TODO: there are issues to be resolved here but not just simple crashes
                 testThreadSafety(1, reader, testAcceptOnly, requireUnicodeSupport, rawpath);
@@ -590,6 +606,9 @@ int testReader(const Reader& reader, const vector<string>& args, bool testAccept
             }
         }
     }
+
+    if (failedTests > 0)
+        throw runtime_error("failed " + lexical_cast<string>(failedTests) + " of " + lexical_cast<string>(totalTests) + " tests");
 
     return 0;
 }

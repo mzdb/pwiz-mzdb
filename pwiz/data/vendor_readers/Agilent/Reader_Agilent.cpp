@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Agilent.cpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id: Reader_Agilent.cpp 10577 2017-03-06 23:55:31Z pcbrefugee $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -102,7 +102,7 @@ void initializeInstrumentConfigurationPtrs(MSData& msd,
 }
 
 
-void fillInMetadata(const string& rawpath, MassHunterDataPtr rawfile, MSData& msd)
+void fillInMetadata(const string& rawpath, MassHunterDataPtr rawfile, MSData& msd, const Reader::Config& config)
 {
     msd.cvs = defaultCVList();
 
@@ -196,7 +196,7 @@ void fillInMetadata(const string& rawpath, MassHunterDataPtr rawfile, MSData& ms
         msd.run.defaultInstrumentConfigurationPtr = msd.instrumentConfigurationPtrs[0];
 
     msd.run.id = msd.id;
-    msd.run.startTimeStamp = encode_xml_datetime(rawfile->getAcquisitionTime());
+    msd.run.startTimeStamp = encode_xml_datetime(rawfile->getAcquisitionTime(false));  // All but the oldest Agilent formats state their time zones
 }
 
 } // namespace
@@ -221,7 +221,7 @@ void Reader_Agilent::read(const string& filename,
     result.run.spectrumListPtr = sl;
     result.run.chromatogramListPtr = cl;
 
-    fillInMetadata(filename, dataReader, result);
+    fillInMetadata(filename, dataReader, result, config);
 }
 
 

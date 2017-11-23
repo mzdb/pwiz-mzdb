@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Thermo_Detail.hpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id: Reader_Thermo_Detail.hpp 11016 2017-06-30 15:32:02Z chambm $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -52,7 +52,7 @@ PWIZ_API_DECL CVID translate(MassAnalyzerType type);
 PWIZ_API_DECL CVID translateAsIonizationType(IonizationType ionizationType);
 PWIZ_API_DECL CVID translateAsInletType(IonizationType ionizationType);
 PWIZ_API_DECL CVID translate(PolarityType polarityType);
-PWIZ_API_DECL void SetActivationType(ActivationType activationType, Activation& activation);
+PWIZ_API_DECL void setActivationType(ActivationType activationType, ActivationType supplementalActivationType, Activation& activation);
 
 } // Thermo
 } // detail

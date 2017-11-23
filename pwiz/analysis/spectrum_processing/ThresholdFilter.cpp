@@ -1,5 +1,5 @@
 //
-// $Id: ThresholdFilter.cpp 2894 2011-07-29 20:05:08Z chambm $
+// $Id: ThresholdFilter.cpp 11567 2017-11-09 23:53:32Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -131,7 +131,7 @@ PWIZ_API_DECL void ThresholdFilter::describe(ProcessingMethod& method) const
     method.userParams.push_back(UserParam(name, lexical_cast<string>(threshold)));
 }
 
-PWIZ_API_DECL void ThresholdFilter::operator () (const SpectrumPtr s) const
+PWIZ_API_DECL void ThresholdFilter::operator () (const SpectrumPtr& s) const
 {
     if (!msLevelsToThreshold.contains(s->cvParam(MS_ms_level).valueAs<int>()))
         return;

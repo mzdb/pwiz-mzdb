@@ -28,8 +28,6 @@
 #include "pwiz/data/msdata/IO.hpp"
 #include "pwiz_aux/msrc/utility/vendor_api/ABI/WiffFile.hpp"
 
-#include "../lib/sqlite3/sqlite3.h"
-
 #include "../utils/mzDBFile.h"
 #include "params_collecter.h"
 #include "spectrum.hpp"
@@ -452,11 +450,11 @@ public:
         mMzdbFile.stmt = 0;
         
         // TODO maybe a memory leak here, try to insert if not present already
-        originalModesByMsLevel.insert (std::make_pair<int, DataMode>(msLevel, spectrum->getOriginalMode()));
-        effectiveModesByMsLevel.insert (std::make_pair<int, DataMode>(msLevel, effectiveMode));
+        originalModesByMsLevel.insert (std::make_pair(msLevel, spectrum->getOriginalMode()));
+        effectiveModesByMsLevel.insert (std::make_pair(msLevel, effectiveMode));
         auto it = nbSpectraByMsLevel.find(msLevel);
         if(it == nbSpectraByMsLevel.end()) {
-            nbSpectraByMsLevel.insert (std::make_pair<int, int>(msLevel, 1));
+            nbSpectraByMsLevel.insert (std::make_pair(msLevel, 1));
         } else {
             it->second = it->second + 1;
         }

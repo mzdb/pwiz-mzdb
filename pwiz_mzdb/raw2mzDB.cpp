@@ -145,7 +145,7 @@ pair<int, int> parseCycleRange(string& range) {
             if(sm[2] != "") max = stoi(sm[2]);
             if(min < max || max == 0) {
                 // TODO what if min == 1 ? does it mean first or second ?
-                return make_pair<int, int>(min, max);
+                return make_pair(min, max);
             } else {
                 LOG(ERROR) << "Error, max index (" << max << ") cannot be lower than min index (" << min << ")";
             }

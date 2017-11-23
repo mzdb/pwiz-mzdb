@@ -58,7 +58,8 @@ struct PWIZ_API_DECL Baf2SqlSpectrum : public MSSpectrum
                     const optional<uint64_t>& profileMzArrayId, const optional<uint64_t>& profileIntensityArrayId,
                     const optional<uint64_t>& lineMzarrayId, const optional<uint64_t>& lineIntensityArrayId,
                     const optional<uint64_t>& parentId, const optional<double>& precursorMz,
-                    const optional<int>& isolationMode, const optional<int>& reactionMode);
+                    const optional<int>& isolationMode, const optional<int>& reactionMode,
+                    const optional<double>& isolationWidth);
 
     virtual ~Baf2SqlSpectrum() {}
 
@@ -125,6 +126,8 @@ struct PWIZ_API_DECL Baf2SqlImpl : public CompassData
 
     /// returns the number of spectra available from the MS source
     virtual size_t getMSSpectrumCount() const;
+
+    virtual std::pair<size_t, size_t> getFrameScanPair(int scan) const { return make_pair(0ull, 0ull); }
 
     /// returns a spectrum from the MS source
     virtual MSSpectrumPtr getMSSpectrum(int scan, DetailLevel detailLevel = DetailLevel_FullMetadata) const;

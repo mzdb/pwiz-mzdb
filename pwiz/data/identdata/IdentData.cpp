@@ -1,5 +1,5 @@
 //
-// $Id: IdentData.cpp 6909 2014-11-19 17:18:29Z chambm $
+// $Id: IdentData.cpp 10246 2016-12-05 20:12:14Z chambm $
 //
 //
 // Original author: Robert Burke <robert.burke@proteowizard.org>
@@ -420,13 +420,13 @@ PWIZ_API_DECL bool Provider::empty() const
 
 PWIZ_API_DECL SpectrumIdentificationList::SpectrumIdentificationList(
     const string& id_, const string& name_)
-    : Identifiable(id_, name_), numSequencesSearched(0)
+    : IdentifiableParamContainer(id_, name_), numSequencesSearched(0)
 {
 }
 
 PWIZ_API_DECL bool SpectrumIdentificationList::empty() const
 {
-    return Identifiable::empty() &&
+    return IdentifiableParamContainer::empty() &&
            numSequencesSearched == 0 &&
            fragmentationTable.empty() &&
            spectrumIdentificationResult.empty();
@@ -1023,7 +1023,12 @@ PWIZ_API_DECL proteome::DigestedPeptide digestedPeptide(const SpectrumIdentifica
         cleavageAgentRegexes = identdata::cleavageAgentRegexes(sip.enzymes);
 
         if (cleavageAgentRegexes.empty())
-            throw runtime_error("[identdata::digestedPeptide] unknown cleavage agent");
+        {
+            if (!sip.enzymes.enzymes.empty() && sip.enzymes.enzymes[0]->terminalSpecificity == Digestion::NonSpecific)
+                cleavageAgents.push_back(MS_unspecific_cleavage);
+            else
+                throw runtime_error("[identdata::digestedPeptide] unknown cleavage agent");
+        }
     }
 
     if (!hasValidFlankingSymbols(pe))
@@ -1197,7 +1202,7 @@ PWIZ_API_DECL string cleavageAgentRegex(const Enzyme& ez)
     {
         CVParam enzymeTerm = ez.enzymeName.cvParamChild(MS_cleavage_agent_name);
 
-        if (enzymeTerm.empty())
+        if (enzymeTerm.empty() && !ez.enzymeName.userParams.empty())
             enzymeTerm = CVParam(Digestion::getCleavageAgentByName(ez.enzymeName.userParams[0].name));
 
         try {return Digestion::getCleavageAgentRegex(enzymeTerm.cvid);} catch (exception&) {}

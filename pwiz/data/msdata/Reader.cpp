@@ -1,5 +1,5 @@
 //
-// $Id: Reader.cpp 7303 2015-03-13 20:19:40Z chambm $
+// $Id: Reader.cpp 10226 2016-11-29 00:23:37Z chambm $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -40,8 +40,10 @@ Reader::Config::Config()
     : simAsSpectra(false)
     , srmAsSpectra(false)
     , acceptZeroLengthSpectra(false)
+    , ignoreZeroIntensityPoints(false)
     , combineIonMobilitySpectra(false)
     , unknownInstrumentIsError(false)
+    , adjustUnknownTimeZonesToHostTimeZone(true)
 {
 }
 
@@ -51,8 +53,10 @@ Reader::Config::Config(const Config& rhs)
     simAsSpectra = rhs.simAsSpectra;
     srmAsSpectra = rhs.srmAsSpectra;
 	acceptZeroLengthSpectra = rhs.acceptZeroLengthSpectra;
+    ignoreZeroIntensityPoints = rhs.ignoreZeroIntensityPoints;
     combineIonMobilitySpectra = rhs.combineIonMobilitySpectra;
     unknownInstrumentIsError = rhs.unknownInstrumentIsError;
+    adjustUnknownTimeZonesToHostTimeZone = rhs.adjustUnknownTimeZonesToHostTimeZone;
 }
 
 // default implementation; most Readers don't need to worry about multi-run input files
@@ -193,7 +197,7 @@ PWIZ_API_DECL CVID identifyFileFormat(const ReaderPtr& reader, const std::string
         else if (type == "Mascot Generic") return MS_Mascot_MGF_format;
         else if (type == "MSn") return MS_MS2_format;
         else if (type == "ABSciex WIFF") return MS_ABI_WIFF_format;
-        else if (type == "ABSciex T2D") return MS_AB_SCIEX_TOF_TOF_T2D_format;
+        else if (type == "ABSciex T2D") return MS_SCIEX_TOF_TOF_T2D_format;
         else if (type == "Agilent MassHunter") return MS_Agilent_MassHunter_format;
         else if (type == "Thermo RAW") return MS_Thermo_RAW_format;
         else if (type == "Waters RAW") return MS_Waters_raw_format;

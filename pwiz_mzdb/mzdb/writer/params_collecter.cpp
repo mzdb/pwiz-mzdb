@@ -1,5 +1,3 @@
-#include "../lib/sqlite3/sqlite3.h"
-
 #include "params_collecter.h"
 
 using namespace std;

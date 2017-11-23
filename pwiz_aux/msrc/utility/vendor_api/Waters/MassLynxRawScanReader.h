@@ -12,13 +12,14 @@
 #pragma once
 
 #include <vector>
-
 #include "MassLynxRawDefs.h"
 
 namespace micromass_co_uk_mlraw_version_1
 {
 	class MLRawAccessInterface;
 }
+
+class CompressedDataCluster;
 
 namespace Waters
 {
@@ -47,6 +48,8 @@ namespace MassLynxRaw
         MassLynxRawScanReader( 
             MassLynxRawReader & massLynxRawReader );
 
+		MassLynxRawScanReader::~MassLynxRawScanReader();
+
 		///<summary>
 		///Return a particular scan from a MassLynx raw data file.
 		///<\summary>
@@ -71,12 +74,26 @@ namespace MassLynxRaw
 			std::vector<float> & intensities,
 			std::vector<float> & daughterMasses);
 
+		void MassLynxRawScanReader::readSpectrum(
+			int nWhichFunction,
+			int nWhichScan,
+			int nWhichDrift,
+			std::vector<float> & masses,
+			std::vector<float> & intensities);
+
 	private:
 
 		// The internal representation of the data file.
 		const micromass_co_uk_mlraw_version_1::MLRawAccessInterface * m_pImp;
-		
+		CompressedDataCluster* m_pCDC;
+		int m_nCDCFunction;
+		bool initaliseCDCReader(const int& nWhichFunction);
+
+		std::vector<float> m_massMax;
+		std::vector<float> m_intensityMax;
+
 	};
+
 }   // MassLynxRaw
 }   // Lib
 }   // Waters

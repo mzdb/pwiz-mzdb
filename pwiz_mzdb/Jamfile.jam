@@ -9,13 +9,16 @@ exe raw2mzDB
   <library>mzdb/writer
   <library>mzdb/lib/getopt_pp
   <location>$(target-folder)
-: <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /GAyF /bigobj" <linkflags>"/LTCG" #default_builds "/Ox /Gy /GA /GF /arch:SSE2 /HEa"  <cxxflags>"/Ox /GLAFy /LTCG /fp:fast" 
+#: <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /GAyF /bigobj" <linkflags>"/LTCG" #default_builds "/Ox /Gy /GA /GF /arch:SSE2 /HEa"  <cxxflags>"/Ox /GLAFy /LTCG /fp:fast" 
+: <toolset>msvc <link>static <variant>release <cxxflags>"/Ox /GAyF /bigobj" #default_builds "/Ox /Gy /GA /GF /arch:SSE2 /HEa"  <cxxflags>"/Ox /GLAFy /fp:fast" 
 :
 ;
 
 # add missing dll files
 make libgflags.dll : mzdb/lib/libgflags.dll : @common.copy : <location>$(target-folder) ;
 make libglog.dll : mzdb/lib/libglog.dll : @common.copy : <location>$(target-folder) ;
+#make sqlite3.dll : mzdb/lib/sqlite3.dll : @common.copy : <location>$(target-folder) ;
+make ceres.dll : mzdb/lib/ceres.dll : @common.copy : <location>$(target-folder) ;
 
 # add msvc dlls to avoid visual c++ pre-requisites
 make mfc100u.dll : mzdb/lib/msvc/mfc100u.dll : @common.copy : <location>$(target-folder) ;

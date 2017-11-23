@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -33,12 +33,13 @@
 
 #include <vector>
 #include "ceres/internal/port.h"
+#include "ceres/internal/disable_warnings.h"
 
 namespace ceres {
 
 // A compressed row sparse matrix used primarily for communicating the
 // Jacobian matrix to the user.
-struct CRSMatrix {
+struct CERES_EXPORT CRSMatrix {
   CRSMatrix() : num_rows(0), num_cols(0) {}
 
   int num_rows;
@@ -73,11 +74,13 @@ struct CRSMatrix {
   //  cols   = [ 1,  3,  1,  2,  3,  0,  1]
   //  values = [10,  4,  2, -3,  2,  1,  2]
 
-  vector<int> cols;
-  vector<int> rows;
-  vector<double> values;
+  std::vector<int> cols;
+  std::vector<int> rows;
+  std::vector<double> values;
 };
 
 }  // namespace ceres
+
+#include "ceres/internal/reenable_warnings.h"
 
 #endif  // CERES_PUBLIC_CRS_MATRIX_H_

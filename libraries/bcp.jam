@@ -1,5 +1,5 @@
 #
-# $Id: bcp.jam 5197 2013-11-22 17:57:02Z chambm $
+# $Id: bcp.jam 7387 2015-04-14 21:01:18Z chambm $
 #
 
 import property ;
@@ -102,7 +102,7 @@ class bcp-generator : generator
     rule is-source-file ( target )
     {
         local filepath = [ $(target).name ] ;
-        if [ MATCH "(.*\.[ch](pp|xx)?$)" : $(filepath:L) ]
+        if [ MATCH "(.*\\.[ch](pp|xx)?$)" : $(filepath:L) ]
         {
             return true ;
         }

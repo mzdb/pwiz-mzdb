@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_MGF.cpp 6585 2014-08-07 22:49:28Z chambm $
+// $Id: SpectrumList_MGF.cpp 10372 2017-01-17 18:29:18Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -242,12 +242,18 @@ class SpectrumList_MGFImpl : public SpectrumList_MGF
                                 bal::split(charges, value, bal::is_any_of(" "));
                                 if (charges.size() > 1)
                                 {
-                                    BOOST_FOREACH(const string& charge, charges)
+                                    BOOST_FOREACH(string& charge, charges)
                                         if (charge != "and")
+                                        {
+                                            bal::trim_if(charge, bal::is_any_of("+-"));
                                             selectedIon.cvParams.push_back(CVParam(MS_possible_charge_state, lexical_cast<int>(charge)));
+                                        }
                                 }
                                 else
+                                {
+                                    bal::trim_if(value, bal::is_any_of("+-"));
                                     selectedIon.set(MS_charge_state, lexical_cast<int>(value));
+                                }
 				            }
                             else if (name == "RTINSECONDS")
 				            {

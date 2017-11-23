@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Waters_Detail.cpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id: Reader_Waters_Detail.cpp 7398 2015-04-17 15:39:31Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -68,6 +68,7 @@ void translateFunctionType(PwizFunctionType functionType,
         case FunctionType_SIR:
             msLevel = 1;
             spectrumType = MS_SIM_spectrum;
+            break;
 
         case FunctionType_MRM:
         case FunctionType_AutoSpec_MRM:

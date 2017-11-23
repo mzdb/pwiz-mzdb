@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_Bruker.cpp 7127 2015-01-27 18:41:39Z pcbrefugee $
+// $Id: SpectrumList_Bruker.cpp 11516 2017-10-25 21:42:35Z pcbrefugee $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -24,6 +24,7 @@
 
 
 #include "SpectrumList_Bruker.hpp"
+#include "pwiz/utility/chemistry/Chemistry.hpp"
 
 
 #ifdef PWIZ_READER_BRUKER
@@ -35,6 +36,7 @@
 #include "pwiz/utility/misc/SHA1Calculator.hpp"
 #include "pwiz/utility/minimxml/XMLWriter.hpp"
 #include <boost/range/algorithm/find_if.hpp>
+#include <boost/spirit/include/karma.hpp>
 
 
 using namespace pwiz::util;
@@ -212,6 +214,9 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Bruker::spectrum(size_t index, DetailLeve
         if (scanTime > 0)
             scan.set(MS_scan_start_time, scanTime, UO_second);
 
+        if (spectrum->isIonMobilitySpectrum())
+            scan.set(MS_inverse_reduced_ion_mobility, spectrum->oneOverK0(), MS_Vs_cm_2);
+
         IonPolarity polarity = spectrum->getPolarity();
         switch (polarity)
         {
@@ -338,7 +343,7 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Bruker::spectrum(size_t index, DetailLeve
             {
                 result->set(MS_centroid_spectrum); // Declare this as centroided data even if scan is empty
                 spectrum->getLineData(mzArray, intensityArray);
-                if (mzArray.size() > 0)
+                if (mzArray.size() > 0 && msLevelsToCentroid.contains(msLevel))
                 {
                     result->set(MS_profile_spectrum); // let SpectrumList_PeakPicker know this was probably also a profile spectrum, but doesn't need conversion (actually checking for profile data is crazy slow)
                 }
@@ -370,7 +375,7 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Bruker::spectrum(size_t index, DetailLeve
     return result;
 }
 
-
+    
 namespace {
 
 void recursivelyEnumerateFIDs(vector<bfs::path>& fidPaths, const bfs::path& rootpath)
@@ -459,6 +464,28 @@ PWIZ_API_DECL void SpectrumList_Bruker::fillSourceList()
             }
             break;
 
+        // a TDF's source path is the same as the source file
+        case Reader_Bruker_Format_TDF:
+            {
+                sourcePaths_.push_back(rootpath_ / "Analysis.tdf");
+                // strip parent path to get "bar.d/Analysis.tdf"
+                bfs::path relativePath = bfs::path(rootpath_.filename()) / "Analysis.tdf";
+                addSource(msd_, relativePath, rootpath_);
+                msd_.fileDescription.sourceFilePtrs.back()->set(MS_Bruker_TDF_nativeID_format);
+                msd_.fileDescription.sourceFilePtrs.back()->set(MS_Bruker_TDF_format);
+                msd_.run.defaultSourceFilePtr = msd_.fileDescription.sourceFilePtrs.back();
+            }
+
+            {
+                sourcePaths_.push_back(rootpath_ / "Analysis.tdf_bin");
+                // strip parent path to get "bar.d/Analysis.tdf_bin"
+                bfs::path relativePath = bfs::path(rootpath_.filename()) / "Analysis.tdf_bin";
+                addSource(msd_, relativePath, rootpath_);
+                msd_.fileDescription.sourceFilePtrs.back()->set(MS_Bruker_TDF_nativeID_format);
+                msd_.fileDescription.sourceFilePtrs.back()->set(MS_Bruker_TDF_format);
+            }
+            break;
+
         // a BAF/U2 combo has two sources, with different nativeID formats
         case Reader_Bruker_Format_BAF_and_U2:
             {
@@ -503,6 +530,7 @@ PWIZ_API_DECL void SpectrumList_Bruker::fillSourceList()
 
 PWIZ_API_DECL void SpectrumList_Bruker::createIndex()
 {
+    using namespace boost::spirit::karma;
     map<std::string, size_t> idToIndexTempMap;
 
     if (format_ == Reader_Bruker_Format_U2 ||
@@ -522,8 +550,8 @@ PWIZ_API_DECL void SpectrumList_Bruker::createIndex()
                 si.collection = source->getCollectionId();
                 si.scan = scan;
                 si.index = index_.size()-1;
-                si.id = "collection=" + lexical_cast<string>(si.collection) +
-                        " scan=" + lexical_cast<string>(si.scan);
+                si.id = "collection=" + lexical_cast<std::string>(si.collection) +
+                        " scan=" + lexical_cast<std::string>(si.scan);
                 idToIndexTempMap[si.id] = si.index;
             }
         }
@@ -543,6 +571,23 @@ PWIZ_API_DECL void SpectrumList_Bruker::createIndex()
             idToIndexTempMap[si.id] = si.index;
         }
     }
+    else if (format_ == Reader_Bruker_Format_TDF)
+    {
+        for (size_t scan = 1, end = compassDataPtr_->getMSSpectrumCount(); scan <= end; ++scan)
+        {
+            index_.push_back(IndexEntry());
+            IndexEntry& si = index_.back();
+            si.source = si.collection = -1;
+            si.index = index_.size() - 1;
+            si.scan = scan;
+            auto frameScanPair = compassDataPtr_->getFrameScanPair(scan);
+            std::back_insert_iterator<std::string> sink(si.id);
+            generate(sink,
+                     "frame=" << int_ << " scan=" << int_,
+                     frameScanPair.first, frameScanPair.second);
+            idToIndexTempMap[si.id] = si.index;
+        }
+    }
     else if (format_ != Reader_Bruker_Format_U2)
     {
         for (size_t scan=1, end=compassDataPtr_->getMSSpectrumCount(); scan <= end; ++scan)
@@ -552,7 +597,10 @@ PWIZ_API_DECL void SpectrumList_Bruker::createIndex()
             si.source = si.collection = -1;
             si.index = index_.size()-1;
             si.scan = scan;
-            si.id = "scan=" + lexical_cast<string>(si.scan);
+            std::back_insert_iterator<std::string> sink(si.id);
+            generate(sink,
+                     "scan=" << int_,
+                     si.scan);
             idToIndexTempMap[si.id] = si.index;
         }
     }
@@ -561,6 +609,41 @@ PWIZ_API_DECL void SpectrumList_Bruker::createIndex()
     idToIndexMap_.insert(boost::container::ordered_unique_range, idToIndexTempMap.begin(), idToIndexTempMap.end());
     size_ = index_.size();
 }
+
+PWIZ_API_DECL bool SpectrumList_Bruker::hasIonMobility() const
+{
+    return format_ == Reader_Bruker_Format_TDF;
+}
+
+PWIZ_API_DECL bool SpectrumList_Bruker::canConvertInverseK0AndCCS() const
+{
+    return format_ == Reader_Bruker_Format_TDF;
+}
+
+// Per email thread Aug 22 2017 bpratt, mattc, Bruker's SvenB:
+// The gas is nitrogen(14.0067 AMU) and the temperature is(according to Sven) assumed to be 305K.
+static const double ccs_conversion_factor = 18509.863216340458;
+static const double MolWeightGas = 14.0067;
+static const double Temperature = 305;
+
+double SpectrumList_Bruker::inverseK0ToCCS(double inverseK0, double mz, int charge) const
+{
+    double MolWeight = mz * abs(charge) + chemistry::Electron * charge;
+    double ReducedMass = MolWeight * MolWeightGas / (MolWeight + MolWeightGas);
+    double K0 = (inverseK0 == 0) ? 0 : (1.0 / inverseK0);
+    double ccs = ccs_conversion_factor * abs(charge) / (sqrt(ReducedMass * Temperature) * K0);
+    return ccs;    // in Angstrom^2
+}
+
+double SpectrumList_Bruker::ccsToInverseK0(double ccs, double mz, int charge) const
+{
+    double MolWeight = mz * abs(charge) + chemistry::Electron * charge;
+    double ReducedMass = MolWeight * MolWeightGas / (MolWeight + MolWeightGas);
+    double K0 = ccs_conversion_factor * abs(charge) / (sqrt(ReducedMass * Temperature) * ccs);
+    return K0 == 0 ? 0 : 1 / K0;    // in Vs/cm^2
+}
+
+
 
 } // detail
 } // msdata
@@ -586,7 +669,10 @@ SpectrumPtr SpectrumList_Bruker::spectrum(size_t index, bool getBinaryData) cons
 SpectrumPtr SpectrumList_Bruker::spectrum(size_t index, DetailLevel detailLevel) const {return SpectrumPtr();}
 SpectrumPtr SpectrumList_Bruker::spectrum(size_t index, bool getBinaryData, const pwiz::util::IntegerSet& msLevelsToCentroid) const {return SpectrumPtr();}
 SpectrumPtr SpectrumList_Bruker::spectrum(size_t index, DetailLevel detailLevel, const pwiz::util::IntegerSet& msLevelsToCentroid) const {return SpectrumPtr();}
-
+bool SpectrumList_Bruker::hasIonMobility() const { return false; }
+bool SpectrumList_Bruker::canConvertInverseK0AndCCS() const { return false; }
+double SpectrumList_Bruker::inverseK0ToCCS(double inverseK0, double mz, int charge) const {return 0;}
+double SpectrumList_Bruker::ccsToInverseK0(double ccs, double mz, int charge) const {return 0;}
 } // detail
 } // msdata
 } // pwiz

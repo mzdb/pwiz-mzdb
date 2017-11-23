@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -47,7 +47,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include "glog/logging.h"
+#include <limits>
 
 namespace ceres {
 
@@ -93,6 +93,17 @@ void AngleAxisToQuaternion(const T* angle_axis, T* quaternion);
 // derivative, higher derivatives may have unexpected results near the origin.
 template<typename T>
 void QuaternionToAngleAxis(const T* quaternion, T* angle_axis);
+
+// Conversions between 3x3 rotation matrix (in column major order) and
+// quaternion rotation representations.  Templated for use with
+// autodifferentiation.
+template <typename T>
+void RotationMatrixToQuaternion(const T* R, T* quaternion);
+
+template <typename T, int row_stride, int col_stride>
+void RotationMatrixToQuaternion(
+    const MatrixAdapter<const T, row_stride, col_stride>& R,
+    T* quaternion);
 
 // Conversions between 3x3 rotation matrix (in column major order) and
 // axis-angle rotation representations.  Templated for use with
@@ -141,11 +152,11 @@ void EulerAnglesToRotationMatrix(
 // the cross-product matrix of [a b c]. Together with the property that
 // R(q1 * q2) = R(q1) * R(q2) this uniquely defines the mapping from q to R.
 //
-// The rotation matrix is row-major.
-//
 // No normalization of the quaternion is performed, i.e.
 // R = ||q||^2 * Q, where Q is an orthonormal matrix
 // such that det(Q) = 1 and Q*Q' = I
+//
+// WARNING: The rotation matrix is ROW MAJOR
 template <typename T> inline
 void QuaternionToScaledRotation(const T q[4], T R[3 * 3]);
 
@@ -156,6 +167,8 @@ void QuaternionToScaledRotation(
 
 // Same as above except that the rotation matrix is normalized by the
 // Frobenius norm, so that R * R' = I (and det(R) = 1).
+//
+// WARNING: The rotation matrix is ROW MAJOR
 template <typename T> inline
 void QuaternionToRotation(const T q[4], T R[3 * 3]);
 
@@ -294,6 +307,46 @@ inline void QuaternionToAngleAxis(const T* quaternion, T* angle_axis) {
   }
 }
 
+template <typename T>
+void RotationMatrixToQuaternion(const T* R, T* angle_axis) {
+  RotationMatrixToQuaternion(ColumnMajorAdapter3x3(R), angle_axis);
+}
+
+// This algorithm comes from "Quaternion Calculus and Fast Animation",
+// Ken Shoemake, 1987 SIGGRAPH course notes
+template <typename T, int row_stride, int col_stride>
+void RotationMatrixToQuaternion(
+    const MatrixAdapter<const T, row_stride, col_stride>& R,
+    T* quaternion) {
+  const T trace = R(0, 0) + R(1, 1) + R(2, 2);
+  if (trace >= 0.0) {
+    T t = sqrt(trace + T(1.0));
+    quaternion[0] = T(0.5) * t;
+    t = T(0.5) / t;
+    quaternion[1] = (R(2, 1) - R(1, 2)) * t;
+    quaternion[2] = (R(0, 2) - R(2, 0)) * t;
+    quaternion[3] = (R(1, 0) - R(0, 1)) * t;
+  } else {
+    int i = 0;
+    if (R(1, 1) > R(0, 0)) {
+      i = 1;
+    }
+
+    if (R(2, 2) > R(i, i)) {
+      i = 2;
+    }
+
+    const int j = (i + 1) % 3;
+    const int k = (j + 1) % 3;
+    T t = sqrt(R(i, i) - R(j, j) - R(k, k) + T(1.0));
+    quaternion[i + 1] = T(0.5) * t;
+    t = T(0.5) / t;
+    quaternion[0] = (R(k, j) - R(j, k)) * t;
+    quaternion[j + 1] = (R(j, i) + R(i, j)) * t;
+    quaternion[k + 1] = (R(k, i) + R(i, k)) * t;
+  }
+}
+
 // The conversion of a rotation matrix to the angle-axis form is
 // numerically problematic when then rotation angle is close to zero
 // or to Pi. The following implementation detects when these two cases
@@ -308,80 +361,10 @@ template <typename T, int row_stride, int col_stride>
 void RotationMatrixToAngleAxis(
     const MatrixAdapter<const T, row_stride, col_stride>& R,
     T* angle_axis) {
-  // x = k * 2 * sin(theta), where k is the axis of rotation.
-  angle_axis[0] = R(2, 1) - R(1, 2);
-  angle_axis[1] = R(0, 2) - R(2, 0);
-  angle_axis[2] = R(1, 0) - R(0, 1);
-
-  static const T kOne = T(1.0);
-  static const T kTwo = T(2.0);
-
-  // Since the right hand side may give numbers just above 1.0 or
-  // below -1.0 leading to atan misbehaving, we threshold.
-  T costheta = std::min(std::max((R(0, 0) + R(1, 1) + R(2, 2) - kOne) / kTwo,
-                                 T(-1.0)),
-                        kOne);
-
-  // sqrt is guaranteed to give non-negative results, so we only
-  // threshold above.
-  T sintheta = std::min(sqrt(angle_axis[0] * angle_axis[0] +
-                             angle_axis[1] * angle_axis[1] +
-                             angle_axis[2] * angle_axis[2]) / kTwo,
-                        kOne);
-
-  // Use the arctan2 to get the right sign on theta
-  const T theta = atan2(sintheta, costheta);
-
-  // Case 1: sin(theta) is large enough, so dividing by it is not a
-  // problem. We do not use abs here, because while jets.h imports
-  // std::abs into the namespace, here in this file, abs resolves to
-  // the int version of the function, which returns zero always.
-  //
-  // We use a threshold much larger then the machine epsilon, because
-  // if sin(theta) is small, not only do we risk overflow but even if
-  // that does not occur, just dividing by a small number will result
-  // in numerical garbage. So we play it safe.
-  static const double kThreshold = 1e-12;
-  if ((sintheta > kThreshold) || (sintheta < -kThreshold)) {
-    const T r = theta / (kTwo * sintheta);
-    for (int i = 0; i < 3; ++i) {
-      angle_axis[i] *= r;
-    }
-    return;
-  }
-
-  // Case 2: theta ~ 0, means sin(theta) ~ theta to a good
-  // approximation.
-  if (costheta > 0.0) {
-    const T kHalf = T(0.5);
-    for (int i = 0; i < 3; ++i) {
-      angle_axis[i] *= kHalf;
-    }
-    return;
-  }
-
-  // Case 3: theta ~ pi, this is the hard case. Since theta is large,
-  // and sin(theta) is small. Dividing by theta by sin(theta) will
-  // either give an overflow or worse still numerically meaningless
-  // results. Thus we use an alternate more complicated formula
-  // here.
-
-  // Since cos(theta) is negative, division by (1-cos(theta)) cannot
-  // overflow.
-  const T inv_one_minus_costheta = kOne / (kOne - costheta);
-
-  // We now compute the absolute value of coordinates of the axis
-  // vector using the diagonal entries of R. To resolve the sign of
-  // these entries, we compare the sign of angle_axis[i]*sin(theta)
-  // with the sign of sin(theta). If they are the same, then
-  // angle_axis[i] should be positive, otherwise negative.
-  for (int i = 0; i < 3; ++i) {
-    angle_axis[i] = theta * sqrt((R(i, i) - costheta) * inv_one_minus_costheta);
-    if (((sintheta < 0.0) && (angle_axis[i] > 0.0)) ||
-        ((sintheta > 0.0) && (angle_axis[i] < 0.0))) {
-      angle_axis[i] = -angle_axis[i];
-    }
-  }
+  T quaternion[4];
+  RotationMatrixToQuaternion(R, quaternion);
+  QuaternionToAngleAxis(quaternion, angle_axis);
+  return;
 }
 
 template <typename T>
@@ -395,7 +378,7 @@ void AngleAxisToRotationMatrix(
     const MatrixAdapter<T, row_stride, col_stride>& R) {
   static const T kOne = T(1.0);
   const T theta2 = DotProduct(angle_axis, angle_axis);
-  if (theta2 > 0.0) {
+  if (theta2 > T(std::numeric_limits<double>::epsilon())) {
     // We want to be careful to only evaluate the square root if the
     // norm of the angle_axis vector is greater than zero. Otherwise
     // we get a division by zero.
@@ -417,15 +400,15 @@ void AngleAxisToRotationMatrix(
     R(1, 2) = -wx*sintheta   + wy*wz*(kOne -    costheta);
     R(2, 2) =     costheta   + wz*wz*(kOne -    costheta);
   } else {
-    // At zero, we switch to using the first order Taylor expansion.
+    // Near zero, we switch to using the first order Taylor expansion.
     R(0, 0) =  kOne;
-    R(1, 0) = -angle_axis[2];
-    R(2, 0) =  angle_axis[1];
-    R(0, 1) =  angle_axis[2];
+    R(1, 0) =  angle_axis[2];
+    R(2, 0) = -angle_axis[1];
+    R(0, 1) = -angle_axis[2];
     R(1, 1) =  kOne;
-    R(2, 1) = -angle_axis[0];
-    R(0, 2) = -angle_axis[1];
-    R(1, 2) =  angle_axis[0];
+    R(2, 1) =  angle_axis[0];
+    R(0, 2) =  angle_axis[1];
+    R(1, 2) = -angle_axis[0];
     R(2, 2) = kOne;
   }
 }
@@ -434,7 +417,6 @@ template <typename T>
 inline void EulerAnglesToRotationMatrix(const T* euler,
                                         const int row_stride_parameter,
                                         T* R) {
-  CHECK_EQ(row_stride_parameter, 3);
   EulerAnglesToRotationMatrix(euler, RowMajorAdapter3x3(R));
 }
 
@@ -512,7 +494,6 @@ void QuaternionToRotation(const T q[4],
   QuaternionToScaledRotation(q, R);
 
   T normalizer = q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
-  CHECK_NE(normalizer, T(0));
   normalizer = T(1) / normalizer;
 
   for (int i = 0; i < 3; ++i) {
@@ -580,12 +561,8 @@ T DotProduct(const T x[3], const T y[3]) {
 
 template<typename T> inline
 void AngleAxisRotatePoint(const T angle_axis[3], const T pt[3], T result[3]) {
-  T w[3];
-  T sintheta;
-  T costheta;
-
   const T theta2 = DotProduct(angle_axis, angle_axis);
-  if (theta2 > 0.0) {
+  if (theta2 > T(std::numeric_limits<double>::epsilon())) {
     // Away from zero, use the rodriguez formula
     //
     //   result = pt costheta +
@@ -597,19 +574,25 @@ void AngleAxisRotatePoint(const T angle_axis[3], const T pt[3], T result[3]) {
     // we get a division by zero.
     //
     const T theta = sqrt(theta2);
-    w[0] = angle_axis[0] / theta;
-    w[1] = angle_axis[1] / theta;
-    w[2] = angle_axis[2] / theta;
-    costheta = cos(theta);
-    sintheta = sin(theta);
-    T w_cross_pt[3];
-    CrossProduct(w, pt, w_cross_pt);
-    T w_dot_pt = DotProduct(w, pt);
-    for (int i = 0; i < 3; ++i) {
-      result[i] = pt[i] * costheta +
-          w_cross_pt[i] * sintheta +
-          w[i] * (T(1.0) - costheta) * w_dot_pt;
-    }
+    const T costheta = cos(theta);
+    const T sintheta = sin(theta);
+    const T theta_inverse = T(1.0) / theta;
+
+    const T w[3] = { angle_axis[0] * theta_inverse,
+                     angle_axis[1] * theta_inverse,
+                     angle_axis[2] * theta_inverse };
+
+    // Explicitly inlined evaluation of the cross product for
+    // performance reasons.
+    const T w_cross_pt[3] = { w[1] * pt[2] - w[2] * pt[1],
+                              w[2] * pt[0] - w[0] * pt[2],
+                              w[0] * pt[1] - w[1] * pt[0] };
+    const T tmp =
+        (w[0] * pt[0] + w[1] * pt[1] + w[2] * pt[2]) * (T(1.0) - costheta);
+
+    result[0] = pt[0] * costheta + w_cross_pt[0] * sintheta + w[0] * tmp;
+    result[1] = pt[1] * costheta + w_cross_pt[1] * sintheta + w[1] * tmp;
+    result[2] = pt[2] * costheta + w_cross_pt[2] * sintheta + w[2] * tmp;
   } else {
     // Near zero, the first order Taylor approximation of the rotation
     // matrix R corresponding to a vector w and angle w is
@@ -623,13 +606,18 @@ void AngleAxisRotatePoint(const T angle_axis[3], const T pt[3], T result[3]) {
     // and actually performing multiplication with the point pt, gives us
     // R * pt = pt + w x pt.
     //
-    // Switching to the Taylor expansion at zero helps avoid all sorts
-    // of numerical nastiness.
-    T w_cross_pt[3];
-    CrossProduct(angle_axis, pt, w_cross_pt);
-    for (int i = 0; i < 3; ++i) {
-      result[i] = pt[i] + w_cross_pt[i];
-    }
+    // Switching to the Taylor expansion near zero provides meaningful
+    // derivatives when evaluated using Jets.
+    //
+    // Explicitly inlined evaluation of the cross product for
+    // performance reasons.
+    const T w_cross_pt[3] = { angle_axis[1] * pt[2] - angle_axis[2] * pt[1],
+                              angle_axis[2] * pt[0] - angle_axis[0] * pt[2],
+                              angle_axis[0] * pt[1] - angle_axis[1] * pt[0] };
+
+    result[0] = pt[0] + w_cross_pt[0];
+    result[1] = pt[1] + w_cross_pt[1];
+    result[2] = pt[2] + w_cross_pt[2];
   }
 }
 

@@ -1,5 +1,5 @@
 //
-// $Id: WiffFileTest.cpp 2735 2011-05-29 05:53:40Z brendanx $
+// $Id: WiffFileTest.cpp 9964 2016-08-09 20:32:10Z chambm $
 //
 // 
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -41,7 +41,7 @@ void test(const string& rawpath)
     int sampleCount = wiffFile->getSampleCount();
     for (int sample=1; sample <= sampleCount; ++sample)
     {
-        cout << "Sample " << sample << " (acquired " << wiffFile->getSampleAcquisitionTime().to_string() << ")" << endl;
+        cout << "Sample " << sample << " (acquired " << wiffFile->getSampleAcquisitionTime(sample, true).to_string() << ")" << endl;
         int periodCount = wiffFile->getPeriodCount(sample);
         for (int period=1; period <= periodCount; ++period)
         {
@@ -114,7 +114,7 @@ void test(const string& rawpath)
 
     for (int sample=1; sample <= sampleCount; ++sample)
     {
-        cout << "Sample " << sample << " (acquired " << wiffFile->getSampleAcquisitionTime().to_string() << ")" << endl;
+        cout << "Sample " << sample << " (acquired " << wiffFile->getSampleAcquisitionTime(sample, true).to_string() << ")" << endl;
 
         typedef map<double, pair<ExperimentPtr, int> > ExperimentAndCycleByTime;
         ExperimentAndCycleByTime experimentAndCycleByTime;

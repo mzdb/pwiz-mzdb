@@ -1,5 +1,5 @@
 //
-// $Id: Reader.cpp 6239 2014-05-24 03:37:45Z chambm $
+// $Id: Reader.cpp 10226 2016-11-29 00:23:37Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -75,7 +75,10 @@ static void copyReaderConfig(pwiz::msdata::Reader::Config& config, ReaderConfig^
     config.simAsSpectra = readerConfig->simAsSpectra;
     config.srmAsSpectra = readerConfig->srmAsSpectra;
     config.acceptZeroLengthSpectra = readerConfig->acceptZeroLengthSpectra;
+    config.ignoreZeroIntensityPoints = readerConfig->ignoreZeroIntensityPoints;
     config.combineIonMobilitySpectra = readerConfig->combineIonMobilitySpectra;
+    config.unknownInstrumentIsError = readerConfig->unknownInstrumentIsError;
+    config.adjustUnknownTimeZonesToHostTimeZone = readerConfig->adjustUnknownTimeZonesToHostTimeZone;
 }
 
 void Reader::read(System::String^ filename, System::String^ head, MSData^ result, int sampleIndex, ReaderConfig^ readerConfig)

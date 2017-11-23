@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_PeakPicker.hpp 6389 2014-06-13 19:46:19Z frenchwr $
+// $Id: SpectrumList_PeakPicker.hpp 9035 2015-10-24 18:58:07Z pcbrefugee $
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -56,6 +56,13 @@ class PWIZ_API_DECL SpectrumList_PeakPicker : public msdata::SpectrumListWrapper
     const util::IntegerSet msLevelsToPeakPick_;
     int mode_;
 };
+
+class PWIZ_API_DECL NoVendorPeakPickingException : public std::runtime_error
+{
+    public:
+    NoVendorPeakPickingException() : std::runtime_error("[PeakDetector::NoVendorPeakPickingException]") {}
+};
+
 
 
 } // namespace analysis 

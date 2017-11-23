@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Waters.cpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id: Reader_Waters.cpp 10444 2017-02-07 19:32:21Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -106,6 +106,10 @@ void fillInMetadata(const string& rawpath, RawDataPtr rawdata, MSData& msd)
         if (find(functionFilepaths.begin(), functionFilepaths.end(), itr->path()) != functionFilepaths.end())
             continue;
 
+        // skip lockmass cache
+        if (bal::iends_with(itr->path().string(), "lmgt.inf"))
+            continue;
+
         bfs::path sourcePath = itr->path();
         SourceFilePtr sourceFile(new SourceFile);
         sourceFile->id = BFS_STRING(sourcePath.leaf());
@@ -171,6 +175,13 @@ void Reader_Waters::read(const string& filename,
 {
     if (runIndex != 0)
         throw ReaderFail("[Reader_Waters::read] multiple runs not supported");
+
+    string::const_iterator unicodeCharItr = std::find_if(filename.begin(), filename.end(), [](char ch) { return !isprint(ch) || static_cast<int>(ch) < 0; });
+    if (unicodeCharItr != filename.end())
+    {
+        auto utf8CharAsString = [](string::const_iterator ch, string::const_iterator end) { string utf8; while (ch != end && *ch < 0) { utf8 += *ch; ++ch; }; return utf8; };
+        throw ReaderFail(string("[Reader_Waters::read()] Waters API does not support Unicode in filepaths ('") + utf8CharAsString(unicodeCharItr, filename.end()) + "')");
+    }
 
     RawDataPtr rawdata = RawDataPtr(new RawData(filename));
 

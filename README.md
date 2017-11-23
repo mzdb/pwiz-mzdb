@@ -14,6 +14,14 @@ For details about mzDB concepts (scanSlice, runSlice...) and specifications, hav
 <br/>
 </div>
 
+## Supported file formats
+
+Raw2MzDB currently supports the following formats:
+* Thermo Raw files
+* AB Sciex Wiff files
+* Bruker Baf files (warning: conversion of profile spectra into fitted mode does not work well, please avoid it for the moment)
+* mzML files (warning: conversion of profile spectra into fitted mode does not work well, please avoid it for the moment)
+
 ## Roadmap
 
 ### Roadmap v1.0
@@ -26,7 +34,8 @@ Improvements
 - [ ] Add acquisition method parameters for AB Sciex and Bruker data (#43)
 - [ ] Add FK constraints (set "PRAGMA foreign_keys = ON" after sqlite3_open) + see "DEFERRABLE INITIALLY DEFERRED" change below (#44)
 - [ ] Evaluate the performance benefits of "PRAGMA optimize;" (https://sqlite.org/pragma.html#pragma_optimize)
-- [ ] Update ProteoWizard libraries (#45)
+- [ ] Better support of mzML files  (#63)
+- [x] Update ProteoWizard libraries (#45)
 - [x] Update SQLite library (#46)
 
 Database schema
@@ -164,21 +173,21 @@ Options:
 
 #### Build from command line
 
-Recent ongoing developement where only tested on Windows using MSVC 2010 Ultimate version. 
-Compilation on Linux may require some code corrections for the moment. We plan to be cross-platform very soon.
+The current project uses the MSVC compiler provided in the "Visual Studio Express 2013 for Windows desktop".
+Compilation on Linux may require some code corrections for the moment. We plan to be cross-platform some day.
 
 After installing Visual Studio, check following points : 
-- Visual Studio path is added to system environment path : *C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin* 
+- Visual Studio path is added to system environment path : *C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin* 
 - If you are using 64-bit operating system : allow the cross compilation : 
 	- open commandline : Win+R, type *cmd*
-	- go to *Microsoft Visual Studio 10.0\VC* : <code>cd C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC</code>
-	- execute <code>vcvarsall.bat x86_amd64</code> , you should have <code>Setting environment for using Microsoft Visual Studio 2010 x64 cross tools.</code> message. 
+	- go to *Microsoft Visual Studio 12.0\VC* : <code>cd C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC</code>
+	- execute <code>vcvarsall.bat x86_amd64</code> , you should have <code>Setting environment for using Microsoft Visual Studio 2013 x64 cross tools.</code> message. 
 
 In order to build with *bjam*:
-* Unzip pwiz-mzdb-lib.zip file (containing project dependencies as static compiled libraries) located in <code>project_root/pwiz_mzdb/mzdb/lib</code> directory. (You can also download it [here](https://github.com/mzdb/pwiz-mzdb/releases/download/v0.9.8/pwiz-mzdb-lib.zip) if not exist)
+* Unzip pwiz-mzdb-lib.zip file (containing project dependencies as static compiled libraries) located in <code>project_root/pwiz_mzdb/mzdb/lib</code> directory.
 * Then run the script *raw2mzDB_quickbuild.bat* from the project root
 * Or else, run the following command from the project root: <br/>
-<code>quickbuild -j8 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses --incremental</code>
+<code>quickbuild -j8 toolset=msvc-12.0 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses --incremental</code>
 * *--incremental* is not mandatory but it speeds up the compilation process
 
 **raw2mzdb.exe** file is generated in :

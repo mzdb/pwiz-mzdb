@@ -24,8 +24,6 @@
 #ifndef MZBBINSERTER_H
 #define MZBBINSERTER_H
 
-#include "../lib/sqlite3/sqlite3.h"
-
 #include "bb_computer.hpp"
 #include "mzDBFile.h"
 

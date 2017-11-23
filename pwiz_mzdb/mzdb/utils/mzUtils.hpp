@@ -24,6 +24,8 @@
 #ifndef MZUTILS_HPP
 #define MZUTILS_HPP
 
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+
 #include <iostream>
 #include <math.h>
 #include <set>
@@ -33,6 +35,9 @@
 #include "pwiz/data/msdata/MSData.hpp"
 #include "pwiz/analysis/peakdetect/PeakFamilyDetectorFT.hpp"
 #include "pwiz/analysis/spectrum_processing/PrecursorRecalculatorDefault.hpp"
+
+#include "libraries/SQLite/sqlite3.h"
+#include "glog/logging.h"
 
 // next two lines are required for the genericUtils namespace
 //#include "windows.h"

@@ -1,0 +1,14 @@
+
+make .libs/libexpat.a 
+  : # inputs
+  : # command
+    @buildexpat
+  : <location>.
+;
+
+actions buildexpat
+{
+    ./configure
+    make
+}
+

@@ -1,5 +1,5 @@
 //
-// $Id: PrecursorMassFilter.cpp 5091 2013-10-30 20:02:10Z chambm $
+// $Id: PrecursorMassFilter.cpp 11567 2017-11-09 23:53:32Z chambm $
 //
 //
 // Original author: Chris Paulse <cpaulse <a.t> systemsbiology.org>
@@ -141,7 +141,7 @@ void PrecursorMassFilter::Impl::filter(const SpectrumPtr& spectrum) const
                         if (reducedChargeMZ < upperMassRange)
                             filterMassList.push_back(PrecursorReferenceMass(PrecursorReferenceMass::ChargeReducedPrecursor, reducedChargeMZ, reducedCharge));
 
-                        BOOST_FOREACH(const chemistry::Formula& neutralLoss, params.neutralLossSpecies)
+                        for(const chemistry::Formula& neutralLoss : params.neutralLossSpecies)
                         {
                             double neutralLossMZ = Ion::mz(neutralMass - neutralLoss.monoisotopicMass(), charge, electronDelta);
                             if (neutralLossMZ < upperMassRange)
@@ -163,7 +163,7 @@ void PrecursorMassFilter::Impl::filter(const SpectrumPtr& spectrum) const
         int iLowerBound = 0;
         int iUpperBound = 0;
 
-        BOOST_FOREACH(const PrecursorReferenceMass& mass, filterMassList)
+        for(const PrecursorReferenceMass& mass : filterMassList)
         {
             MZTolerance matchingToleranceLeft = 0;
             MZTolerance matchingToleranceRight = 0;
@@ -250,7 +250,7 @@ PWIZ_API_DECL void PrecursorMassFilter::describe(ProcessingMethod& method) const
 }
 
 
-PWIZ_API_DECL void PrecursorMassFilter::operator () (const SpectrumPtr spectrum) const
+PWIZ_API_DECL void PrecursorMassFilter::operator () (const SpectrumPtr& spectrum) const
 {
     if (spectrum->defaultArrayLength > 0 &&
         spectrum->cvParam(MS_ms_level).valueAs<int>() > 1 &&

@@ -1,5 +1,5 @@
 //
-// $Id: RAMPAdapter.cpp 3112 2011-11-09 19:42:29Z pcbrefugee $
+// $Id: RAMPAdapter.cpp 10328 2017-01-05 18:54:28Z pcbrefugee $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -137,13 +137,28 @@ void RAMPAdapter::Impl::getScanHeader(size_t index, ScanHeaderStruct& result, bo
     result.seqNum = static_cast<int>(index + 1);
     result.acquisitionNum = getScanNumber(index);
     result.msLevel = spectrum->cvParam(MS_ms_level).valueAs<int>();
+    if (result.msLevel>1)
+    {
+        CVParam dissociationMethod = spectrum->precursors[0].activation.cvParamChild(MS_dissociation_method);
+        string dissociationMethodName;
+        if (!(dissociationMethod.empty()))
+            dissociationMethodName = dissociationMethod.name();
+        int len = min((int)dissociationMethodName.length(), SCANTYPE_LENGTH - 1);
+        dissociationMethodName.copy(result.activationMethod, len);
+        result.activationMethod[len] = 0; // string.copy does not null terminate
+    }
+    else
+    {
+        result.activationMethod[0] = 0;
+    }
+
     result.peaksCount = static_cast<int>(spectrum->defaultArrayLength);
     result.totIonCurrent = spectrum->cvParam(MS_total_ion_current).valueAs<double>();
     result.retentionTime = scan.cvParam(MS_scan_start_time).timeInSeconds();
     result.basePeakMZ = spectrum->cvParam(MS_base_peak_m_z).valueAs<double>();    
     result.basePeakIntensity = spectrum->cvParam(MS_base_peak_intensity).valueAs<double>();    
     result.collisionEnergy = 0;
-    result.ionisationEnergy = spectrum->cvParam(MS_ionization_energy).valueAs<double>();
+    result.ionisationEnergy = spectrum->cvParam(MS_ionization_energy_OBSOLETE).valueAs<double>();
     result.lowMZ = spectrum->cvParam(MS_lowest_observed_m_z).valueAs<double>();        
     result.highMZ = spectrum->cvParam(MS_highest_observed_m_z).valueAs<double>();        
     result.precursorScanNum = 0;

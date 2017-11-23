@@ -1,5 +1,5 @@
 //
-// $Id: IterationListener.hpp 2626 2011-04-12 15:18:16Z chambm $
+// $Id: IterationListener.hpp 10827 2017-05-11 21:01:58Z chambm $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -40,6 +40,7 @@ class PWIZ_API_DECL IterationListener
     public:
 
     enum Status {Status_Ok, Status_Cancel};
+    static std::string no_message;
 
     struct UpdateMessage
     {
@@ -47,7 +48,7 @@ class PWIZ_API_DECL IterationListener
         size_t iterationCount; // 0 == unknown
         const std::string& message;
 
-        UpdateMessage(size_t index, size_t count, const std::string& message = std::string()) 
+        UpdateMessage(size_t index, size_t count, const std::string& message = no_message)
         :   iterationIndex(index), iterationCount(count), message(message)
         {}
     };

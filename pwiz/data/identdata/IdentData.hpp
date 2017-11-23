@@ -1,5 +1,5 @@
 //
-// $Id: IdentData.hpp 6909 2014-11-19 17:18:29Z chambm $
+// $Id: IdentData.hpp 8868 2015-09-22 20:51:26Z kaipot $
 //
 //
 // Original author: Robert Burke <robert.burke@proteowizard.org>
@@ -740,7 +740,7 @@ TYPEDEF_SHARED_PTR(SpectrumIdentificationResult);
 ///
 /// Represents the set of all search results from
 /// SpectrumIdentification.
-struct PWIZ_API_DECL SpectrumIdentificationList : public Identifiable
+struct PWIZ_API_DECL SpectrumIdentificationList : public IdentifiableParamContainer
 {
     SpectrumIdentificationList(const std::string& id_ = "",
                                const std::string& name_ = "");

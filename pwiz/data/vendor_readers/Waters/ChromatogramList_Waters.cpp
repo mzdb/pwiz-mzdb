@@ -1,5 +1,5 @@
 //
-// $Id: ChromatogramList_Waters.cpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id: ChromatogramList_Waters.cpp 9575 2016-04-18 18:42:56Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -94,6 +94,13 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_Waters::chromatogram(size_t index
     result->id = ie.id;
     result->set(ie.chromatogramType);
 
+    if (ie.function >= 0)
+    {
+        PwizPolarityType polarityType = WatersToPwizPolarityType(rawdata_->Info.GetIonMode(ie.function));
+        if (polarityType != PolarityType_Unknown)
+            result->set(translate(polarityType));
+    }
+
     switch (ie.chromatogramType)
     {
         case MS_TIC_chromatogram:
@@ -156,6 +163,28 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_Waters::chromatogram(size_t index
             }
         }
         break;
+
+        case MS_SIM_chromatogram:
+        {
+            result->precursor.isolationWindow.set(MS_isolation_window_target_m_z, ie.Q1, MS_m_z);
+            //result->precursor.isolationWindow.set(MS_isolation_window_lower_offset, ie.q1, MS_m_z);
+            //result->precursor.isolationWindow.set(MS_isolation_window_upper_offset, ie.q1, MS_m_z);
+            result->precursor.activation.set(MS_CID);
+
+            result->setTimeIntensityArrays(std::vector<double>(), std::vector<double>(), UO_minute, MS_number_of_detector_counts);
+
+            vector<float> times;
+            vector<float> intensities;
+            rawdata_->ChromatogramReader.ReadMRMChromatogram(ie.function, ie.offset, times, intensities);
+            result->defaultArrayLength = times.size();
+
+            if (getBinaryData)
+            {
+                result->getTimeArray()->data.assign(times.begin(), times.end());
+                result->getIntensityArray()->data.assign(intensities.begin(), intensities.end());
+            }
+        }
+        break;
     }
 
     return result;
@@ -168,6 +197,7 @@ PWIZ_API_DECL void ChromatogramList_Waters::createIndex() const
     IndexEntry& ie = index_.back();
     ie.index = index_.size()-1;
     ie.id = "TIC";
+    ie.function = -1;
     ie.chromatogramType = MS_TIC_chromatogram;
     idToIndexMap_[ie.id] = ie.index;
 
@@ -183,7 +213,7 @@ PWIZ_API_DECL void ChromatogramList_Waters::createIndex() const
             continue;
         }
 
-        if (spectrumType != MS_SRM_spectrum)
+        if (spectrumType != MS_SRM_spectrum && spectrumType != MS_SIM_spectrum)
             continue;
 
         //rawdata_->Info.GetAcquisitionTimeRange(function, f1, f2);
@@ -192,22 +222,39 @@ PWIZ_API_DECL void ChromatogramList_Waters::createIndex() const
         vector<float> precursorMZs, productMZs, intensities;
         rawdata_->ScanReader.readSpectrum(function, 1, precursorMZs, intensities, productMZs);
 
+        if (spectrumType == MS_SRM_spectrum && productMZs.size() != precursorMZs.size())
+            throw runtime_error("[ChromatogramList_Waters::createIndex] MRM function " + lexical_cast<string>(function+1) + " has mismatch between product m/z count (" + lexical_cast<string>(productMZs.size()) + ") and precursor m/z count (" + lexical_cast<string>(precursorMZs.size()) + ")");
+
         for (size_t i=0; i < precursorMZs.size(); ++i)
         {
             index_.push_back(IndexEntry());
             IndexEntry& ie = index_.back();
-            ie.chromatogramType = MS_SRM_chromatogram;
             ie.index = index_.size()-1;
             ie.function = function;
             ie.offset = i;
             ie.Q1 = precursorMZs[i];
-            ie.Q3 = productMZs[i];
 
             std::ostringstream oss;
-            oss << "SRM SIC Q1=" << ie.Q1 <<
-                   " Q3=" << ie.Q3 <<
-                   " function=" << (function+1) <<
-                   " offset=" << ie.offset;
+
+            if (spectrumType == MS_SRM_spectrum)
+            {
+                ie.Q3 = productMZs[i];
+                ie.chromatogramType = MS_SRM_chromatogram;
+                oss << polarityStringForFilter((WatersToPwizPolarityType(rawdata_->Info.GetIonMode(ie.function)) == PolarityType_Negative) ? MS_negative_scan : MS_positive_scan) <<
+                       "SRM SIC Q1=" << ie.Q1 <<
+                       " Q3=" << ie.Q3 <<
+                       " function=" << (function + 1) <<
+                       " offset=" << ie.offset;
+            }
+            else
+            {
+                ie.Q3 = 0;
+                ie.chromatogramType = MS_SIM_chromatogram;
+                oss << "SIM SIC Q1=" << ie.Q1 <<
+                       " function=" << (function + 1) <<
+                       " offset=" << ie.offset;
+            }
+
             ie.id = oss.str();
             idToIndexMap_[ie.id] = ie.index;
         }

@@ -1,5 +1,5 @@
 //
-// $Id: Reader_ABI_Detail.hpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id: Reader_ABI_Detail.hpp 8903 2015-09-29 18:17:40Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -38,7 +38,7 @@ namespace ABI {
 using namespace pwiz::vendor_api::ABI;
 
 PWIZ_API_DECL
-InstrumentConfigurationPtr translateAsInstrumentConfiguration(WiffFilePtr wifffile);
+InstrumentConfigurationPtr translateAsInstrumentConfiguration(InstrumentModel instrumentModel, IonSourceType ionSource);
 
 PWIZ_API_DECL CVID translateAsInstrumentModel(InstrumentModel instrumentModel);
 PWIZ_API_DECL CVID translateAsIonSource(IonSourceType ionSourceType);

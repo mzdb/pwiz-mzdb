@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_Bruker.hpp 6979 2014-12-09 16:15:35Z chambm $
+// $Id: SpectrumList_Bruker.hpp 11505 2017-10-24 23:02:54Z pcbrefugee $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -54,6 +54,10 @@ class PWIZ_API_DECL SpectrumList_Bruker : public SpectrumListBase
     virtual SpectrumPtr spectrum(size_t index, DetailLevel detailLevel) const;
     virtual SpectrumPtr spectrum(size_t index, bool getBinaryData, const pwiz::util::IntegerSet& msLevelsToCentroid) const;
     virtual SpectrumPtr spectrum(size_t index, DetailLevel detailLevel, const pwiz::util::IntegerSet& msLevelsToCentroid) const;
+    virtual bool hasIonMobility() const;
+    virtual bool canConvertInverseK0AndCCS() const;
+    virtual double inverseK0ToCCS(double inverseK0, double mz, int charge) const;
+    virtual double ccsToInverseK0(double ccs, double mz, int charge) const;
 
 #ifdef PWIZ_READER_BRUKER
     SpectrumList_Bruker(MSData& msd,

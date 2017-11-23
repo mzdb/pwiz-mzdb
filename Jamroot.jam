@@ -1,5 +1,5 @@
 #
-# $Id: Jamroot.jam 7320 2015-03-18 17:54:26Z chambm $
+# $Id: Jamroot.jam 11391 2017-09-18 16:34:05Z chambm $
 #
 #
 # Original author: Darren Kessner <darren@proteowizard.org>
@@ -49,13 +49,23 @@ ECHO
 #                           tarballs - useful after your initial build
 #
 #   --without-mz5           Build without mz5 support
+#   --without-agilent       Build without Agilent support
+#   --without-bruker        Build without Bruker support
+#   --without-sciex         Build without Sciex support
+#   --without-shimadzu      Build without Shimadzu support
+#   --without-thermo        Build without Thermo support
+#   --without-waters        Build without Waters support
 #
 #   --without-binary-msdata Build with support for mass spec text formats only
 #                           (mzML, mzXML, MGF, etc - no binary formats
 #                           like mz5 or vendor-specifics )
 #
+#   There are some aliases to build commonly used subsets of pwiz:
 #
-#   If you just want to build a subset of pwiz, add a target to 
+#   msconvert (just the command-line executable, copied to <BUILD_DIR>/<TOOLSET_DIR>)
+#   executables (all the pwiz core tools, copied to <BUILD_DIR>/<TOOLSET_DIR>)
+#
+#   If you just want to build a specific subset of pwiz, add a target to 
 # your command line.  For example to build just the msdata file 
 # read/write stuff, add:
 #
@@ -177,6 +187,9 @@ import path ; # needed for glob, exists, etc.
 import project ; # needed for project.current
 import errors ;
 
+modules.poke : BOOST_BUILD_PATH : [ modules.peek : BOOST_BUILD_PATH ] $(PWIZ_LIBRARIES_PATH)/predef/check ;
+import $(PWIZ_LIBRARIES_PATH)/predef/check/predef : require check : predef-require predef-check ;
+
 
 if --teamcity-test-decoration in [ modules.peek : ARGV ]
 {
@@ -229,6 +242,24 @@ rule mz5-build ( itemname )
     }
 }
 
+
+if ! [ modules.peek : NT ]
+{
+    # make msbuild targets a no-op
+    rule msbuild ( name : sources * : requirements * : default-build * : usage-requirements * )
+    {
+    }
+
+    PREDEF_CHECKS = 
+    # starting with gcc 4.8, gcc is extremely verbose about unused typedefs; heavily used in Boost concept checks
+    [ predef-check "BOOST_COMP_GNUC >= 4.8" : : <cxxflags>-Wno-unused-local-typedefs ]
+
+    # starting with gcc 4.9, gcc offers colored diagnostic messages, helpful when looking for an elusive "error" message in a sea of warning spam
+    [ predef-check "BOOST_COMP_GNUC >= 4.9" : : <cxxflags>-fdiagnostics-color=always ]
+    ;
+}
+
+
 project pwiz 
     : requirements 
         <include>$(PWIZ_ROOT_PATH)
@@ -258,12 +289,11 @@ project pwiz
         <toolset>msvc:<cxxflags>/wd4701                 # warning: potentially uninitialized local variable 'result' used (boost::lexical_cast, debug)
         <toolset>msvc:<cxxflags>/wd4245                 # warning: conversion from 'type1' to 'type2', signed/unsigned mismatch (boost/filesystem/convenience.hpp)
         <toolset>msvc:<cxxflags>/wd4251                 # warning: class needs to have dll-interface to be used by clients of class
-        <toolset>msvc:<cxxflags>/wd4267                    # warning: conversion from 'type1' to 'type2', possible loss of data (boost::lexical_cast)
+        <toolset>msvc:<cxxflags>/wd4267                 # warning: conversion from 'type1' to 'type2', possible loss of data (boost::lexical_cast)
         <toolset>msvc:<cxxflags>/wd4244                 # warning: conversion from 'int' to 'unsigned short', possible loss of data (boost/date_time/microsec_time_clock.hpp)
         <toolset>msvc:<cxxflags>/wd4275                 # warning: non dll-interface class 'base' used as base for dll-interface class 'derived'
         <toolset>msvc:<cxxflags>/wd4702                 # warning: unreachable code (boost::lexical_cast)
-        #just test to handle SE exception
-        <toolset>msvc:<cxxflags>"/EHa"
+        <toolset>msvc:<cxxflags>/wd4714                 # warning: marked as __forceinline not inlined (boost::spirit::karma::sequence)
         <toolset>msvc,<debug-symbols>off:<linkflags>/OPT:REF,ICF
         <toolset>msvc,<toolset-msvc:version>12.0:<define>_HAS_TR1
         
@@ -273,9 +303,11 @@ project pwiz
         # warning: '__cur' might be used uninitialized in this function 
         <toolset>gcc:<cxxflags>-Wno-uninitialized
 
-        # starting with gcc 4.8, gcc is extremely verbose about unused typedefs; heavily used in Boost concept checks
-        <toolset>gcc:<cxxflags>-Wno-unused-local-typedefs
+        # set standard to C++11
+        <toolset>gcc:<cxxflags>-std=c++11
 
+        $(PREDEF_CHECKS)
+        
         # special Cygwin gcc-3.4.4 hack
         # linker "multiple definition" error on inclusion of boost-1.34.1 filesystem headers  
         <toolset>gcc-3.4.4:<linkflags>-Wl,--allow-multiple-definition
@@ -285,8 +317,8 @@ project pwiz
         # allow "long long" even with -pedantic
         <toolset>gcc:<cxxflags>-Wno-long-long
         <toolset>darwin:<cxxflags>-Wno-long-long
-	<toolset>darwin:<cxxflags>-std=c++11
-	<toolset>clang:<cxxflags>-std=c++11
+        <toolset>darwin:<cxxflags>-std=c++11
+        <toolset>clang:<cxxflags>-std=c++11
 
         # any GCC executable that uses shared libraries must have all its code built with -fPIC
         <conditional>@static-with-fpic
@@ -344,7 +376,6 @@ alias svm : $(PWIZ_LIBRARIES_PATH)/libsvm-3.0//svm ;
 
 modules.poke : BOOST_BUILD_PATH : [ modules.peek : BOOST_BUILD_PATH ] $(PWIZ_LIBRARIES_PATH) ;
 
-
 # get version info (used for tarball filenames)
 import svnrev ;
 import generate-version ;
@@ -360,13 +391,19 @@ generate-version.cpp $(PWIZ_ROOT_PATH)/pwiz/data/msdata/Version.cpp : pwiz msdat
                 $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers/ABI/T2D
                 $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers/Agilent
                 $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers/Bruker
-                $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers/Waters
+                $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers/Shimadzu
                 $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers/Thermo
+                $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers/UIMF
+                $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers/UNIFI
+                $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers/Waters
                 $(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/ABI
                 $(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/ABI/T2D
                 $(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/Agilent
                 $(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/Bruker
+                $(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/Shimadzu
                 $(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/thermo
+                $(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/UIMF
+                $(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/UNIFI
                 $(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/Waters
        : *.?pp *.h Jamfile.jam *.manifest* : Version.cpp
     ] ;
@@ -448,8 +485,8 @@ echo ProteoWizard $(version-tag:J=.) $(PWIZ_SVNREVDATE:J=) $(PLATFORM) $(PROCESS
 
 # create a VERSION file which can be used by TC to parse the canonical pwiz version
 make VERSION : : @make_VERSION : <location>$(PWIZ_BUILD_PATH) ;
-actions make_VERSION { @($(STDOUT):E=$(version-tag:J=.)) > "$(<)" }
-
+actions make_VERSION { @($(STDOUT):E=$(version-tag:]=.)) > "$(<)" }
+#actions make_VERSION { @($(STDOUT):E=$(version-tag:]=.)) > "$(<)" ; @($(STDOUT):E=<version>$(version-tag:J=.)</version>) > "$(PWIZ_BUILD_PATH)/VERSION.xml" }
 
 import tar ;
 using tar ;
@@ -471,19 +508,21 @@ using ext-boost : $(BOOST_VERSION:J=.) : $(BOOST_SOURCE) : <zlib-src-location>$(
 if [ modules.peek : NT ]
 {
     import path ;
-    
-    if ( ! --incremental in [ modules.peek : ARGV ] ) && ! [ without-binary-msdata ]
+    local args = [ modules.peek : ARGV ] ;
+
+    if ( ! --incremental in $(args) ) && ! [ without-binary-msdata ]
     {
         # extract the vendor APIs if the user agrees to the licenses
-        if --i-agree-to-the-vendor-licenses in [ modules.peek : ARGV ]
+        if --i-agree-to-the-vendor-licenses in $(args)
         {
             echo "Extracting vendor APIs..." ;
-            SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_ABI.7z" ;
-            SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_Agilent.7z" ;
-            SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_Bruker.7z" ;
-            SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_Shimadzu.7z" ;
-            SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_Thermo.7z" ;
-            SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_Waters.7z" ;
+            if ! --without-sciex in $(args) { SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_ABI.7z" ; }
+            if ! --without-agilent in $(args) { SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_Agilent.7z" ; }
+            if ! --without-bruker in $(args) { SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_Bruker.7z" ; }
+            if ! --without-shimadzu in $(args) { SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_Shimadzu.7z" ; }
+            if ! --without-thermo in $(args) { SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_Thermo.7z" ; }
+            #if ! --without-unifi in $(args) { SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_UNIFI.7z" ; }
+            if ! --without-waters in $(args) { SHELL "$(PWIZ_LIBRARIES_PATH)\\7za.exe x -aoa -pi-agree-to-the-vendor-licenses -o$(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility $(PWIZ_ROOT_PATH)\\pwiz_aux\\msrc\\utility\\vendor_api_Waters.7z" ; }
             RESCAN ;
         }
         else
@@ -562,6 +601,12 @@ rule unit-test-if-exists ( target : sources + : properties * )
 }
 
 
+rule doctest ( name : sources + : requirements * )
+{
+    unit-test-if-exists $(name) : $(sources) : $(requirements) <define>PWIZ_DOCTEST <location-prefix>doctest ;
+}
+
+
 # build/install
 
 build-project-if-exists pwiz ;
@@ -590,31 +635,39 @@ rule install-type ( properties * )
     return $(result) ;
 }
 
+import string ;
 rule install-vendor-api-dependencies ( properties * )
 {
     properties = $(properties) [ vendor-api-support $(properties) ] ;
-    local location = [ install-location $(properties) ] ;
+    local location = [ feature.get-values <location> : $(properties) ] ;
+    if $(location) { location = [ string.join <location> [ path.make $(location[1]) ] ] ; }
+    location ?= [ install-location $(properties) ] ;
+
     local dependencies ;
     if <toolset>msvc in $(properties) && <link>static in $(properties) && ! [ without-binary-msdata ]
     {
-        if [ path.exists pwiz_aux/msrc/utility/vendor_api/ABI ] { dependencies += <dependency>pwiz_aux/msrc/utility/vendor_api/ABI//install_pwiz_vendor_api_abi/$(location) ; }
-        if [ path.exists pwiz_aux/msrc/utility/vendor_api/ABI/T2D ] { dependencies += <dependency>pwiz_aux/msrc/utility/vendor_api/ABI/T2D//install_pwiz_vendor_api_abi_t2d/$(location) ; }
-        if [ path.exists pwiz_aux/msrc/utility/vendor_api/Agilent ] { dependencies += <dependency>pwiz_aux/msrc/utility/vendor_api/Agilent//install_pwiz_vendor_api_agilent/$(location) ; }
-        if [ path.exists pwiz_aux/msrc/utility/vendor_api/Bruker ] { dependencies += <dependency>pwiz_aux/msrc/utility/vendor_api/Bruker//install_pwiz_vendor_api_bruker/$(location) ; }
-        if [ path.exists pwiz_aux/msrc/utility/vendor_api/Shimadzu ] { dependencies += <dependency>pwiz_aux/msrc/utility/vendor_api/Shimadzu//install_pwiz_vendor_api_shimadzu/$(location) ; }
-        if [ path.exists pwiz_aux/msrc/utility/vendor_api/thermo ] { dependencies += <dependency>pwiz_aux/msrc/utility/vendor_api/thermo//install_pwiz_vendor_api_thermo/$(location) ; }
-        if [ path.exists pwiz_aux/msrc/utility/vendor_api/UIMF ] { dependencies += <dependency>pwiz_aux/msrc/utility/vendor_api/UIMF//install_pwiz_vendor_api_uimf/$(location) ; }
-        if [ path.exists pwiz_aux/msrc/utility/vendor_api/Waters ] { dependencies += <dependency>pwiz_aux/msrc/utility/vendor_api/Waters//install_pwiz_vendor_api_waters/$(location) ; }
-        if <vendor-api-support>on in $(properties) { dependencies += <dependency>pwiz_tools/prototype//ThermoRawMetaDumpInstall/$(location) ; }
+        if [ path.exists pwiz_aux/msrc/utility/vendor_api/ABI ] { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/ABI//install_pwiz_vendor_api_abi_dlls/$(location) ; }
+        if [ path.exists pwiz_aux/msrc/utility/vendor_api/ABI ] { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/ABI//install_pwiz_vendor_api_abi_sqlite/$(location) ; }
+        if [ path.exists pwiz_aux/msrc/utility/vendor_api/ABI/T2D ] { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/ABI/T2D//install_pwiz_vendor_api_abi_t2d/$(location) ; }
+        if [ path.exists pwiz_aux/msrc/utility/vendor_api/Agilent ] { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/Agilent//install_pwiz_vendor_api_agilent/$(location) ; }
+        if [ path.exists pwiz_aux/msrc/utility/vendor_api/Bruker ] { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/Bruker//install_pwiz_vendor_api_bruker/$(location) ; }
+        if [ path.exists pwiz_aux/msrc/utility/vendor_api/Shimadzu ] { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/Shimadzu//install_pwiz_vendor_api_shimadzu/$(location) ; }
+        if [ path.exists pwiz_aux/msrc/utility/vendor_api/thermo ] { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/thermo//install_pwiz_vendor_api_thermo/$(location) ; }
+        if [ path.exists pwiz_aux/msrc/utility/vendor_api/UIMF ] { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/UIMF//install_pwiz_vendor_api_uimf/$(location) ; }
+        if [ path.exists pwiz_aux/msrc/utility/vendor_api/UNIFI ] { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/UNIFI//install_pwiz_vendor_api_unifi/$(location) ; }
+        if [ path.exists pwiz_aux/msrc/utility/vendor_api/Waters ] { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz_aux/msrc/utility/vendor_api/Waters//install_pwiz_vendor_api_waters/$(location) ; }
+        if <vendor-api-support>on in $(properties) { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz_tools/prototype//ThermoRawMetaDumpInstall/$(location) ; }
     }
     return $(dependencies) ;
 }
 
 rule install-identdata-dependencies ( properties * )
 {
-    local location = [ install-location $(properties) ] ;
+    local location = [ feature.get-values <location> : $(properties) ] ;
+    if $(location) { location = [ string.join <location> [ path.make $(location[1]) ] ] ; }
+    location ?= [ install-location $(properties) ] ;
     local dependencies ;
-    if [ path.exists pwiz/data/identdata ] { dependencies += <dependency>pwiz/data/identdata//install_pwiz_identdata/$(location) ; }
+    if [ path.exists pwiz/data/identdata ] { dependencies += <dependency>$(PWIZ_ROOT_PATH)/pwiz/data/identdata//install_pwiz_identdata/$(location) ; }
     return $(dependencies) ;
 }
 
@@ -635,8 +688,8 @@ rule dotNET-dependencies ( properties * )
     if <toolset-msvc:version>12.0 in $(properties)
     {
         local location = [ install-location $(properties) ] ;
-        return <dependency>pwiz_tools/MSConvertGUI//MSConvertGUI.exe/$(location)
-               <dependency>pwiz_tools/SeeMS//seems.exe/$(location) ;
+        return <dependency>$(PWIZ_ROOT_PATH)/pwiz_tools/MSConvertGUI//MSConvertGUI.exe/$(location)
+               <dependency>$(PWIZ_ROOT_PATH)/pwiz_tools/SeeMS//seems/$(location) ;
     }
 }
 
@@ -662,6 +715,15 @@ install executables
       <dependency>VERSION
     ;
 
+install gui_tools
+    : VERSION
+    : <conditional>@install-type
+      <conditional>@install-location
+      <conditional>@install-identdata-dependencies
+      <conditional>@install-vendor-api-dependencies
+      <conditional>@dotNET-dependencies
+      <conditional>@gcc-install-dll-path
+    ;
 
 install package_docs
     : doc/package/readme.txt
@@ -679,6 +741,15 @@ install msconvert
       <conditional>@gcc-install-dll-path
     ;
 explicit msconvert ;
+
+install msbenchmark
+    : pwiz_tools/examples//msbenchmark
+    : <conditional>@install-type
+      <conditional>@install-location
+      <conditional>@install-vendor-api-dependencies
+      <conditional>@gcc-install-dll-path
+    ;
+explicit msbenchmark ;
 
 install idconvert
     : pwiz_tools/commandline//idconvert
@@ -813,6 +884,17 @@ rule wiff-dll-location ( api-path : properties * )
     }
 }
 
+rule unifi-dll-location ( api-path : properties * )
+{
+    # .NET 4.5 DLLs should work for anything .NET 4 or greater (hopefully); there's no Boost.Build property for .NET version
+    local result = $(api-path) ;
+    if --i-agree-to-the-vendor-licenses in [ modules.peek : ARGV ] &&
+       [ path.exists $(result)\\IdentityModel.dll ]
+    {
+        return $(result) ;
+    }
+}
+
 rule bruker-dll-location ( api-path : properties * )
 {
     local result ;
@@ -869,7 +951,7 @@ rule mhdac-dll-location ( api-path : properties * )
     }
 
     if --i-agree-to-the-vendor-licenses in [ modules.peek : ARGV ] &&
-	   $(result) &&
+       $(result) &&
        [ path.exists $(result)\\MassSpecDataReader.dll ]            
     {
         return $(result) ;
@@ -961,10 +1043,28 @@ rule msparser-path ( properties * )
         {
             lib-location = "$(ProgramFilesLibs)\\Matrix Science\\Mascot Parser\\vs2013" ;
         }
+        else
+        {
+            if ! $(.warn-once)
+            {
+                .warn-once = true ;
+                echo "Warning: Not using Mascot Parser due to unsupported version of MSVC." ;
+            }
+            lib-location = "" ;
+        }
     } 
     else if <toolset>gcc in $(properties)
     {
         lib-location = "/usr/local/msparser/gnu" ;
+    }
+    else
+    {
+        if ! $(.warn-once)
+        {
+            .warn-once = true ;
+            echo "Note: Not using Mascot Parser due to unsupported compiler." ;
+        }
+        lib-location = "" ;
     }
 
     if [ without-binary-msdata ] 
@@ -972,7 +1072,7 @@ rule msparser-path ( properties * )
         if ! $(.warn-once)
         {
             .warn-once = true ;
-            echo "Not using Mascot Parser due to --without-binary-msdata ." ;
+            echo "Note: Not using Mascot Parser due to --without-binary-msdata ." ;
         }
     }
     # Check for msparser existence.
@@ -1028,6 +1128,18 @@ rule msparser-usage-requirements ( properties * )
 {
     local msparser_path = [ msparser-path $(properties) ] ;
     local result = <include>$(msparser_path)/include ;
+    if <toolset>msvc in $(properties)
+    {
+        result += <assembly-dependency>$(msparser_path)/../config/unimod_2.xsd <assembly-dependency>$(msparser_path)/../config/quantitation_1.xsd <assembly-dependency>$(msparser_path)/../config/quantitation_2.xsd ;
+        if <runtime-debugging>on in $(properties)
+        {
+            result += <assembly-dependency>$(msparser_path)/lib/msparserD.dll ;
+        }
+        else
+        {
+            result += <assembly-dependency>$(msparser_path)/lib/msparser.dll ;
+        }
+    }
     return $(result) ;
 }
 
@@ -1142,7 +1254,7 @@ bcp.copy-boost-dependencies copy_boost_subset
     # scan all source files for boost dependencies
     [ path.glob-tree $(PWIZ_ROOT_PATH)/pwiz : *.cpp *.hpp ]
     [ path.glob-tree $(PWIZ_ROOT_PATH)/pwiz_aux : *.cpp *.hpp ]
-    [ path.glob-tree $(PWIZ_ROOT_PATH)/pwiz_tools : *.cpp *.hpp ]
+    [ path.glob-tree $(PWIZ_ROOT_PATH)/pwiz_tools : *.cpp *.hpp *.h ]
     [ path.glob-tree $(PWIZ_LIBRARIES_PATH)/boost_aux : *.cpp *.hpp ]
     [ path.glob-tree $(PWIZ_LIBRARIES_PATH)/SQLite : *.cpp *.h ]
 
@@ -1184,6 +1296,7 @@ tar.create boost_$(BOOST_VERSION:J=_).tar.bz2
     exclude:pwiz_tools/BiblioSpec
     exclude:pwiz_tools/Skyline
     exclude:pwiz_tools/Topograph
+    exclude:pwiz_tools/Bumbershoot
     exclude:pwiz_tools/Shared/BiblioSpec
     exclude:pwiz_tools/Shared/Crawdad
     exclude:pwiz_tools/Shared/ProteomeDb
@@ -1196,6 +1309,16 @@ tar.create boost_$(BOOST_VERSION:J=_).tar.bz2
     exclude:pwiz_tools/Shared/Lib/mysql.*
     exclude:pwiz_tools/Shared/Lib/zlib.*
     exclude:pwiz_tools/Shared/Lib/Microsoft.VC*
+    exclude:pwiz_aux/msrc/utility/vendor_api/ABI/Clearcore*.dll
+    exclude:pwiz_aux/msrc/utility/vendor_api/ABI/Sciex*.dll
+    exclude:pwiz_aux/msrc/utility/vendor_api/ABI/OFX*.dll
+    exclude:pwiz_aux/msrc/utility/vendor_api/ABI/LicenseKey.h
+    exclude:pwiz_aux/msrc/utility/vendor_api/Agilent/x*
+    exclude:pwiz_aux/msrc/utility/vendor_api/Bruker/x*
+    exclude:pwiz_aux/msrc/utility/vendor_api/Shimadzu/x*
+    exclude:pwiz_aux/msrc/utility/vendor_api/thermo/x64
+    exclude:pwiz_aux/msrc/utility/vendor_api/thermo/x86
+    exclude:pwiz_aux/msrc/utility/vendor_api/Waters/*_x*
 ;
 
 # the SUBSET file acts as flag so that building a subset tarball doesn't build a source tarball
@@ -1236,9 +1359,12 @@ This source tree is a subset of the full pwiz source tree.
 .l = 
     $(PWIZ_LIBRARIES_PATH)/boost-build
     $(PWIZ_LIBRARIES_PATH)/boost_aux
+    $(PWIZ_LIBRARIES_PATH)/predef
     $(PWIZ_LIBRARIES_PATH)/libsvm-3.0
     $(PWIZ_LIBRARIES_PATH)/SQLite
-    [ path.glob $(PWIZ_LIBRARIES_PATH) : *.bat *.sh *.jam *.dll *.lib *.exe *.cpp libgd*.tar.bz2 libpng*.tar.bz2 freetype*.tar.bz2 zlib*.tar.bz2 hdf5*.tar.bz2 ]
+    $(PWIZ_LIBRARIES_PATH)/Eigen
+    $(PWIZ_LIBRARIES_PATH)/CSpline
+    [ path.glob $(PWIZ_LIBRARIES_PATH) : *.bat *.sh *.h *.jam *.dll *.lib *.exe *.cpp libgd*.tar.bz2 libpng*.tar.bz2 freetype*.tar.bz2 zlib*.tar.bz2 hdf5*.tar.bz2 ]
 
     # include the bcp'd boost tarball as if it was really located at "libraries/boost_*.tar.bz2"
     path-anchor:$(BOOST_SUBSET_PATH)
@@ -1258,7 +1384,7 @@ This source tree is a subset of the full pwiz source tree.
 .no-v =
     exclude:vendor_readers/*/*.bat
     exclude:vendor_api
-    exclude:vendor_api.7z
+    exclude:vendor_api_*.7z
 ;
 
 .common-requirements = <location>$(.common-location) <dependency>boost_$(BOOST_VERSION:J=_).tar.bz2 <dependency>SUBSET <dependency>VERSION ;

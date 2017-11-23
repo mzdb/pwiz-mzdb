@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumListBase.hpp 7069 2015-01-08 22:59:05Z pcbrefugee $
+// $Id: SpectrumListBase.hpp 8725 2015-08-04 15:49:57Z pcbrefugee $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

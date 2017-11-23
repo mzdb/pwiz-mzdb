@@ -1,5 +1,5 @@
 //
-// $Id: IO.cpp 6585 2014-08-07 22:49:28Z chambm $
+// $Id: IO.cpp 10984 2017-06-21 19:28:05Z pcbrefugee $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -1647,13 +1647,16 @@ void write(minimxml::XMLWriter& writer, const BinaryDataArray& binaryDataArray,
     if (usedConfig.byteOrder == BinaryDataEncoder::ByteOrder_BigEndian)
         throw runtime_error("[IO::write()] mzML: must use little endian encoding.");
 
+	bool zlib = false; // Handle numpress+zlib
     switch (usedConfig.compression) {
         case BinaryDataEncoder::Compression_None:
             if (BinaryDataEncoder::Numpress_None == usedConfig.numpress)
                 write(writer, MS_no_compression);
             break;
         case BinaryDataEncoder::Compression_Zlib:
-            write(writer, MS_zlib_compression);
+			zlib = true;
+			if (BinaryDataEncoder::Numpress_None == usedConfig.numpress)
+				write(writer, MS_zlib_compression);
             break;
         default:
             throw runtime_error("[IO::write()] Unsupported compression method.");
@@ -1661,13 +1664,16 @@ void write(minimxml::XMLWriter& writer, const BinaryDataArray& binaryDataArray,
     }
     switch (usedConfig.numpress) {
         case BinaryDataEncoder::Numpress_Linear:
-            write(writer, MS_MS_Numpress_linear_prediction_compression);
+            write(writer, MS_32_bit_float); // This should actually be ignored by any reader since numpress defines word size and format, but it makes output standards-compliant and is pretty close to true anyway
+			write(writer, zlib ? MS_MS_Numpress_linear_prediction_compression_followed_by_zlib_compression : MS_MS_Numpress_linear_prediction_compression);
             break;
         case BinaryDataEncoder::Numpress_Pic:
-            write(writer, MS_MS_Numpress_positive_integer_compression);
+            write(writer, MS_32_bit_integer); // This should actually be ignored by any reader since numpress defines word size and format, but it makes output standards-compliant and is pretty close to true anyway
+			write(writer, zlib ? MS_MS_Numpress_positive_integer_compression_followed_by_zlib_compression : MS_MS_Numpress_positive_integer_compression);
             break;
         case BinaryDataEncoder::Numpress_Slof:
-            write(writer, MS_MS_Numpress_short_logged_float_compression);
+            write(writer, MS_32_bit_float); // This should actually be ignored by any reader since numpress defines word size and format, but it makes output standards-compliant and is pretty close to true anyway
+			write(writer, zlib ? MS_MS_Numpress_short_logged_float_compression_followed_by_zlib_compression : MS_MS_Numpress_short_logged_float_compression);
             break;
         case BinaryDataEncoder::Numpress_None:
             break;
@@ -1837,16 +1843,28 @@ struct HandlerBinaryDataArray : public HandlerParamContainer
                 case MS_zlib_compression:
                     config.compression = BinaryDataEncoder::Compression_Zlib;
                     break;
-                case MS_MS_Numpress_linear_prediction_compression:
-                    config.numpress = BinaryDataEncoder::Numpress_Linear;
-                    break;
-                case MS_MS_Numpress_positive_integer_compression:
-                    config.numpress = BinaryDataEncoder::Numpress_Pic;
-                    break;
-                case MS_MS_Numpress_short_logged_float_compression:
-                    config.numpress = BinaryDataEncoder::Numpress_Slof;
-                    break;
-                default:
+				case MS_MS_Numpress_linear_prediction_compression:
+					config.numpress = BinaryDataEncoder::Numpress_Linear;
+					break;
+				case MS_MS_Numpress_positive_integer_compression:
+					config.numpress = BinaryDataEncoder::Numpress_Pic;
+					break;
+				case MS_MS_Numpress_short_logged_float_compression:
+					config.numpress = BinaryDataEncoder::Numpress_Slof;
+					break;
+				case MS_MS_Numpress_linear_prediction_compression_followed_by_zlib_compression:
+					config.numpress = BinaryDataEncoder::Numpress_Linear;
+					config.compression = BinaryDataEncoder::Compression_Zlib;
+					break;
+				case MS_MS_Numpress_positive_integer_compression_followed_by_zlib_compression:
+					config.numpress = BinaryDataEncoder::Numpress_Pic;
+					config.compression = BinaryDataEncoder::Compression_Zlib;
+					break;
+				case MS_MS_Numpress_short_logged_float_compression_followed_by_zlib_compression:
+					config.numpress = BinaryDataEncoder::Numpress_Slof;
+					config.compression = BinaryDataEncoder::Compression_Zlib;
+					break;
+				default:
                     throw runtime_error("[IO::HandlerBinaryDataArray] Unknown compression type.");
             }
         }
@@ -1854,11 +1872,13 @@ struct HandlerBinaryDataArray : public HandlerParamContainer
         switch (cvidBinaryDataType)
         {
             case MS_32_bit_float:
-                config.precision = BinaryDataEncoder::Precision_32;
+                if (BinaryDataEncoder::Numpress_None == config.numpress)
+                    config.precision = BinaryDataEncoder::Precision_32;
                 break;
             case MS_64_bit_float:
                 config.precision = BinaryDataEncoder::Precision_64;
                 break;
+            case MS_32_bit_integer:
             case CVID_Unknown:
                 if (BinaryDataEncoder::Numpress_None == config.numpress) // 32 vs 64 bit is meaningless in numpress
                     throw runtime_error("[IO::HandlerBinaryDataArray] Missing binary data type.");

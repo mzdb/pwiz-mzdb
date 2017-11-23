@@ -1,5 +1,5 @@
 #
-# $Id: Jamfile.jam 7303 2015-03-13 20:19:40Z chambm $
+# $Id: Jamfile.jam 10730 2017-04-10 15:45:03Z chambm $
 #
 #
 # Original author: Darren Kessner <darren@proteowizard.org>
@@ -24,6 +24,8 @@
 project
     : requirements 
         <toolset>msvc,<link>shared:<define>PWIZ_DYN_LINK
+        #<define>_PROFILE_PERFORMANCE
+        #<define>_USE_DEMUX_DEBUG_WRITER
     ;
 
 
@@ -40,15 +42,19 @@ lib pwiz_analysis_spectrum_processing_basic
         SpectrumList_MZWindow.cpp
         SpectrumList_MetadataFixer.cpp
         SpectrumList_TitleMaker.cpp
-		SpectrumList_PrecursorRefine.cpp
+        SpectrumList_PrecursorRefine.cpp
         SpectrumList_ZeroSamplesFilter.cpp
+        SpectrumList_LockmassRefiner.cpp
         SpectrumList_3D.cpp
-		MS2NoiseFilter.cpp
-		MS2Deisotoper.cpp
+        SpectrumList_IonMobility.cpp
+        SpectrumList_Demux.cpp
+        MS2NoiseFilter.cpp
+        MS2Deisotoper.cpp
         ThresholdFilter.cpp
     : # requirements
         <library>../../data/msdata//pwiz_data_msdata
         <library>../common//pwiz_analysis_common
+        <library>../demux//pwiz_analysis_demux
         <library>$(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers//pwiz_data_vendor_readers
         <library>$(PWIZ_ROOT_PATH)//svm
         <toolset>msvc:<cxxflags>/wd4510   # default constructor could not be generated
@@ -57,6 +63,7 @@ lib pwiz_analysis_spectrum_processing_basic
     : # usage-requirements
         <library>../../data/msdata//pwiz_data_msdata
         <library>../common//pwiz_analysis_common
+        <library>../demux//pwiz_analysis_demux
         <library>$(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers//pwiz_data_vendor_readers
         <library>$(PWIZ_ROOT_PATH)//svm
     ;
@@ -72,12 +79,14 @@ lib pwiz_analysis_spectrum_processing
     : # requirements
         <library>pwiz_analysis_spectrum_processing_basic
         <library>../../data/identdata//pwiz_data_identdata
+        <library>../../data/proteome//pwiz_data_proteome
         <library>../peakdetect//pwiz_analysis_peakdetect
         <library>../passive//pwiz_analysis_passive_core
     : # default-build
     : # usage-requirements
         <library>pwiz_analysis_spectrum_processing_basic
         <library>../../data/identdata//pwiz_data_identdata
+        <library>../../data/proteome//pwiz_data_proteome
         <library>../peakdetect//pwiz_analysis_peakdetect
         <library>../passive//pwiz_analysis_passive_core
     ;
@@ -141,5 +150,29 @@ run-if-exists SpectrumList_3D_Test.cpp pwiz_analysis_spectrum_processing_basic $
     : # input-files
     : <vendor-api-support>off:<build>no # requirements
     : SpectrumList_3D_Test # target name
+    : # default-build
+    ;
+
+run-if-exists SpectrumList_IonMobility_Test.cpp pwiz_analysis_spectrum_processing_basic $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers//pwiz_data_vendor_readers
+    : [ path.native $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers/Agilent/Reader_Agilent_Test.data/ImsSynth_Chrom.d ] # args
+    : # input-files
+    : <vendor-api-support>off:<build>no # requirements
+    : SpectrumList_IonMobility_Test # target name
+    : # default-build
+    ;
+
+run-if-exists SpectrumList_LockmassRefinerTest.cpp pwiz_analysis_spectrum_processing_basic $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers//pwiz_data_vendor_readers
+    : [ path.native $(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers/Waters/Reader_Waters_Test.data/091204_NFDM_008.raw ] # args
+    : # input-files
+    : <vendor-api-support>off:<build>no <runtime-debugging>on:<build>no # requirements
+    : SpectrumList_LockmassRefinerTest # target name
+    : # default-build
+    ;
+
+run-if-exists SpectrumList_DemuxTest.cpp pwiz_analysis_spectrum_processing_basic
+    : [ path.native $(PWIZ_ROOT_PATH)/pwiz/analysis/spectrum_processing/SpectrumList_DemuxTest.data/MsxTest.mzML ] # args
+    : # input-files
+    : # requirements
+    : SpectrumList_DemuxTest # target name
     : # default-build
     ;

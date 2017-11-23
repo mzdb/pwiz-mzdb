@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Bruker_Test.cpp 7155 2015-02-03 22:38:32Z chambm $
+// $Id: Reader_Bruker_Test.cpp 11024 2017-07-03 18:54:26Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -30,6 +30,10 @@ struct IsDirectory : public pwiz::util::TestPathPredicate
 {
     bool operator() (const string& rawpath) const
     {
+    #ifndef WIN64
+        if (bfs::exists(bfs::path(rawpath) / "analysis.tdf")) // no x86 DLL available
+            return false;
+    #endif
         return bfs::is_directory(rawpath);
     }
 };

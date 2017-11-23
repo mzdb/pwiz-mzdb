@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_MSn.cpp 6585 2014-08-07 22:49:28Z chambm $
+// $Id: SpectrumList_MSn.cpp 10158 2016-11-02 22:29:05Z kaipot $
 //
 //
 // Original author: Barbara Frewen <frewen@u.washington.edu>
@@ -251,7 +251,7 @@ class SpectrumList_MSnImpl : public SpectrumList_MSn
         // read in the scan number
         size_t first_num_pos = lineStr.find_first_of("123456789");
         size_t second_space_pos = lineStr.find_first_of(" \t", first_num_pos);
-        int scanNum = lexical_cast<int>(lineStr.substr(first_num_pos, second_space_pos-first_num_pos+1));
+        int scanNum = lexical_cast<int>(lineStr.substr(first_num_pos, second_space_pos-first_num_pos));
         spectrum.id = "scan=" + lexical_cast<string>(scanNum);
 
         // read in the precursor mz
@@ -259,7 +259,7 @@ class SpectrumList_MSnImpl : public SpectrumList_MSn
         {
             size_t last_num_pos = lineStr.find_last_of("0123456789");
             size_t last_space_pos = lineStr.find_last_of(" \t", last_num_pos);
-            precursor_mz = lexical_cast<double>(lineStr.substr(last_space_pos, last_num_pos-last_space_pos+1));
+            precursor_mz = lexical_cast<double>(lineStr.substr(last_space_pos+1, last_num_pos-last_space_pos));
             // store precursor in the first selected ion if we do not have accurate mass data (below)
             Precursor& precursor = spectrum.precursors.back();
             precursor.isolationWindow.set(MS_isolation_window_target_m_z, precursor_mz, MS_m_z);
@@ -311,9 +311,9 @@ class SpectrumList_MSnImpl : public SpectrumList_MSn
             size_t last_num_pos = lineStr.find_last_of("0123456789");
             size_t last_space_pos = lineStr.find_last_of(" \t", last_num_pos);
             double z_precursor_mz = calculateMassOverCharge(
-                lexical_cast<double>(lineStr.substr(last_space_pos, last_num_pos-last_space_pos+1)), charge, 1);
+                lexical_cast<double>(lineStr.substr(last_space_pos+1, last_num_pos-last_space_pos)), charge, 1);
             stringstream ss;
-            ss << charge << ' ' << z_precursor_mz;
+            ss << charge << ' ' << std::fixed << std::setprecision(4) << z_precursor_mz;
             // Store Z line information in UserParams, in the format "<charge> <m/z calculated from Z line mass>"
             spectrum.userParams.push_back(UserParam("ms2 file charge state", ss.str()));
         }
@@ -430,7 +430,7 @@ class SpectrumList_MSnImpl : public SpectrumList_MSn
           {
             const pair<int, double>& chargeMass = chargeMassPairs.at(i);
             precursor.selectedIons.back().cvParams.push_back(CVParam(MS_charge_state, chargeMass.first));
-            precursor.selectedIons.back().cvParams.push_back(CVParam(MS_accurate_mass, chargeMass.second));
+            precursor.selectedIons.back().cvParams.push_back(CVParam(MS_accurate_mass_OBSOLETE, chargeMass.second));
             precursor.selectedIons.back().set(MS_selected_ion_m_z, 
                                               calculateMassOverCharge(chargeMass.second, chargeMass.first,
                                                                       1), // this is a singly charged mass
@@ -522,7 +522,7 @@ class SpectrumList_MSnImpl : public SpectrumList_MSn
           
               // store each charge and accurate mass as a separate selected ion
               precursor.selectedIons.back().cvParams.push_back(CVParam(MS_charge_state, eCharge));
-              precursor.selectedIons.back().cvParams.push_back(CVParam(MS_accurate_mass, eMass));
+              precursor.selectedIons.back().cvParams.push_back(CVParam(MS_accurate_mass_OBSOLETE, eMass));
               precursor.selectedIons.back().set(MS_selected_ion_m_z, calculateMassOverCharge(eMass, eCharge, 1), MS_m_z);
               precursor.selectedIons.push_back(SelectedIon());
             }

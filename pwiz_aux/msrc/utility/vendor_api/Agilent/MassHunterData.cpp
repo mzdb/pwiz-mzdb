@@ -1,5 +1,5 @@
 //
-// $Id: MassHunterData.cpp 6239 2014-05-24 03:37:45Z chambm $
+// $Id: MassHunterData.cpp 10502 2017-02-22 16:33:49Z chambm $
 //
 //
 // Original author: Brendan MacLean <brendanx .@. u.washington.edu>
@@ -100,7 +100,7 @@ class MassHunterDataImpl : public MassHunterData
     virtual std::string getVersion() const;
     virtual DeviceType getDeviceType() const;
     virtual std::string getDeviceName(DeviceType deviceType) const;
-    virtual blt::local_date_time getAcquisitionTime() const;
+    virtual blt::local_date_time getAcquisitionTime(bool adjustToHostTime) const;
     virtual IonizationMode getIonModes() const;
     virtual MSScanType getScanTypes() const;
     virtual MSStorageMode getSpectraFormat() const;
@@ -110,6 +110,9 @@ class MassHunterDataImpl : public MassHunterData
     virtual bool hasIonMobilityData() const;
     virtual int getTotalIonMobilityFramesPresent() const;
     virtual FramePtr getIonMobilityFrame(int frameIndex) const;
+    virtual bool canConvertDriftTimeAndCCS() const { return false; }
+    virtual double driftTimeToCCS(double driftTimeInMilliseconds, double mz, int charge) const { throw runtime_error("[MassHunterDataImpl::driftTimeToCCS] not available on non-IMS data"); }
+    virtual double ccsToDriftTime(double ccs, double mz, int charge) const { throw runtime_error("[MassHunterDataImpl::ccsToDriftTime] not available on non-IMS data"); }
 
     virtual const set<Transition>& getTransitions() const;
     virtual ChromatogramPtr getChromatogram(const Transition& transition) const;
@@ -209,6 +212,7 @@ struct ChromatogramImpl : public Chromatogram
     virtual int getTotalDataPoints() const;
     virtual void getXArray(automation_vector<double>& x) const;
     virtual void getYArray(automation_vector<float>& y) const;
+    virtual IonPolarity getIonPolarity() const;
 
     private:
     gcroot<MHDAC::IBDAChromData^> chromData_;
@@ -220,16 +224,19 @@ PWIZ_API_DECL
 bool Transition::operator< (const Transition& rhs) const
 {
     if (type == rhs.type)
-        if (Q1 == rhs.Q1)
-            if (Q3 == rhs.Q3)
-                if (acquiredTimeRange.start == rhs.acquiredTimeRange.start)
-                    return acquiredTimeRange.end < rhs.acquiredTimeRange.end;
+        if (ionPolarity == rhs.ionPolarity)
+            if (Q1 == rhs.Q1)
+                if (Q3 == rhs.Q3)
+                    if (acquiredTimeRange.start == rhs.acquiredTimeRange.start)
+                        return acquiredTimeRange.end < rhs.acquiredTimeRange.end;
+                    else
+                        return acquiredTimeRange.start < rhs.acquiredTimeRange.start;
                 else
-                    return acquiredTimeRange.start < rhs.acquiredTimeRange.start;
+                    return Q3 < rhs.Q3;
             else
-                return Q3 < rhs.Q3;
+                return Q1 < rhs.Q1;
         else
-            return Q1 < rhs.Q1;
+            return (ionPolarity < rhs.ionPolarity);
     else
         return type < rhs.type;
 }
@@ -308,6 +315,18 @@ MassHunterDataImpl::MassHunterDataImpl(const std::string& path)
             t.type = Transition::MRM;
             t.Q1 = chromatogram->MZOfInterest[0]->Start;
             t.Q3 = chromatogram->MeasuredMassRange[0]->Start;
+            switch (chromatogram->IonPolarity)
+            {
+            case MHDAC::IonPolarity::Positive:
+                t.ionPolarity = IonPolarity::IonPolarity_Positive;
+                break;
+            case MHDAC::IonPolarity::Negative:
+                t.ionPolarity = IonPolarity::IonPolarity_Negative;
+                break;
+            default:
+                t.ionPolarity = IonPolarity::IonPolarity_Unassigned;
+                break;
+            }
 
             if (chromatogram->AcquiredTimeRange->Length > 0)
             {
@@ -377,7 +396,7 @@ std::string MassHunterDataImpl::getDeviceName(DeviceType deviceType) const
     try {return ToStdString(reader_->FileInformation->GetDeviceName((MHDAC::DeviceType) deviceType));} CATCH_AND_FORWARD
 }
 
-blt::local_date_time MassHunterDataImpl::getAcquisitionTime() const
+blt::local_date_time MassHunterDataImpl::getAcquisitionTime(bool adjustToHostTime) const
 {
     try
     {
@@ -389,8 +408,16 @@ blt::local_date_time MassHunterDataImpl::getAcquisitionTime() const
         else if (acquisitionTime.Year < 1400)
             acquisitionTime = acquisitionTime.AddYears(1400 - acquisitionTime.Year);
 
-        bpt::ptime pt(bdt::time_from_OADATE<bpt::ptime>(acquisitionTime.ToUniversalTime().ToOADate()));
-        return blt::local_date_time(pt, blt::time_zone_ptr()); // keep time as UTC
+        bpt::ptime pt(boost::gregorian::date(acquisitionTime.Year, boost::gregorian::greg_month(acquisitionTime.Month), acquisitionTime.Day),
+                      bpt::time_duration(acquisitionTime.Hour, acquisitionTime.Minute, acquisitionTime.Second, bpt::millisec(acquisitionTime.Millisecond).fractional_seconds()));
+
+        if (adjustToHostTime)
+        {
+            bpt::time_duration tzOffset = bpt::second_clock::universal_time() - bpt::second_clock::local_time();
+            return blt::local_date_time(pt + tzOffset, blt::time_zone_ptr()); // treat time as if it came from host's time zone; actual time zone may not be provided by Sciex
+        }
+        else
+            return blt::local_date_time(pt, blt::time_zone_ptr());
     }
     CATCH_AND_FORWARD
 }
@@ -666,6 +693,12 @@ void ChromatogramImpl::getYArray(automation_vector<float>& y) const
 {
     try {return ToAutomationVector(chromData_->YArray, y);} CATCH_AND_FORWARD
 }
+
+IonPolarity ChromatogramImpl::getIonPolarity() const
+{
+    try { return (IonPolarity)chromData_->IonPolarity; } CATCH_AND_FORWARD
+}
+
 
 
 } // Agilent

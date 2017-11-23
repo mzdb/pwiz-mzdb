@@ -1,5 +1,5 @@
 //
-// $Id: MassHunterData.hpp 6239 2014-05-24 03:37:45Z chambm $
+// $Id: MassHunterData.hpp 10502 2017-02-22 16:33:49Z chambm $
 //
 //
 // Original author: Brendan MacLean <brendanx .@. u.washington.edu>
@@ -155,6 +155,7 @@ struct PWIZ_API_DECL Transition
     double Q1;
     double Q3;
     TimeRange acquiredTimeRange;
+    IonPolarity ionPolarity;
 
     bool operator< (const Transition& rhs) const;
 };
@@ -176,6 +177,7 @@ struct PWIZ_API_DECL Chromatogram
     virtual int getTotalDataPoints() const = 0;
     virtual void getXArray(automation_vector<double>& x) const = 0;
     virtual void getYArray(automation_vector<float>& y) const = 0;
+    virtual IonPolarity getIonPolarity() const = 0;
 
     virtual ~Chromatogram() {}
 };
@@ -277,7 +279,7 @@ class PWIZ_API_DECL MassHunterData
     virtual std::string getVersion() const = 0;
     virtual DeviceType getDeviceType() const = 0;
     virtual std::string getDeviceName(DeviceType deviceType) const = 0;
-    virtual boost::local_time::local_date_time getAcquisitionTime() const = 0;
+    virtual boost::local_time::local_date_time getAcquisitionTime(bool adjustToHostTime) const = 0;
     virtual IonizationMode getIonModes() const = 0;
     virtual MSScanType getScanTypes() const = 0;
     virtual MSStorageMode getSpectraFormat() const = 0;
@@ -287,6 +289,10 @@ class PWIZ_API_DECL MassHunterData
     virtual bool hasIonMobilityData() const = 0;
     virtual int getTotalIonMobilityFramesPresent() const = 0;
     virtual FramePtr getIonMobilityFrame(int frameIndex) const = 0;
+
+    virtual bool canConvertDriftTimeAndCCS() const = 0;
+    virtual double driftTimeToCCS(double driftTimeInMilliseconds, double mz, int charge) const = 0;
+    virtual double ccsToDriftTime(double ccs, double mz, int charge) const = 0;
 
     virtual const std::set<Transition>& getTransitions() const = 0;
     virtual ChromatogramPtr getChromatogram(const Transition& transition) const = 0;

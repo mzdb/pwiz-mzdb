@@ -1,5 +1,5 @@
 //
-// $Id: MSDataFile.cpp 5084 2013-10-28 23:32:24Z pcbrefugee $
+// $Id: MSDataFile.cpp 10984 2017-06-21 19:28:05Z pcbrefugee $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -126,6 +126,7 @@ static void translateConfig(MSDataFile::WriteConfig^ config, b::MSDataFile::Writ
         config2.binaryDataEncoderConfig.numpressOverrides[b::MS_intensity_array] = b::BinaryDataEncoder::Numpress_Slof;
     }
     config2.binaryDataEncoderConfig.numpressLinearErrorTolerance = config->numpressLinearErrorTolerance;
+    config2.binaryDataEncoderConfig.numpressLinearAbsMassAcc = config->numpressLinearAbsMassAcc;
     config2.binaryDataEncoderConfig.numpressSlofErrorTolerance = config->numpressSlofErrorTolerance;
 }
 

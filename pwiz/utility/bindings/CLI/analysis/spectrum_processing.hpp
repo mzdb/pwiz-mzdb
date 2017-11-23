@@ -1,5 +1,5 @@
 //
-// $Id: spectrum_processing.hpp 6385 2014-06-12 22:56:04Z chambm $
+// $Id: spectrum_processing.hpp 11505 2017-10-24 23:02:54Z pcbrefugee $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -35,14 +35,18 @@
     #using "pwiz_bindings_cli_common.dll" as_friend
     #using "pwiz_bindings_cli_msdata.dll" as_friend
 #endif
+#include "../chemistry/chemistry.hpp"
 
 #include "pwiz/data/msdata/SpectrumListWrapper.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_Filter.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_Sorter.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_Smoother.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_PeakPicker.hpp"
+#include "pwiz/analysis/spectrum_processing/SpectrumList_LockmassRefiner.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_ChargeStateCalculator.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_3D.hpp"
+#include "pwiz/analysis/spectrum_processing/SpectrumList_IonMobility.hpp"
+#include "pwiz/analysis/chromatogram_processing/ChromatogramList_XICGenerator.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/logic/tribool.hpp>
 #pragma warning( pop )
@@ -59,6 +63,8 @@ using boost::shared_ptr;
 
 namespace pwiz {
 namespace CLI {
+
+using namespace data;
 
 
 namespace msdata {
@@ -114,10 +120,18 @@ public delegate System::Nullable<bool> SpectrumList_FilterAcceptSpectrum(msdata:
 
 public ref class SpectrumList_FilterPredicate abstract
 {
+    /// <summary>controls whether spectra that pass the predicate are included or excluded from the result</summary>
+    public: enum class FilterMode
+    {
+        Include,
+        Exclude
+    };
+
     internal:
     pwiz::analysis::SpectrumList_Filter::Predicate* base_;
     ~SpectrumList_FilterPredicate() {SAFEDELETE(base_);}
 };
+
 
 public ref class SpectrumList_FilterPredicate_IndexSet : SpectrumList_FilterPredicate
 {
@@ -146,6 +160,54 @@ public ref class SpectrumList_FilterPredicate_ScanTimeRange : SpectrumList_Filte
 public ref class SpectrumList_FilterPredicate_MSLevelSet : SpectrumList_FilterPredicate
 {
     public: SpectrumList_FilterPredicate_MSLevelSet(System::String^ msLevelSet);
+};
+
+
+public ref class SpectrumList_FilterPredicate_ChargeStateSet : SpectrumList_FilterPredicate
+{
+    public: SpectrumList_FilterPredicate_ChargeStateSet(System::String^ chargeStateSet);
+};
+
+
+public ref class SpectrumList_FilterPredicate_PrecursorMzSet : SpectrumList_FilterPredicate
+{
+    public:  SpectrumList_FilterPredicate_PrecursorMzSet(System::Collections::Generic::IEnumerable<double>^ precursorMzSet, chemistry::MZTolerance tolerance, FilterMode mode);
+};
+
+
+public ref class SpectrumList_FilterPredicate_DefaultArrayLengthSet : SpectrumList_FilterPredicate
+{
+    public: SpectrumList_FilterPredicate_DefaultArrayLengthSet(System::String^ defaultArrayLengthSet);
+};
+
+
+public ref class SpectrumList_FilterPredicate_ActivationType : SpectrumList_FilterPredicate
+{
+public: SpectrumList_FilterPredicate_ActivationType(System::Collections::Generic::IEnumerable<CVID>^ filterItem, bool hasNoneOf);
+};
+
+
+public ref class SpectrumList_FilterPredicate_AnalyzerType : SpectrumList_FilterPredicate
+{
+    public: SpectrumList_FilterPredicate_AnalyzerType(System::Collections::Generic::IEnumerable<CVID>^ filterItem);
+};
+
+
+public ref class SpectrumList_FilterPredicate_Polarity : SpectrumList_FilterPredicate
+{
+    public: SpectrumList_FilterPredicate_Polarity(CVID polarity);
+};
+
+
+/*public ref class SpectrumList_FilterPredicate_MzPresent : SpectrumList_FilterPredicate
+{
+    public: SpectrumList_FilterPredicate_MzPresent(chemistry::MZTolerance mzt, System::Collections::Generic::Generic::ISet<double> mzSet, ThresholdFilter tf, FilterMode mode);
+};*/
+
+
+public ref class SpectrumList_FilterPredicate_ThermoScanFilter : SpectrumList_FilterPredicate
+{
+    public: SpectrumList_FilterPredicate_ThermoScanFilter(System::String^ matchString, bool matchExact, bool inverse);
 };
 
 
@@ -262,16 +324,43 @@ public ref class SpectrumList_Smoother : public msdata::SpectrumList
 
 public ref class PeakDetector abstract
 {
-    internal:
+internal:
     pwiz::analysis::PeakDetectorPtr* base_;
 };
 
+/// <summary>
+/// For use when you want to use vendor centroiding, and throw if it isn't available
+/// </summary>
+public ref class VendorOnlyPeakDetector : public PeakDetector
+{
+public:
+    VendorOnlyPeakDetector()
+    {
+        base_ = new pwiz::analysis::PeakDetectorPtr(NULL); // No algorithm, so we can throw in the no vendor peak picking case
+    }
+};
+
+/// <summary>
+/// Simple local maxima peak detector; does not centroid
+/// </summary>
 public ref class LocalMaximumPeakDetector : public PeakDetector
 {
     public:
     LocalMaximumPeakDetector(unsigned int windowSize)
     {
         base_ = new pwiz::analysis::PeakDetectorPtr(new pwiz::analysis::LocalMaximumPeakDetector(windowSize));
+    }
+};
+
+/// <summary>
+/// Wavelet-based algorithm for performing peak-picking with a minimum wavelet-space signal-to-noise ratio; does not centroid
+/// </summary>
+public ref class CwtPeakDetector : public PeakDetector
+{
+    public:
+    CwtPeakDetector(double minSignalNoiseRatio, double minPeakSpace)
+    {
+        base_ = new pwiz::analysis::PeakDetectorPtr(new pwiz::analysis::CwtPeakDetector(minSignalNoiseRatio, 0, minPeakSpace));
     }
 };
 
@@ -288,6 +377,21 @@ public ref class SpectrumList_PeakPicker : public msdata::SpectrumList
                             PeakDetector^ algorithm,
                             bool preferVendorPeakPicking,
                             System::Collections::Generic::IEnumerable<int>^ msLevelsToPeakPick);
+
+    static bool accept(msdata::SpectrumList^ inner);
+};
+
+
+/// <summary>
+/// SpectrumList implementation to refine m/z accuracy using external lockmass scans.
+/// </summary>
+public ref class SpectrumList_LockmassRefiner : public msdata::SpectrumList
+{
+    DEFINE_INTERNAL_LIST_WRAPPER_CODE(SpectrumList_LockmassRefiner, pwiz::analysis::SpectrumList_LockmassRefiner)
+
+    public:
+
+        SpectrumList_LockmassRefiner(msdata::SpectrumList^ inner, double lockmassMzPosScans, double lockmassMzNegScans, double lockmassTolerance);
 
     static bool accept(msdata::SpectrumList^ inner);
 };
@@ -341,16 +445,61 @@ public ref class SpectrumList_3D : public msdata::SpectrumList
     SpectrumList_3D(msdata::SpectrumList^ inner);
 
     /// <summary>
-    /// creates a 3d spectrum at the given scan start time (specified in seconds) and including the given drift time ranges (specified in milliseconds)
+    /// creates a 3d spectrum at the given scan start time (specified in seconds) and including the given ion mobility ranges (units depend on equipment type)
     /// </summary>
-    virtual Spectrum3D^ spectrum3d(double scanStartTime, System::Collections::Generic::IEnumerable<ContinuousInterval>^ driftTimeRanges);
+    virtual Spectrum3D^ spectrum3d(double scanStartTime, System::Collections::Generic::IEnumerable<ContinuousInterval>^ ionMobilityRanges);
 
     /// <summary>
-    /// works only on SpectrumList_Waters and SpectrumList_Agilent
+    /// return true if underlying data supports a 2nd degree of separation (drift time, inverse ion mobility, etc)
     /// </summary>
     static bool accept(msdata::SpectrumList^ inner);
 };
 
+/// <summary>
+/// SpectrumList implementation that provides access to vendor-specific ion mobility functions
+/// </summary>
+public ref class SpectrumList_IonMobility : public msdata::SpectrumList
+{
+    DEFINE_INTERNAL_LIST_WRAPPER_CODE(SpectrumList_IonMobility, pwiz::analysis::SpectrumList_IonMobility)
+
+    public:
+
+    SpectrumList_IonMobility(msdata::SpectrumList^ inner);
+
+    /// <summary>
+    /// works only on SpectrumList_Agilent
+    /// </summary>
+    static bool accept(msdata::SpectrumList^ inner);
+
+    enum class eIonMobilityUnits { none, drift_time_msec, inverse_reduced_ion_mobility_Vsec_per_cm2 };
+
+    virtual eIonMobilityUnits getIonMobilityUnits();
+
+    // returns true if the data file actually has necessary info for CCS/ion mobility conversion handling
+    virtual bool canConvertIonMobilityAndCCS(eIonMobilityUnits units);
+
+    /// returns collisional cross-section associated with the ion mobility value (units depend on equipment type)
+    virtual double ionMobilityToCCS(double ionMobility, double mz, int charge);
+
+    /// returns the ion mobility (units depend on equipment type) associated with the given collisional cross-section
+    virtual double ccsToIonMobility(double ccs, double mz, int charge);
+};
+
+public ref class ChromatogramList_XICGenerator : public msdata::ChromatogramList
+{
+    DEFINE_INTERNAL_LIST_WRAPPER_CODE(ChromatogramList_XICGenerator, pwiz::analysis::ChromatogramList_XICGenerator)
+
+    public:
+
+    ChromatogramList_XICGenerator(msdata::ChromatogramList^ inner);
+
+    virtual msdata::Chromatogram^ xic(double startTime, double endTime, System::Collections::Generic::IEnumerable<ContinuousInterval>^ massRanges, int msLevel);
+
+    /// <summary>
+    /// works only on ChromatogramList_Thermo
+    /// </summary>
+    static bool accept(msdata::ChromatogramList^ inner);
+};
 
 } // namespace analysis
 } // namespace CLI

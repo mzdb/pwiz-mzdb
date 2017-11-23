@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -48,6 +48,7 @@
 #include "ceres/internal/macros.h"
 #include "ceres/internal/port.h"
 #include "ceres/types.h"
+#include "ceres/internal/disable_warnings.h"
 
 namespace ceres {
 
@@ -60,7 +61,7 @@ namespace ceres {
 // code inheriting from this class is expected to set these two members with the
 // corresponding accessors. This information will be verified by the Problem
 // when added with AddResidualBlock().
-class CostFunction {
+class CERES_EXPORT CostFunction {
  public:
   CostFunction() : num_residuals_(0) {}
 
@@ -105,8 +106,7 @@ class CostFunction {
   // the constraints, then returning false whenever the constraints
   // are not satisfied will prevent the solver from moving into the
   // infeasible region. This is not a very sophisticated mechanism for
-  // enforcing constraints, but is often good enough for things like
-  // non-negativity constraints.
+  // enforcing constraints, but is often good enough.
   //
   // Note that it is important that the initial values of the
   // parameter block must be feasible, otherwise the solver will
@@ -115,7 +115,7 @@ class CostFunction {
                         double* residuals,
                         double** jacobians) const = 0;
 
-  const vector<int16>& parameter_block_sizes() const {
+  const std::vector<int32>& parameter_block_sizes() const {
     return parameter_block_sizes_;
   }
 
@@ -124,7 +124,7 @@ class CostFunction {
   }
 
  protected:
-  vector<int16>* mutable_parameter_block_sizes() {
+  std::vector<int32>* mutable_parameter_block_sizes() {
     return &parameter_block_sizes_;
   }
 
@@ -135,11 +135,13 @@ class CostFunction {
  private:
   // Cost function signature metadata: number of inputs & their sizes,
   // number of outputs (residuals).
-  vector<int16> parameter_block_sizes_;
+  std::vector<int32> parameter_block_sizes_;
   int num_residuals_;
   CERES_DISALLOW_COPY_AND_ASSIGN(CostFunction);
 };
 
 }  // namespace ceres
+
+#include "ceres/internal/reenable_warnings.h"
 
 #endif  // CERES_PUBLIC_COST_FUNCTION_H_

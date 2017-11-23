@@ -1,5 +1,5 @@
 //
-// $Id: Reader_ABI_T2D.cpp 5759 2014-02-19 22:26:29Z chambm $
+// $Id: Reader_ABI_T2D.cpp 8981 2015-10-12 20:20:31Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -94,8 +94,8 @@ void fillInSources(const string& datapath, MSData& msd, DataPtr t2d_data)
                              BFS_COMPLETE(relativePath); // uses initial path
         sourceFile->location = "file://" + location.branch_path().string();
 
-        sourceFile->set(MS_AB_SCIEX_TOF_TOF_T2D_nativeID_format);
-        sourceFile->set(MS_AB_SCIEX_TOF_TOF_T2D_format);
+        sourceFile->set(MS_SCIEX_TOF_TOF_T2D_nativeID_format);
+        sourceFile->set(MS_SCIEX_TOF_TOF_T2D_format);
         msd.fileDescription.sourceFilePtrs.push_back(sourceFile);
     }
 }

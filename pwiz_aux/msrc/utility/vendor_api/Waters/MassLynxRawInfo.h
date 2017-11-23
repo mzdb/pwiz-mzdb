@@ -11,6 +11,7 @@
 #pragma once
 
 #include <string>
+using std::string;
 
 namespace Waters
 {
@@ -202,11 +203,15 @@ namespace MassLynxRaw
 		///<\param>
 		int GetScansInFunction( int WhichFunction ) const;
 
+		int GetDriftScansInFunction(int WhichFunction) const;
+
         ///<summary>
         ///Accessor for continuum data property of function.
         ///</summary>
         ///<param name="nWhichFunction">function number (0-indexed)</param>
 		bool GetIsContinuumFunction( int nWhichFunction ) const;
+
+		string GetScanItem(const int& nWhichFunction, const int& nWhichScan, const int& nWhichItem);
 
 	private:
         FunctionType  FunctionStringToFunctionType( const std::string & type ) const;

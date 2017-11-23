@@ -1,5 +1,5 @@
 //
-// $Id: ParametrizedFunction.hpp 1191 2009-08-14 19:33:05Z chambm $
+// $Id: ParametrizedFunction.hpp 11133 2017-07-24 18:53:52Z pcbrefugee $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -30,6 +30,9 @@
 
 
 #include "boost/numeric/ublas/vector.hpp"
+#if (BOOST_VERSION/100) >= 1064
+#include "boost/serialization/array_wrapper.hpp" // Workaround for https://stackoverflow.com/questions/44534516/error-make-array-is-not-a-member-of-boostserialization
+#endif
 #include "boost/numeric/ublas/matrix.hpp"
 #include "boost/numeric/ublas/io.hpp"
 #include "boost/numeric/ublas/matrix_proxy.hpp"

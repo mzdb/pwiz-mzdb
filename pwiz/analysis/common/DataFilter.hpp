@@ -1,5 +1,5 @@
 //
-// $Id: DataFilter.hpp 2242 2010-09-13 15:10:18Z chambm $
+// $Id: DataFilter.hpp 11567 2017-11-09 23:53:32Z chambm $
 //
 //
 // Original author: Chris Paulse <cpaulse <a.t> systemsbiology.org>
@@ -34,7 +34,7 @@ namespace analysis {
 
 struct PWIZ_API_DECL SpectrumDataFilter
 {
-    virtual void operator () (const pwiz::msdata::SpectrumPtr) const = 0;
+    virtual void operator () (const pwiz::msdata::SpectrumPtr&) const = 0;
     virtual void describe(pwiz::msdata::ProcessingMethod&) const = 0;
     virtual ~SpectrumDataFilter() {}
 };
@@ -44,7 +44,7 @@ typedef boost::shared_ptr<SpectrumDataFilter> SpectrumDataFilterPtr;
 
 struct PWIZ_API_DECL ChromatogramDataFilter
 {
-    virtual void operator () (const pwiz::msdata::ChromatogramPtr) const = 0;
+    virtual void operator () (const pwiz::msdata::ChromatogramPtr&) const = 0;
     virtual void describe(pwiz::msdata::ProcessingMethod&) const = 0;
     virtual ~ChromatogramDataFilter() {}
 };

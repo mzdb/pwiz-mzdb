@@ -7,13 +7,12 @@ lib mzdb_utils
 
 : #requirments
     <include>.
-    <include>../../../glog
+    <include>../lib/glog
     <include>./cwtlib
     <library>../../../pwiz/data/msdata
     <library>../../../pwiz/analysis/spectrum_processing
     <library>../../../pwiz/analysis/peakdetect
     <library>../lib/pugixml
-    <library>../lib/sqlite3
 
 : <variant>release <link>static <cxxflags>"/Ox /Gy /GA"
 
@@ -23,5 +22,4 @@ lib mzdb_utils
     <library>../../../pwiz/analysis/spectrum_processing
     <library>../../../pwiz/analysis/peakdetect
     <library>../lib/pugixml
-    <library>../lib/sqlite3
 ;

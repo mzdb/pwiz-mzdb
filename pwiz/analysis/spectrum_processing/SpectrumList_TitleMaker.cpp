@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_TitleMaker.cpp 5759 2014-02-19 22:26:29Z chambm $
+// $Id: SpectrumList_TitleMaker.cpp 8981 2015-10-12 20:20:31Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -142,7 +142,7 @@ string translate_SourceFileTypeToRunID(const SourceFile& sf, CVID sourceFileType
         // location="file://path/to/source" name="spectrum-id.t2d"
         // location="file://path/to/source/MS" name="spectrum-id.t2d"
         // location="file://path/to/source/MSMS" name="spectrum-id.t2d"
-        case MS_AB_SCIEX_TOF_TOF_T2D_format:
+        case MS_SCIEX_TOF_TOF_T2D_format:
             return (bfs::path(sf.location) / sf.name).string().substr(7);
 
         default:

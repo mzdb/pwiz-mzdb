@@ -1,5 +1,5 @@
 //
-// $Id: RawFile.h 5004 2013-09-27 00:31:51Z pcbrefugee $
+// $Id: RawFile.h 11016 2017-06-30 15:32:02Z chambm $
 //
 //
 // Original author: Darren Kessner <Darren.Kessner@cshs.org>
@@ -273,6 +273,9 @@ class PWIZ_API_DECL ScanInfo
     virtual double precursorMZ(long index, bool preferMonoisotope = true) const = 0;
     virtual double precursorActivationEnergy(long index) const = 0;
 
+    virtual ActivationType supplementalActivationType() const = 0;
+    virtual double supplementalActivationEnergy() const = 0;
+
     // "parent" synonym is deprecated
     virtual long parentCount() const = 0;
     virtual long parentCharge() const = 0;
@@ -432,7 +435,7 @@ class PWIZ_API_DECL RawFile
     virtual std::string value(ValueID_String id) = 0;
 
     virtual std::string getFilename() = 0;
-    virtual boost::local_time::local_date_time getCreationDate() = 0;
+    virtual boost::local_time::local_date_time getCreationDate(bool adjustToHostTime = true) = 0;
     virtual std::auto_ptr<LabelValueArray> getSequenceRowUserInfo() = 0;
 
     virtual ControllerInfo getCurrentController() = 0;
@@ -490,6 +493,10 @@ class PWIZ_API_DECL RawFile
     virtual const std::vector<IonizationType>& getIonSources() = 0;
     virtual const std::vector<MassAnalyzerType>& getMassAnalyzers() = 0;
     virtual const std::vector<DetectorType>& getDetectors() = 0;
+
+    virtual std::string getTrailerExtraValue(long scanNumber, const std::string& name) const = 0;
+    virtual double getTrailerExtraValueDouble(long scanNumber, const std::string& name) const = 0;
+    virtual long getTrailerExtraValueLong(long scanNumber, const std::string& name) const = 0;
 
     virtual ChromatogramDataPtr
     getChromatogramData(ChromatogramType type1,

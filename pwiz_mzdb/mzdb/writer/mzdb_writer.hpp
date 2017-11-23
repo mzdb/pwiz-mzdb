@@ -34,8 +34,6 @@
 #include <memory>
 #include <functional>
 
-#define GLOG_NO_ABBREVIATED_SEVERITIES
-
 //--- Pwiz import
 #include "pwiz/data/msdata/MSDataFile.hpp"
 #include "pwiz_tools/common/FullReaderList.hpp"
@@ -63,10 +61,6 @@
 
 #include "boost/thread/thread.hpp"
 
-//--- SQLite import
-//#include "../lib/sqlite3/include/sqlite3.h"
-//#include "libraries/SQLite/sqlite3.h"
-#include "../lib/sqlite3/sqlite3.h"
 #include "../lib/pugixml/include/pugixml.hpp"
 
 //--- MzDB import

@@ -184,6 +184,24 @@ namespace sqlite3pp
         return executef("DETACH '%s'", name.c_str());
     }
 
+    void database::load_extension(const std::string& name)
+    {
+        sqlite3_enable_load_extension(db_, 1);
+        char* errorBuf = NULL;
+        int rc = sqlite3_load_extension(db_, name.c_str(), NULL, &errorBuf);
+        if (rc != SQLITE_OK)
+        {
+            std::string error;
+            if (errorBuf)
+            {
+                error = errorBuf;
+                sqlite3_free(errorBuf);
+            }
+            throw database_error("loading extension \"" + name + "\": " + error);
+        }
+        sqlite3_enable_load_extension(db_, 0);
+    }
+
     int database::load_from_file(const std::string& dbname)
     {
         return loadOrSaveDb(db_, dbname.c_str(), 0);
@@ -363,6 +381,11 @@ namespace sqlite3pp
     int statement::bind(int idx, void const* value, int n, bool fstatic)
     {
         return sqlite3_bind_blob(stmt_, idx, value, n, fstatic ? SQLITE_STATIC : SQLITE_TRANSIENT);
+    }
+
+    int statement::bind(int idx, const blob& value)
+    {
+        return bind(idx, value.bytes_, value.n_, value.fstatic_);
     }
 
     int statement::bind(int idx)

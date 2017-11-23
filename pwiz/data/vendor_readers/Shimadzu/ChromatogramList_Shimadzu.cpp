@@ -1,5 +1,5 @@
 //
-// $Id: ChromatogramList_Shimadzu.cpp 6234 2014-05-23 21:19:09Z nickshulman $
+// $Id: ChromatogramList_Shimadzu.cpp 9490 2016-03-22 22:20:36Z pcbrefugee $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -111,6 +111,7 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_Shimadzu::chromatogram(size_t ind
             result->precursor.isolationWindow.set(MS_isolation_window_target_m_z, ci.transition.Q1, MS_m_z);
             result->precursor.activation.set(MS_CID);
             result->precursor.activation.set(MS_collision_energy, ci.transition.collisionEnergy, UO_electronvolt);
+            result->set(ci.transition.polarity != 1 ? MS_positive_scan : MS_negative_scan);
 
             result->product.isolationWindow.set(MS_isolation_window_target_m_z, ci.transition.Q3, MS_m_z);
             //result->product.isolationWindow.set(MS_isolation_window_lower_offset, ci.q3Offset, MS_m_z);
@@ -158,7 +159,8 @@ PWIZ_API_DECL void ChromatogramList_Shimadzu::createIndex() const
         IndexEntry& ci = index_.back();
         ci.index = index_.size()-1;
         ci.transition = transition;
-        ci.id = (format("SRM SIC Q1=%.10g Q3=%.10g Channel=%d Event=%d Segment=%d CE=%.10g"/* start=%.10g end=%.10g"*/)
+        ci.id = (format("%sSRM SIC Q1=%.10g Q3=%.10g Channel=%d Event=%d Segment=%d CE=%.10g"/* start=%.10g end=%.10g"*/)
+                    % polarityStringForFilter((transition.polarity == 1) ? MS_negative_scan : MS_positive_scan)
                     % transition.Q1
                     % transition.Q3
                     % transition.channel

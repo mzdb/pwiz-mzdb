@@ -1,5 +1,5 @@
 #
-# $Id: Jamfile.jam 6318 2014-06-04 20:59:45Z chambm $
+# $Id: Jamfile.jam 11102 2017-07-13 22:29:47Z chambm $
 #
 # $Revision: 1190 $
 # $Date: 2009-08-14 12:48:37 -0500 (Fri, 14 Aug 2009) $
@@ -119,6 +119,8 @@ lib pwiz_reader_thermo
         <library>$(PWIZ_ROOT_PATH)/pwiz/data/msdata//pwiz_data_msdata
         <conditional>@vendor-api-usage-requirements
     ;
+
+doctest SpectrumList_ThermoTest : SpectrumList_Thermo.cpp : <library>$(PWIZ_ROOT_PATH)/pwiz/data/msdata//pwiz_data_msdata <conditional>@vendor-api-requirements ;
 
 
 rule warn-once ( message )

@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_mzXML.cpp 6585 2014-08-07 22:49:28Z chambm $
+// $Id: SpectrumList_mzXML.cpp 10998 2017-06-23 22:14:03Z pcbrefugee $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -455,6 +455,12 @@ class HandlerScan : public SAXParser::Handler
                 scan.set(MS_scan_start_time, retentionTime, UO_second);
             }
 
+            if (endMz <= 0)
+            {
+                // If instrument settings are omitted, note observed mz range instead
+                getAttribute(attributes, "lowMz", startMz);
+                getAttribute(attributes, "highMz", endMz);
+            }
             if (endMz > 0)
                 scan.scanWindows.push_back(ScanWindow(startMz, endMz, MS_m_z));
             

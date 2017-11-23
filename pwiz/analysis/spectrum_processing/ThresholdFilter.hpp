@@ -1,5 +1,5 @@
 //
-// $Id: ThresholdFilter.hpp 2363 2010-11-10 23:19:45Z chambm $
+// $Id: ThresholdFilter.hpp 11567 2017-11-09 23:53:32Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -86,7 +86,7 @@ struct PWIZ_API_DECL ThresholdFilter : public SpectrumDataFilter
                     ThresholdingOrientation orientation_ = Orientation_MostIntense,
                     const pwiz::util::IntegerSet& msLevelsToThreshold = pwiz::util::IntegerSet(1, INT_MAX));
 
-    virtual void operator () (const pwiz::msdata::SpectrumPtr) const;
+    virtual void operator () (const pwiz::msdata::SpectrumPtr&) const;
     virtual void describe(pwiz::msdata::ProcessingMethod&) const;
 
     const ThresholdingBy_Type byType;

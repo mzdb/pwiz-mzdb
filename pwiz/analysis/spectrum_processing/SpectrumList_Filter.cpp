@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_Filter.cpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id: SpectrumList_Filter.cpp 10650 2017-03-27 21:23:14Z chambm $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -145,6 +145,30 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Filter::spectrum(size_t index, DetailLeve
     newSpectrum->index = index;
 
     return newSpectrum;
+}
+
+
+PWIZ_API_DECL std::ostream& operator<<(std::ostream& os, const SpectrumList_Filter::Predicate::FilterMode& mode)
+{
+    if (mode == SpectrumList_Filter::Predicate::FilterMode_Include)
+        os << "include";
+    else
+        os << "exclude";
+    return os;
+}
+
+
+PWIZ_API_DECL std::istream& operator>>(std::istream& is, SpectrumList_Filter::Predicate::FilterMode& mode)
+{
+    string modeStr;
+    is >> modeStr;
+    if (bal::iequals(modeStr, "include"))
+        mode = SpectrumList_Filter::Predicate::FilterMode_Include;
+    else if (bal::iequals(modeStr, "exclude"))
+        mode = SpectrumList_Filter::Predicate::FilterMode_Exclude;
+    else
+        is.setstate(std::ios_base::failbit);
+    return is;
 }
 
 
@@ -328,8 +352,8 @@ PWIZ_API_DECL boost::logic::tribool SpectrumList_FilterPredicate_ChargeStateSet:
 //
 
 
-PWIZ_API_DECL SpectrumList_FilterPredicate_PrecursorMzSet::SpectrumList_FilterPredicate_PrecursorMzSet(const std::set<double>& precursorMzSet)
-:   precursorMzSet_(precursorMzSet)
+PWIZ_API_DECL SpectrumList_FilterPredicate_PrecursorMzSet::SpectrumList_FilterPredicate_PrecursorMzSet(const std::set<double>& precursorMzSet, chemistry::MZTolerance tolerance, FilterMode mode)
+:   precursorMzSet_(precursorMzSet), tolerance_(tolerance), mode_(mode)
 {}
 
 
@@ -344,22 +368,28 @@ PWIZ_API_DECL boost::logic::tribool SpectrumList_FilterPredicate_PrecursorMzSet:
         // If not level 1, then it should have a precursor, so request more meta data.
         if (msLevel != 1) return boost::logic::indeterminate;
     }
-    bool result = precursorMzSet_.count(precursorMz)>0;
-    return result;
+
+    auto lb = precursorMzSet_.lower_bound(precursorMz - tolerance_);
+    auto ub = precursorMzSet_.lower_bound(precursorMz + tolerance_);
+    bool found = (lb != ub) || (lb != precursorMzSet_.end() && *lb == precursorMz);
+    if (mode_ == FilterMode_Include)
+        return found;
+    else
+        return !found;
 }
 
 PWIZ_API_DECL double SpectrumList_FilterPredicate_PrecursorMzSet::getPrecursorMz(const msdata::Spectrum& spectrum) const
 {
-    for (size_t i=0; i<spectrum.precursors.size(); i++)
+    for (size_t i = 0; i < spectrum.precursors.size(); i++)
     {
-		for (size_t j=0; j<spectrum.precursors[i].selectedIons.size(); j++)
-		{
-			CVParam param = spectrum.precursors[i].selectedIons[j].cvParam(MS_selected_ion_m_z);
-			if (param.cvid != CVID_Unknown)
-				return lexical_cast<double>(param.value);
+        for (size_t j = 0; j < spectrum.precursors[i].selectedIons.size(); j++)
+        {
+            CVParam param = spectrum.precursors[i].selectedIons[j].cvParam(MS_selected_ion_m_z);
+            if (param.cvid != CVID_Unknown)
+                return lexical_cast<double>(param.value);
         }
-	}
-	return 0;
+    }
+    return 0;
 }
 
 
@@ -506,7 +536,7 @@ PWIZ_API_DECL boost::logic::tribool SpectrumList_FilterPredicate_Polarity::accep
 // SpectrumList_FilterPredicate_MzPresent
 //
 
-SpectrumList_FilterPredicate_MzPresent::SpectrumList_FilterPredicate_MzPresent(chemistry::MZTolerance mzt, std::set<double> mzSet, ThresholdFilter tf, bool inverse) : mzt_(mzt), mzSet_(mzSet), tf_(tf), inverse_(inverse) {}
+SpectrumList_FilterPredicate_MzPresent::SpectrumList_FilterPredicate_MzPresent(chemistry::MZTolerance mzt, std::set<double> mzSet, ThresholdFilter tf, FilterMode mode) : mzt_(mzt), mzSet_(mzSet), tf_(tf), mode_(mode) {}
 
 boost::logic::tribool SpectrumList_FilterPredicate_MzPresent::accept(const msdata::Spectrum& spectrum) const
 {
@@ -522,7 +552,7 @@ boost::logic::tribool SpectrumList_FilterPredicate_MzPresent::accept(const msdat
         for (std::set<double>::const_iterator mzSetIter = mzSet_.begin(); mzSetIter != mzSet_.end(); ++mzSetIter) {
             if (isWithinTolerance(*mzSetIter, *iterMZ, mzt_))
             {
-                if (inverse_)
+                if (mode_ == FilterMode_Exclude)
                     return false;
                 else
                     return true;
@@ -530,9 +560,35 @@ boost::logic::tribool SpectrumList_FilterPredicate_MzPresent::accept(const msdat
         }
     }
 
-    if (inverse_)
+    if (mode_ == FilterMode_Exclude)
         return true;
     return false;
+}
+
+//
+// SpectrumList_FilterPredicate_ThermoScanFilter
+//
+
+SpectrumList_FilterPredicate_ThermoScanFilter::SpectrumList_FilterPredicate_ThermoScanFilter(const string& matchString, bool matchExact, bool inverse) : matchString_(matchString), matchExact_(matchExact), inverse_(inverse) {}
+
+boost::logic::tribool SpectrumList_FilterPredicate_ThermoScanFilter::accept(const msdata::Spectrum& spectrum) const
+{
+    Scan dummy;
+    const Scan& scan = spectrum.scanList.scans.empty() ? dummy : spectrum.scanList.scans[0];
+    CVParam param = scan.cvParam(MS_filter_string);
+    if (param.cvid == CVID_Unknown) return boost::logic::indeterminate;
+    string scanFilter = param.value;
+    bool filterPass;
+    if (matchExact_)
+    {
+        filterPass = scanFilter == matchString_;
+    }
+    else
+    {
+        filterPass = scanFilter.find(matchString_) != string::npos;
+    }
+    if (inverse_) {filterPass = !filterPass;}
+    return filterPass;
 }
 
 } // namespace analysis

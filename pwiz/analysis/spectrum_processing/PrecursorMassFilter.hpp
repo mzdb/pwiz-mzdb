@@ -1,5 +1,5 @@
 //
-// $Id: PrecursorMassFilter.hpp 2469 2011-01-18 19:27:57Z chambm $
+// $Id: PrecursorMassFilter.hpp 11567 2017-11-09 23:53:32Z chambm $
 //
 //
 // Original author: Chris Paulse <cpaulse <a.t> systemsbiology.org>
@@ -136,7 +136,7 @@ struct PWIZ_API_DECL PrecursorMassFilter : public SpectrumDataFilter
     };
 
     PrecursorMassFilter(const Config&);
-    virtual void operator () (const pwiz::msdata::SpectrumPtr) const;
+    virtual void operator () (const pwiz::msdata::SpectrumPtr&) const;
     virtual void describe(pwiz::msdata::ProcessingMethod&) const;
 
     const PrecursorMassFilter::Config params;

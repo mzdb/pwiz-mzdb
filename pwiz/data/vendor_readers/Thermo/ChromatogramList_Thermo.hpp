@@ -1,5 +1,5 @@
 //
-// $Id: ChromatogramList_Thermo.hpp 3808 2012-07-24 20:31:10Z donmarsh $
+// $Id: ChromatogramList_Thermo.hpp 9490 2016-03-22 22:20:36Z pcbrefugee $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -35,7 +35,10 @@
 
 #ifdef PWIZ_READER_THERMO
 #include "pwiz_aux/msrc/utility/vendor_api/thermo/RawFile.h"
+#include "pwiz/utility/misc/IntegerSet.hpp"
 #include "pwiz/utility/misc/Once.hpp"
+#include <boost/icl/interval_set.hpp>
+#include <boost/icl/continuous_interval.hpp>
 using namespace pwiz::vendor_api::Thermo;
 #endif // PWIZ_READER_THERMO
 
@@ -59,6 +62,8 @@ public:
 #ifdef PWIZ_READER_THERMO
     ChromatogramList_Thermo(const MSData& msd, RawFilePtr rawfile, const Reader::Config& config);
 
+    ChromatogramPtr xic(double startTime, double endTime, const boost::icl::interval_set<double>& massRanges, int msLevel);
+
     private:
 
     const MSData& msd_;
@@ -75,6 +80,7 @@ public:
         string filter;
         double q1, q3;
         double q3Offset;
+        CVID polarityType;
     };
 
     mutable vector<IndexEntry> index_;

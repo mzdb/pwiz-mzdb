@@ -1,5 +1,5 @@
 //
-// $Id: FrequencyEstimatorSimple.cpp 2052 2010-06-15 20:45:45Z chambm $
+// $Id: FrequencyEstimatorSimple.cpp 10370 2017-01-16 22:33:53Z chambm $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -31,7 +31,7 @@
 #ifdef _MSC_VER // msvc hack
 #define isnan(x) ((x) != (x))
 #else
-using std::isnan;
+#define isnan(x) std::isnan((x))
 #endif // _MSC_VER
 
 

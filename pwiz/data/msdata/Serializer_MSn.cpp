@@ -1,5 +1,5 @@
 //
-// $Id: Serializer_MSn.cpp 6585 2014-08-07 22:49:28Z chambm $
+// $Id: Serializer_MSn.cpp 8888 2015-09-24 20:16:23Z kaipot $
 //
 //
 // Original author: Barbara Frewen <ferwen@u.washington.edu>
@@ -101,14 +101,14 @@ namespace
     // if no accurate mass, compute it from mz and charge
     double calculateMass(double mz, int charge)
     {
-        return (mz * charge) - (charge * Proton);
+        return (mz * charge) - ((charge - 1) * Proton);
     }
 
     size_t getChargeStates(const SelectedIon& si, vector<int>& charges, vector<double>& masses)
     {
         int startingChargesCount = charges.size();
         CVParam chargeParam = si.cvParam(MS_charge_state);
-        CVParam massParam = si.cvParam(MS_accurate_mass);
+        CVParam massParam = si.cvParam(MS_accurate_mass_OBSOLETE);
         double mz = si.cvParam(MS_selected_ion_m_z).valueAs<double>();
         if (!chargeParam.empty())
         {
@@ -213,7 +213,7 @@ namespace
             }
 
             // Write EZ lines if accurate masses are available
-            CVParam massParam = si.cvParam(MS_accurate_mass);
+            CVParam massParam = si.cvParam(MS_accurate_mass_OBSOLETE);
             if( !massParam.empty() ){
               for(int i=0; i < numChargeStates; i++){
                 os << "I\tEZ\t" << charges[i] << "\t" << masses[i] << "\t0\t0" << endl; // pad last two fields with 0
@@ -362,7 +362,7 @@ namespace
         if (version == 3)
         {
           int numEzStates = 0;
-          CVParam massParam = si.cvParam(MS_accurate_mass);
+          CVParam massParam = si.cvParam(MS_accurate_mass_OBSOLETE);
           if (!massParam.empty())
           {
             numEzStates = numChargeStates;

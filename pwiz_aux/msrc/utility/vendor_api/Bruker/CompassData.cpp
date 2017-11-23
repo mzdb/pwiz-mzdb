@@ -1,5 +1,5 @@
 //
-// $Id: CompassData.cpp 7099 2015-01-20 17:33:10Z chambm $
+// $Id: CompassData.cpp 11211 2017-08-14 19:16:20Z chambm $
 //
 // 
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -28,6 +28,10 @@
 #include "pwiz/utility/misc/DateTime.hpp"
 #include "CompassData.hpp"
 #include "Baf2Sql.hpp"
+
+#ifdef _WIN64
+#include "TimsData.hpp"
+#endif
 
 #pragma managed
 #include "pwiz/utility/misc/cpp_cli_utilities.hpp"
@@ -104,7 +108,7 @@ void ParameterCache::update(MSSpectrumParameterList& parameters)
     }
 
     size_t i = 0;
-    BOOST_FOREACH(const MSSpectrumParameter& p, parameters)
+    for(const MSSpectrumParameter& p : parameters)
     {
         map<string, string>::const_iterator findItr = parameterAlternativeNameMap_.find(p.name);
         if (findItr != parameterAlternativeNameMap_.end())
@@ -555,6 +559,8 @@ struct CompassDataImpl : public CompassData
         try {return MSSpectrumPtr(new MSSpectrumImpl(msSpectrumCollection_->default[scan], parameterCacheByMsLevel_, detailLevel));} CATCH_AND_FORWARD
     }
 
+    virtual pair<size_t, size_t> getFrameScanPair(int scanIndex) const { return make_pair(0ull, 0ull); }
+
     virtual size_t getLCSourceCount() const
     {
         if (!hasLCData_) return 0;
@@ -612,7 +618,9 @@ struct CompassDataImpl : public CompassData
 
         try
         {
-            ptime pt(bdt::time_from_OADATE<ptime>(msAnalysis_->AnalysisDateTime.ToOADate()));
+            System::DateTime acquisitionTime = msAnalysis_->AnalysisDateTime;
+            bpt::ptime pt(boost::gregorian::date(acquisitionTime.Year, boost::gregorian::greg_month(acquisitionTime.Month), acquisitionTime.Day),
+                bpt::time_duration(acquisitionTime.Hour, acquisitionTime.Minute, acquisitionTime.Second, bpt::millisec(acquisitionTime.Millisecond).fractional_seconds()));
             return local_date_time(pt, blt::time_zone_ptr());
         }
         CATCH_AND_FORWARD
@@ -664,6 +672,10 @@ PWIZ_API_DECL CompassDataPtr CompassData::create(const string& rawpath,
 {
     if (format == Reader_Bruker_Format_BAF || format == Reader_Bruker_Format_BAF_and_U2)
         return CompassDataPtr(new Baf2SqlImpl(rawpath));
+#ifdef _WIN64
+    else if (format == Reader_Bruker_Format_TDF)
+        return CompassDataPtr(new TimsDataImpl(rawpath, false));
+#endif
 
     try {return CompassDataPtr(new CompassDataImpl(rawpath, format));} CATCH_AND_FORWARD
 }
@@ -734,6 +746,10 @@ PWIZ_API_DECL CompassDataPtr CompassData::create(const string& rawpath,
 {
     if (format == Reader_Bruker_Format_BAF || format == Reader_Bruker_Format_BAF_and_U2)
         return CompassDataPtr(new Baf2SqlImpl(rawpath));
+#ifdef _WIN64
+    else if (format == Reader_Bruker_Format_TDF)
+        return CompassDataPtr(new TimsDataImpl(rawpath, false));
+#endif
     else
         throw runtime_error("[CompassData::create] Bruker API was built with only BAF support; YEP and FID files not supported in this build");
 }

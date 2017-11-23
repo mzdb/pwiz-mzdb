@@ -33,12 +33,6 @@ lib libblas
         : <file>../lib/libblas.lib
         ;
 
-
-#lib libCHOLMOD
-#	:
-#	: <file>lib/CHOLMOD.lib
-#	;
-
 lib libceres
         :
         : <file>../lib/ceres.lib
@@ -56,7 +50,7 @@ lib mzdb_writer
             <include>optimization
             <include>msdata
             <include>peak_picking
-            <include>../../../ceres
+            <include>../lib/ceres
             <library>../../../pwiz_tools/common
             <library>../lib/snappy
             <library>../utils

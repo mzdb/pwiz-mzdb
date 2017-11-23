@@ -1,5 +1,5 @@
 //
-// $Id: Reader.hpp 7303 2015-03-13 20:19:40Z chambm $
+// $Id: Reader.hpp 10226 2016-11-29 00:23:37Z chambm $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -42,18 +42,27 @@ class PWIZ_API_DECL Reader
     /// Reader configuration
     struct PWIZ_API_DECL Config
     {
-        /// when true, sets certain vendor readers to produce SIM/SRM transitions as spectra instead of chromatograms
+        /// when true, sets certain vendor readers to produce SIM transitions as spectra instead of chromatograms
         bool simAsSpectra;
+
+        /// when true, sets certain vendor readers to produce SRM transitions as spectra instead of chromatograms
         bool srmAsSpectra;
 
-		/// when true, allows for skipping 0 length checks (and thus skip re-reading data for ABI)
+		/// when true, allows for skipping 0 length checks (and thus skip re-reading data for Sciex)
 		bool acceptZeroLengthSpectra;
+
+        /// when true, allows certain vendor readers to produce profile data without zero intensity samples flanking each peak profile
+        bool ignoreZeroIntensityPoints;
 
         /// when true, all drift bins/scans in a frame/block are written in combined form instead of as individual spectra
         bool combineIonMobilitySpectra;
 
         /// when true, if a reader cannot identify an instrument, an exception will be thrown asking users to report it
         bool unknownInstrumentIsError;
+
+        /// when true, if a reader does not know what time zone was used to record a time, it will assume the time refers to the host's local time;
+        /// when false, the reader will treat times with unknown time zone as UTC
+        bool adjustUnknownTimeZonesToHostTimeZone;
 
         Config();
         Config(const Config& rhs);

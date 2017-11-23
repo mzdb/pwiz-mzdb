@@ -38,19 +38,34 @@ namespace baf2sql
         BOOST_THROW_EXCEPTION(std::runtime_error(buf.get()));
     }
 
-    /// Find out the file name of the SQLite cache corresponding to the
-    /// specified BAF file.  (If the SQLite cache doesn't exist yet, it
-    /// will be created.)
+    /// Find out the file name of the SQLite cache corresponding to the specified BAF
+    /// file.  (If the SQLite cache doesn't exist yet, it will be created.)
     inline std::string getSQLiteCacheFilename (const std::string &baf_filename)
     {
         uint32_t len = baf2sql_get_sqlite_cache_filename(0, 0, baf_filename.c_str());
         if(len == 0)
-        {
             throwLastBaf2SqlError();
-        }
 
         boost::shared_array<char> buf(new char[len]);
         baf2sql_get_sqlite_cache_filename(buf.get(), len, baf_filename.c_str());
+
+        return buf.get();
+    }
+
+    /// Get SQLite cache, optionally translating all BAF variables (only available in
+    /// Baf2Sql-C 2.7.0 and up).
+    inline std::string getSQLiteCacheFilename (
+        const std::string &baf_filename,
+        bool translate_all_variables
+        )
+    {
+        const int arg4 = translate_all_variables ? 1 : 0;
+        uint32_t len = baf2sql_get_sqlite_cache_filename_v2(0, 0, baf_filename.c_str(), arg4);
+        if(len == 0)
+            throwLastBaf2SqlError();
+
+        boost::shared_array<char> buf(new char[len]);
+        baf2sql_get_sqlite_cache_filename_v2(buf.get(), len, baf_filename.c_str(), arg4);
 
         return buf.get();
     }
@@ -114,15 +129,14 @@ namespace baf2sql
 
             typedef typename std::vector<T>::size_type size_type;
             if(n > std::numeric_limits<size_type>::max())
-            {
                 BOOST_THROW_EXCEPTION(std::runtime_error("Array too large."));
-            }
 
             result.resize(static_cast<size_type>(n));
+            if(n == 0)
+                return;
+
             if( !doReadArray(id, &result[0]) )
-            {
                 throwLastBaf2SqlError();
-            }
         }
 
         /// Convenience function for backward compatibility. Consider

@@ -1,5 +1,5 @@
 //
-// $Id: RawFileCOM.h 2051 2010-06-15 18:39:13Z chambm $
+// $Id: RawFileCOM.h 11511 2017-10-25 16:39:22Z chambm $
 //
 //
 // Original author: Darren Kessner <Darren.Kessner@cshs.org>
@@ -37,18 +37,27 @@ namespace Thermo {
 class ManagedSafeArray
 {
     public:
+    ManagedSafeArray()
+    :   size_(0),
+        array_(0),
+        data_(0)
+    {
+    }
 
     ManagedSafeArray(VARIANT& v, long size)
     :   size_(size),
         array_(0),
         data_(0)
     {
-        if (!(v.vt & VT_ARRAY) || !v.parray)
-            throw RawEgg("ManagedSafeArray(): VARIANT error.");
+        if (size_ > 0)
+        {
+            if (!(v.vt & VT_ARRAY) || !v.parray)
+                throw RawEgg("ManagedSafeArray(): VARIANT error.");
 
-        HRESULT hr = SafeArrayAccessData(v.parray, &data_);
-        if (FAILED(hr) || !data_)
-            throw RawEgg("ManagedSafeArray(): Data access error.");
+            HRESULT hr = SafeArrayAccessData(v.parray, &data_);
+            if (FAILED(hr) || !data_)
+                throw RawEgg("ManagedSafeArray(): Data access error.");
+        }
 
         array_ = v.parray;
         v.parray = NULL;
@@ -56,8 +65,11 @@ class ManagedSafeArray
 
     ~ManagedSafeArray()
     {
-        SafeArrayUnaccessData(array_);
-        SafeArrayDestroy(array_);
+        if (size_ > 0)
+        {
+            SafeArrayUnaccessData(array_);
+            SafeArrayDestroy(array_);
+        }
     }
 
     long size() const {return size_;}
@@ -76,6 +88,9 @@ class ManagedSafeArray
 class VariantStringArray : public StringArray
 {
     public:
+    VariantStringArray()
+    {
+    }
 
     VariantStringArray(VARIANT& v, long size)
     :   msa_(v, size)

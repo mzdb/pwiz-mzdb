@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_Thermo.hpp 6585 2014-08-07 22:49:28Z chambm $
+// $Id: SpectrumList_Thermo.hpp 10352 2017-01-11 20:59:11Z chambm $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -75,6 +75,7 @@ class PWIZ_API_DECL SpectrumList_Thermo : public SpectrumListBase
     vector<int> spectraByScanType;
     vector<int> spectraByMSOrder;
     mutable boost::recursive_mutex readMutex;
+    map<long, vector<double> > fillIndex;
 
     struct IndexEntry : public SpectrumIdentity
     {
@@ -91,8 +92,10 @@ class PWIZ_API_DECL SpectrumList_Thermo : public SpectrumListBase
     map<string, size_t> idToIndexMap_;
 
     void createIndex();
+
     size_t findPrecursorSpectrumIndex(int precursorMsLevel, double precursorIsolationMz, size_t index) const;
     pwiz::vendor_api::Thermo::ScanInfoPtr findPrecursorZoomScan(int precursorMsLevel, double precursorIsolationMz, size_t index) const;
+
 #endif // PWIZ_READER_THERMO
 };
 

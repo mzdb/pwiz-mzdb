@@ -1,5 +1,5 @@
 //
-// $Id: ParamTypes.cpp 6212 2014-05-20 22:38:47Z pcbrefugee $
+// $Id: ParamTypes.cpp 11566 2017-11-09 23:16:53Z chambm $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -231,7 +231,7 @@ PWIZ_API_DECL vector<CVParam> ParamContainer::cvParamChildren(CVID cvid) const
 
     vector<CVParam>::const_iterator it;
 
-    BOOST_FOREACH(const CVParam& cvParam, cvParams)
+    for(const CVParam& cvParam : cvParams)
     {
         if (cvIsA(cvParam.cvid, cvid))
             results.push_back(cvParam);
@@ -239,7 +239,7 @@ PWIZ_API_DECL vector<CVParam> ParamContainer::cvParamChildren(CVID cvid) const
 
     // then recurse into paramGroupPtrs
 
-    BOOST_FOREACH(const ParamGroupPtr& paramGroupPtr, paramGroupPtrs)
+    for(const ParamGroupPtr& paramGroupPtr : paramGroupPtrs)
     {
         vector<CVParam> pgResults = paramGroupPtr->cvParamChildren(cvid);
         results.insert(results.end(), pgResults.begin(), pgResults.end());

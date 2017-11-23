@@ -1,5 +1,5 @@
 //
-// $Id: ChromatogramList_Thermo.cpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id: ChromatogramList_Thermo.cpp 11110 2017-07-17 18:44:07Z pcbrefugee $
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -89,6 +89,8 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_Thermo::chromatogram(size_t index
     result->index = ci.index;
     result->id = ci.id;
     result->set(ci.chromatogramType);
+    if (ci.polarityType != CVID_Unknown)
+        result->set(ci.polarityType);
 
     rawfile_->setCurrentController(ci.controllerType, ci.controllerNumber);
 
@@ -147,10 +149,15 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_Thermo::chromatogram(size_t index
             ActivationType activationType = filterParser.activationType_;
             if (activationType == ActivationType_Unknown)
                 activationType = ActivationType_CID; // assume CID
+            string polarity = polarityStringForFilter(ci.polarityType);
 
-            SetActivationType(activationType, result->precursor.activation);
+            bool hasSupplemental = filterParser.supplementalCIDOn_ && !filterParser.saTypes_.empty() && filterParser.activationType_ == ActivationType_ETD;
+
+            setActivationType(activationType, hasSupplemental ? filterParser.saTypes_[0] : ActivationType_Unknown, result->precursor.activation);
             if (filterParser.activationType_ == ActivationType_CID)
                 result->precursor.activation.set(MS_collision_energy, filterParser.precursorEnergies_[0]);
+            if (hasSupplemental && !filterParser.saEnergies_.empty())
+                result->precursor.activation.set(MS_supplemental_collision_energy, filterParser.saEnergies_[0]);
 
             result->product.isolationWindow.set(MS_isolation_window_target_m_z, ci.q3, MS_m_z);
             result->product.isolationWindow.set(MS_isolation_window_lower_offset, ci.q3Offset, MS_m_z);
@@ -164,7 +171,7 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_Thermo::chromatogram(size_t index
 
             ChromatogramDataPtr cd = rawfile_->getChromatogramData(
                 Type_MassRange, Operator_None, Type_MassRange,
-                "SRM ms2 " + q1 + " [" + q3Range + "]", q3Range, "", 0,
+                polarity + "SRM ms2 " + q1 + " [" + q3Range + "]", q3Range, "", 0,
                 0, rawfile_->rt(rawfile_->value(NumSpectra)),
                 Smoothing_None, 0);
             pwiz::msdata::TimeIntensityPair* data = reinterpret_cast<pwiz::msdata::TimeIntensityPair*>(cd->data());
@@ -254,6 +261,7 @@ PWIZ_API_DECL void ChromatogramList_Thermo::createIndex() const
                     ci.index = index_.size()-1;
                     ci.id = "TIC";
                     ci.chromatogramType = MS_TIC_chromatogram;
+                    ci.polarityType = CVID_Unknown;
                     idMap_[ci.id] = ci.index;
 
                     // for certain filter types, support additional chromatograms
@@ -295,7 +303,10 @@ PWIZ_API_DECL void ChromatogramList_Thermo::createIndex() const
                                     ci.index = index_.size()-1;
                                     ci.q1 = filterParser.precursorMZs_[0];
                                     ci.q3 = (filterParser.scanRangeMin_[j] + filterParser.scanRangeMax_[j]) / 2.0;
-                                    ci.id = (format("SRM SIC %s,%.10g", std::locale::classic())
+                                    ci.polarityType = translate(filterParser.polarityType_);
+                                    string polarity = polarityStringForFilter(ci.polarityType);
+                                    ci.id = (format("%sSRM SIC %s,%.10g", std::locale::classic())
+                                             % polarity
                                              % precursorMZ
                                              % ci.q3
                                             ).str();
@@ -320,8 +331,11 @@ PWIZ_API_DECL void ChromatogramList_Thermo::createIndex() const
                                     ci.controllerNumber = n;
                                     ci.filter = filterString;
                                     ci.index = index_.size()-1;
+                                    ci.polarityType = translate(filterParser.polarityType_);
+                                    string polarity = polarityStringForFilter(ci.polarityType);
                                     ci.q1 = (filterParser.scanRangeMin_[j] + filterParser.scanRangeMax_[j]) / 2.0;
-                                    ci.id = (format("SIM SIC %.10g", std::locale::classic())
+                                    ci.id = (format("%sSIM SIC %.10g", std::locale::classic())
+                                             % polarity
                                              % ci.q1
                                             ).str();
                                     // this should be q1Offset
@@ -357,6 +371,7 @@ PWIZ_API_DECL void ChromatogramList_Thermo::createIndex() const
                     ci.index = index_.size()-1;
                     ci.id = "Total Scan";
                     ci.chromatogramType = MS_absorption_chromatogram;
+                    ci.polarityType = CVID_Unknown;
                     idMap_[ci.id] = ci.index;
                 }
                 break; // case Controller_PDA
@@ -371,6 +386,7 @@ PWIZ_API_DECL void ChromatogramList_Thermo::createIndex() const
                     ci.index = index_.size()-1;
                     ci.id = "ECD";
                     ci.chromatogramType = MS_emission_chromatogram;
+                    ci.polarityType = CVID_Unknown;
                     idMap_[ci.id] = ci.index;
                 }
 
@@ -389,6 +405,42 @@ PWIZ_API_DECL void ChromatogramList_Thermo::createIndex() const
     //  Parent   Center    Width   Time   CE   Q1PW   Q3PW   TubeLens
     boost::regex scanEventRegex("^\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+$");*/
 }
+
+
+PWIZ_API_DECL ChromatogramPtr ChromatogramList_Thermo::xic(double startTime, double endTime, const boost::icl::interval_set<double>& massRanges, int msLevel)
+{
+    string msLevelFilter("ms");
+    if (msLevel > 1)
+        msLevelFilter += lexical_cast<string>(msLevel);
+
+    stringstream massRange;
+    bool first = true;
+    BOOST_FOREACH(const boost::icl::interval_set<double>::interval_type& range, massRanges)
+    {
+        if (!first)
+        {
+            first = false;
+            massRange << ",";
+        }
+        massRange << range.lower() << "-" << range.upper();
+    }
+
+    ChromatogramDataPtr cd = rawfile_->getChromatogramData(Type_MassRange,
+                                                           Operator_None,
+                                                           Type_MassRange,
+                                                           msLevelFilter,
+                                                           massRange.str(), "",
+                                                           0,
+                                                           startTime, endTime,
+                                                           Smoothing_None, 0);
+    pwiz::msdata::TimeIntensityPair* data = reinterpret_cast<pwiz::msdata::TimeIntensityPair*>(cd->data());
+
+    ChromatogramPtr result(new Chromatogram);
+    result->id = (boost::format("XIC %1% %2% [%3%-%4%]") % msLevelFilter % massRange.str() % startTime % endTime).str();
+    result->setTimeIntensityPairs(data, cd->size(), UO_minute, MS_number_of_detector_counts);
+    return result;
+}
+
 
 } // detail
 } // msdata

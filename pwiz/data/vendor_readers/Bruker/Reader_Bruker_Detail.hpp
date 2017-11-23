@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Bruker_Detail.hpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id: Reader_Bruker_Detail.hpp 11022 2017-07-03 17:43:28Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -54,7 +54,8 @@ PWIZ_API_DECL enum Reader_Bruker_Format
     Reader_Bruker_Format_YEP,
     Reader_Bruker_Format_BAF,
     Reader_Bruker_Format_U2,
-    Reader_Bruker_Format_BAF_and_U2
+    Reader_Bruker_Format_BAF_and_U2,
+    Reader_Bruker_Format_TDF
 };
 
 

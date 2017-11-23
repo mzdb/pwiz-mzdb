@@ -1,5 +1,5 @@
 #
-# $Id: ext-boost.jam 6979 2014-12-09 16:15:35Z chambm $
+# $Id: ext-boost.jam 11016 2017-06-30 15:32:02Z chambm $
 #
 
 #~ Copyright Redshift Software, Inc. 2006.
@@ -135,6 +135,17 @@ rule filesystem-requirements ( properties * )
     }
 
     return $(result) ;
+}
+
+rule log-platform-specific-sources ( properties * )
+{
+    local location = $(.boost-src-location) ;
+
+    if <target-os>windows in $(properties)
+    {
+        return <source>$(location)/libs/log/src/debug_output_backend.cpp
+               <source>$(location)/libs/log/src/light_rw_mutex.cpp ;
+    }
 }
 
 
@@ -578,10 +589,12 @@ rule init ( version : location : options * )
                 <use>boost
                 <link>shared:<define>BOOST_REGEX_DYN_LINK=1
                 <define>BOOST_REGEX_NO_LIB=1
+                <define>BOOST_REGEX_MATCH_EXTRA
                 <toolset>msvc:<cxxflags>/wd4309
                 <toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
             :
             :   <define>BOOST_REGEX_NO_LIB=1
+                <define>BOOST_REGEX_MATCH_EXTRA
                 <link>shared:<define>BOOST_REGEX_DYN_LINK=1
             ;
 
@@ -604,6 +617,45 @@ rule init ( version : location : options * )
             :   $(requirements)
                 <location-prefix>atomic-$(version-tokens:J=_)
                 <use>boost
+            ;
+            
+        lib psapi ;
+        lib ws2_32 ;
+
+        lib log
+            :   [ path.glob $(location)/libs/log/src : *.cpp : event_log_backend.cpp debug_output_backend.cpp light_rw_mutex.cpp dump_ssse3.cpp dump_avx2.cpp ]
+            :   $(requirements)
+                <location-prefix>system-$(version-tokens:J=_)
+                <use>boost
+                <conditional>@log-platform-specific-sources
+                <toolset>msvc:<cxxflags>/bigobj
+                <toolset>darwin:<cxxflags>-ftemplate-depth-1024
+                <toolset>clang:<cxxflags>-ftemplate-depth-1024
+                <toolset>gcc:<cxxflags>-ftemplate-depth-1024
+                <toolset>gcc:<cxxflags>-fno-strict-aliasing  # avoids strict aliasing violations in other Boost components
+                <toolset>gcc-mingw:<linkflags>-Wl,--enable-auto-import
+                <toolset>gcc-cygwin:<linkflags>-Wl,--enable-auto-import
+                <library>date_time
+                <library>filesystem
+                <library>system
+                <library>regex
+                <threading>single:<define>BOOST_LOG_NO_THREADS
+                <threading>multi:<library>thread
+                <target-os>windows:<library>ws2_32
+                <target-os>freebsd:<linkflags>"-lrt"
+                <target-os>linux:<linkflags>"-lrt -lpthread"
+                <toolset>pgi:<linkflags>"-lrt"
+                <define>BOOST_LOG_WITHOUT_EVENT_LOG
+            : # default-build
+            : # usage-requirements
+                <toolset>clang:<cxxflags>-Wno-bind-to-temporary-copy
+                <toolset>clang:<cxxflags>-Wno-unused-function
+                <library>date_time
+                <library>filesystem
+                <library>system
+                <library>regex
+                <threading>multi:<library>thread
+                <define>BOOST_LOG_WITHOUT_EVENT_LOG
             ;
 
         local PRG_EXEC_MON_SOURCES =

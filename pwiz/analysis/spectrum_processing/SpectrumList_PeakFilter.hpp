@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_PeakFilter.hpp 6902 2014-11-17 22:34:37Z chambm $
+// $Id: SpectrumList_PeakFilter.hpp 11566 2017-11-09 23:16:53Z chambm $
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -48,6 +48,23 @@ class PWIZ_API_DECL SpectrumList_PeakFilter : public msdata::SpectrumListWrapper
 
     private:
 	SpectrumDataFilterPtr filterFunctor_;
+};
+
+
+
+class PWIZ_API_DECL IsolationWindowFilter : public SpectrumDataFilter
+{
+    double defaultWindowWidth;
+    msdata::SpectrumListPtr spectrumList;
+    msdata::IsolationWindow window;
+
+    public:
+
+    IsolationWindowFilter(double defaultWindowWidth, const msdata::SpectrumListPtr& sl);
+    IsolationWindowFilter(double defaultWindowWidth, const msdata::IsolationWindow& window);
+
+    virtual void operator () (const pwiz::msdata::SpectrumPtr&) const;
+    virtual void describe(pwiz::msdata::ProcessingMethod&) const {}
 };
 
 } // namespace analysis 

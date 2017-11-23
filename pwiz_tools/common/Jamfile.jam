@@ -1,5 +1,5 @@
 #
-# $Id: Jamfile.jam 2304 2010-10-20 16:50:47Z chambm $
+# $Id: Jamfile.jam 11148 2017-08-02 17:16:44Z chambm $
 #
 #
 # Original author: Darren Kessner <darren@proteowizard.org>
@@ -35,7 +35,7 @@ lib pwiz_tools_common
         <library>/ext/boost//filesystem
         <library>../../pwiz/data/msdata//pwiz_data_msdata_examples
         <library>../../pwiz/analysis/passive//pwiz_analysis_passive_core
-        <library>../../pwiz/analysis/spectrum_processing
+        <library>../../pwiz/analysis/spectrum_processing//pwiz_analysis_spectrum_processing
         <library>$(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers//pwiz_data_vendor_readers
 : # default-build
     : # usage-requirements
@@ -43,7 +43,7 @@ lib pwiz_tools_common
         <library>/ext/boost//filesystem
         <library>../../pwiz/data/msdata//pwiz_data_msdata_examples
         <library>../../pwiz/analysis/passive//pwiz_analysis_passive_core
-        <library>../../pwiz/analysis/spectrum_processing
+        <library>../../pwiz/analysis/spectrum_processing//pwiz_analysis_spectrum_processing
         <library>$(PWIZ_ROOT_PATH)/pwiz/data/vendor_readers//pwiz_data_vendor_readers
     ;
 
