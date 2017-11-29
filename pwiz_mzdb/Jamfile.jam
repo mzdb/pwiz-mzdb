@@ -15,10 +15,10 @@ exe raw2mzDB
 ;
 
 # add missing dll files
-make libgflags.dll : mzdb/lib/libgflags.dll : @common.copy : <location>$(target-folder) ;
+#make libgflags.dll : mzdb/lib/libgflags.dll : @common.copy : <location>$(target-folder) ;
 make libglog.dll : mzdb/lib/libglog.dll : @common.copy : <location>$(target-folder) ;
 #make sqlite3.dll : mzdb/lib/sqlite3.dll : @common.copy : <location>$(target-folder) ;
-make ceres.dll : mzdb/lib/ceres.dll : @common.copy : <location>$(target-folder) ;
+#make ceres.dll : mzdb/lib/ceres.dll : @common.copy : <location>$(target-folder) ;
 
 # add msvc dlls to avoid visual c++ pre-requisites
 make mfc100u.dll : mzdb/lib/msvc/mfc100u.dll : @common.copy : <location>$(target-folder) ;

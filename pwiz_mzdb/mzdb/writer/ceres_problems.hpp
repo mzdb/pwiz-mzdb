@@ -184,7 +184,6 @@ public:
      // output used to contain input centroids
     void solve(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& output, ceres::Solver::Options options = getDefaultOptions()) {
 
-        ceres::Problem problem;
         /** to store initial parameters*/
         vector<double> data;
         //lwhms.reserve(centroids.size()); rwhms.reserve(centroids.size());
@@ -208,6 +207,7 @@ public:
                 output.push_back( centroids[i] );
             }
         } else {
+            ceres::Problem problem;
             for (size_t i = 0; i < xData.size(); ++i) {
                 ceres::CostFunction* costFunction = AutoDiffCostFunctionFactory::buildCostFunction<GaussianFittingCentroids<mz_t, int_t>, mz_t, int_t>(centroids, xData[i], yData[i]);
                 problem.AddResidualBlock( costFunction, NULL, &data[0]);
@@ -216,6 +216,8 @@ public:
             /** solve the problem */
             ceres::Solver::Summary summary;
             ceres::Solve(options, &problem, &summary);
+            //std::cout << "Brief report: " << summary.BriefReport() << "\n";
+            //std::cout << "Full report: " << summary.FullReport() << "\n";
             
             
             /** fill the result values*/
