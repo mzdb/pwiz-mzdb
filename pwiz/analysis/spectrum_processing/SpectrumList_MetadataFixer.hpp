@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_MetadataFixer.hpp 2532 2011-03-03 22:48:24Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Waters_Detail.hpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -28,7 +28,7 @@
 #include <vector>
 
 #ifdef PWIZ_READER_WATERS
-#include "pwiz_aux/msrc/utility/vendor_api/Waters/MassLynxRaw.hpp"
+#include "pwiz_aux/msrc/utility/vendor_api/Waters/WatersRawFile.hpp"
 using namespace pwiz::vendor_api::Waters;
 
 namespace pwiz {

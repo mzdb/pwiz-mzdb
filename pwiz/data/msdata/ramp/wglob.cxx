@@ -1,4 +1,4 @@
-// $Id: wglob.cxx 2359 2010-11-09 23:01:39Z chambm $
+// $Id$
 /*
 
 Program       : Glob for windows                                                  

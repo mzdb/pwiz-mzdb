@@ -1,5 +1,5 @@
 //
-// $Id: KnownMassList.cpp 2051 2010-06-15 18:39:13Z chambm $
+// $Id$
 //
 //
 // Darren Kessner <darren@proteowizard.org>

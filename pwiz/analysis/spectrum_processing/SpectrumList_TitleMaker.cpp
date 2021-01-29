@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_TitleMaker.cpp 8981 2015-10-12 20:20:31Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -68,7 +68,6 @@ string translate_SourceFileTypeToRunID(const SourceFile& sf, CVID sourceFileType
 {
     string nameExtension = bal::to_lower_copy(bfs::extension(sf.name));
     string locationExtension = bal::to_lower_copy(bfs::extension(sf.location));
-    string result; // MSVC10 is happier with a copy before return?
 
     switch (sourceFileType)
     {
@@ -82,7 +81,7 @@ string translate_SourceFileTypeToRunID(const SourceFile& sf, CVID sourceFileType
         // insane: location="file://path/to" name="source.raw"
         case MS_Waters_raw_format:
             if (nameExtension == ".dat" && locationExtension == ".raw")
-                return result=BFS_STRING(bfs::path(sf.location).filename());
+                return bfs::path(sf.location).filename().string();
             else if (nameExtension == ".raw")
                 return sf.name;
             return "";
@@ -90,19 +89,25 @@ string translate_SourceFileTypeToRunID(const SourceFile& sf, CVID sourceFileType
         // location="file://path/to/source.d" name="Analysis.yep"
         case MS_Bruker_Agilent_YEP_format:
             if (nameExtension == ".yep" && locationExtension == ".d")
-                return result=BFS_STRING(bfs::path(sf.location).filename());
+                return bfs::path(sf.location).filename().string();
             return "";
             
         // location="file://path/to/source.d" name="Analysis.baf"
         case MS_Bruker_BAF_format:
             if (nameExtension == ".baf" && locationExtension == ".d")
-                return result=BFS_STRING(bfs::path(sf.location).filename());
+                return bfs::path(sf.location).filename().string();
+            return "";
+            
+        // location="file://path/to/source.d" name="analysis.tdf"
+        case MS_Bruker_TDF_format:
+            if (nameExtension == ".tdf" && locationExtension == ".d")
+                return bfs::path(sf.location).filename().string();
             return "";
 
         // location="file://path/to/source.d/AcqData" name="msprofile.bin"
         case MS_Agilent_MassHunter_format:
             if (nameExtension == ".bin" && bfs::path(sf.location).filename() == "AcqData")
-                return result=BFS_STRING(bfs::path(sf.location).parent_path().filename());
+                return bfs::path(sf.location).parent_path().filename().string();
             return "";
 
         // location="file://path/to" name="source.mzXML"
@@ -146,6 +151,7 @@ string translate_SourceFileTypeToRunID(const SourceFile& sf, CVID sourceFileType
             return (bfs::path(sf.location) / sf.name).string().substr(7);
 
         default:
+            // TODO: log unsupported mass spectrometer file format
             return "";
     }
 }
@@ -199,6 +205,7 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_TitleMaker::spectrum(size_t index, bool g
     /// <BasePeakMz> - Spectrum::cvParam("base peak m/z")
     /// <BasePeakIntensity> - Spectrum::cvParam("base peak intensity")
     /// <TotalIonCurrent> - Spectrum::cvParam("total ion current")
+    /// <IonMobility> - Scan::cvParam("ion mobility drift time") or Scan::cvParam("inverse reduced ion mobility")
 
     string title = format_;
 
@@ -260,15 +267,24 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_TitleMaker::spectrum(size_t index, bool g
         bal::replace_all(title, "<PrecursorSpectrumId>", "");
     }
 
-    double scanStartTimeInSeconds = s->scanList.scans.empty() ? 0 : s->scanList.scans[0].cvParam(MS_scan_start_time).timeInSeconds();
-    bal::replace_all(title, "<ScanStartTimeInSeconds>", lexical_cast<string>(scanStartTimeInSeconds));
-    bal::replace_all(title, "<ScanStartTimeInMinutes>", lexical_cast<string>(scanStartTimeInSeconds / 60));
+    if (!s->scanList.scans.empty())
+    {
+        Scan& firstScan = s->scanList.scans[0];
+
+        double scanStartTimeInSeconds = firstScan.cvParam(MS_scan_start_time).timeInSeconds();
+        bal::replace_all(title, "<ScanStartTimeInSeconds>", lexical_cast<string>(scanStartTimeInSeconds));
+        bal::replace_all(title, "<ScanStartTimeInMinutes>", lexical_cast<string>(scanStartTimeInSeconds / 60));
+
+        CVParam driftTime = firstScan.cvParam(MS_ion_mobility_drift_time);
+        bal::replace_all(title, "<IonMobility>", driftTime.empty() ? firstScan.cvParam(MS_inverse_reduced_ion_mobility).value : driftTime.value);
+    }
 
     bal::replace_all(title, "<SpectrumType>", s->cvParamChild(MS_spectrum_type).name());
     bal::replace_all(title, "<MsLevel>", s->cvParam(MS_ms_level).value);
     bal::replace_all(title, "<BasePeakMz>", s->cvParam(MS_base_peak_m_z).value);
     bal::replace_all(title, "<BasePeakIntensity>", s->cvParam(MS_base_peak_intensity).value);
     bal::replace_all(title, "<TotalIonCurrent>", s->cvParam(MS_TIC).value);
+
 
     replaceCvParam(*s, MS_spectrum_title, title);
 

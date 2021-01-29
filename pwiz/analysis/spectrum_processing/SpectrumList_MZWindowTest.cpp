@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_MZWindowTest.cpp 4922 2013-09-05 22:33:08Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

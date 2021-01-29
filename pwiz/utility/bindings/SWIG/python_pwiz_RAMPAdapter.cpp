@@ -1,7 +1,7 @@
 //
 // python_pwiz_RAMPAdapter.cpp
 //
-// $Id: python_pwiz_RAMPAdapter.cpp 3300 2012-02-15 22:38:20Z chambm $
+// $Id$
 //
 // a lightweight wrapper allowing SWIG to wrap some useful pwiz code
 // Q: why a wrapper wrapper?  A: SWIG can't handle namespaces

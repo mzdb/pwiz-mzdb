@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_ABI_T2D.hpp 2043 2010-06-11 19:46:18Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -19,8 +19,8 @@
 // limitations under the License.
 //
 
-#ifndef _SPECTRUMLIST_ABI_T2D_
-#define _SPECTRUMLIST_ABI_T2D_
+#pragma once
+
 
 #include "pwiz/utility/misc/Export.hpp"
 #include "pwiz/data/msdata/SpectrumListBase.hpp"
@@ -68,5 +68,3 @@ class PWIZ_API_DECL SpectrumList_ABI_T2D : public SpectrumListBase
 } // detail
 } // msdata
 } // pwiz
-
-#endif

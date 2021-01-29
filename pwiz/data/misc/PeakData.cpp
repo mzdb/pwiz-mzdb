@@ -1,5 +1,5 @@
 //
-// $Id: PeakData.cpp 3068 2011-10-21 03:58:47Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

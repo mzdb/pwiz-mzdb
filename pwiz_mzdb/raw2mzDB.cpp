@@ -575,10 +575,23 @@ int main(int argc, char* argv[]) {
     }
 
     auto& msData = msdList[0];
-    auto originFileFormat = pwiz::msdata::identifyFileFormat(readers, f.name);
-
-    mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, resolutions, compress, safeMode);
-    
+	CVID originFileFormat = MS_Thermo_RAW_format;
+	/*try {
+		ExtendedReaderList readerList;
+		 originFileFormat = readerList.identifyAsReader(f.name)->getCvType();
+	} catch (exception& e) {
+		LOG(ERROR) << e.what() << endl;
+		LOG(ERROR) << "This a fatal error. Exiting..." << endl;
+		//exit(EXIT_FAILURE);
+	}*
+	catch (...) {
+		LOG(ERROR) << "Unknown fatal exception. Exiting...";
+	//	exit(EXIT_FAILURE);
+	}*/
+	LOG(INFO) << "WILL create writer";
+	mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, resolutions, compress, safeMode);
+	
+	LOG(INFO) << "WILL call checkMetaData";
     //---insert metadata
     try {
         writer.checkMetaData();

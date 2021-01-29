@@ -1,5 +1,5 @@
 //
-// $Id: TabularConfig.hpp 4168 2012-12-04 23:19:57Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: John Chilton <jmchilton .@. gmail.com>

@@ -1,5 +1,5 @@
 //
-// $Id: Reader_UNIFI.hpp 11392 2017-09-18 18:41:40Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -63,6 +63,8 @@ class PWIZ_API_DECL Reader_UNIFI : public Reader
                       const Config& config = Config()) const;
 
     virtual const char * getType() const {return "Waters UNIFI";}
+    virtual CVID getCvType() const {return MS_Waters_raw_format;}
+    virtual std::vector<std::string> getFileExtensions() const {return { };}
 };
 
 

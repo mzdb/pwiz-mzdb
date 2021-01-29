@@ -1,5 +1,5 @@
 //
-// $Id: TabularConfig.cpp 4136 2012-11-21 21:17:24Z chambm $
+// $Id$
 //
 //
 // Original author: John Chilton <jmchilton .@. gmail.com>

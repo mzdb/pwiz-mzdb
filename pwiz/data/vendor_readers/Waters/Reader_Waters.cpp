@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Waters.cpp 10444 2017-02-07 19:32:21Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -102,15 +102,14 @@ void fillInMetadata(const string& rawpath, RawDataPtr rawdata, MSData& msd)
     bfs::path p(rawpath);
     for (bfs::directory_iterator itr(p); itr != bfs::directory_iterator(); ++itr)
     {
-        // skip the function filepaths
-        if (find(functionFilepaths.begin(), functionFilepaths.end(), itr->path()) != functionFilepaths.end())
-            continue;
-
-        // skip lockmass cache
-        if (bal::iends_with(itr->path().string(), "lmgt.inf"))
-            continue;
-
         bfs::path sourcePath = itr->path();
+        if (bfs::is_directory(sourcePath))
+            continue;
+
+        // skip the function filepaths
+        if (find(functionFilepaths.begin(), functionFilepaths.end(), sourcePath) != functionFilepaths.end())
+            continue;
+
         SourceFilePtr sourceFile(new SourceFile);
         sourceFile->id = BFS_STRING(sourcePath.leaf());
         sourceFile->name = BFS_STRING(sourcePath.leaf());
@@ -183,10 +182,10 @@ void Reader_Waters::read(const string& filename,
         throw ReaderFail(string("[Reader_Waters::read()] Waters API does not support Unicode in filepaths ('") + utf8CharAsString(unicodeCharItr, filename.end()) + "')");
     }
 
-    RawDataPtr rawdata = RawDataPtr(new RawData(filename));
+    RawDataPtr rawdata = RawDataPtr(new RawData(filename, config.iterationListenerRegistry));
 
     result.run.spectrumListPtr = SpectrumListPtr(new SpectrumList_Waters(result, rawdata, config));
-    result.run.chromatogramListPtr = ChromatogramListPtr(new ChromatogramList_Waters(rawdata));
+    result.run.chromatogramListPtr = ChromatogramListPtr(new ChromatogramList_Waters(rawdata, config));
 
     fillInMetadata(filename, rawdata, result);
 }

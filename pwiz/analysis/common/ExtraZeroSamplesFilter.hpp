@@ -1,5 +1,5 @@
 //
-// $Id: ExtraZeroSamplesFilter.hpp 3550 2012-04-18 16:23:06Z chambm $
+// $Id$
 //
 //
 // Original author: Brian Pratt <brian.pratt <a.t> insilicos.com>
@@ -39,6 +39,9 @@ struct PWIZ_API_DECL ExtraZeroSamplesFilter
     static void remove_zeros(const std::vector<double>& x, const std::vector<double>& y,
                              std::vector<double>& xProcessed, std::vector<double>& yProcessed,
                              bool preserveFlankingZeros);
+
+    /// return the count of datapoints after removing excess zero samples
+    static int count_non_zeros(const std::vector<double>& x, const std::vector<double>& y, bool preserveFlankingZeros);
 };
 
 

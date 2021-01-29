@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_PeakFilter.cpp 11566 2017-11-09 23:16:53Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -25,7 +25,7 @@
 
 
 #pragma warning( push )
-#pragma warning( disable : 4635 )
+#pragma warning( disable : 4634 4635 )
 #include "spectrum_processing.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_PeakFilter.hpp"
 #include "pwiz/analysis/spectrum_processing/ThresholdFilter.hpp"

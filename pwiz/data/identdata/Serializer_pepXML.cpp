@@ -1,5 +1,5 @@
 //
-// $Id: Serializer_pepXML.cpp 9934 2016-08-02 17:48:03Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -2040,6 +2040,7 @@ PWIZ_API_DECL PepXMLSpecificity pepXMLSpecificity(const Enzyme& ez)
             case MS_Formic_acid:            cut="D"; nocut=""; sense="C"; break;
             case MS_Lys_C:                  cut="K"; nocut="P"; sense="C"; break;
             case MS_Lys_C_P:                cut="K"; nocut=""; sense="C"; break;
+            case MS_Lys_N:                  cut="K"; nocut=""; sense="N"; break;
             case MS_PepsinA:                cut="FL"; nocut=""; sense="C"; break;
             case MS_TrypChymo:              cut="KRFYWL"; nocut="P"; sense="C"; break;
             case MS_Trypsin_P:              cut="KR"; nocut=""; sense="C"; break;
@@ -2150,6 +2151,32 @@ PWIZ_API_DECL string stripChargeFromConventionalSpectrumId(const string& id)
         return id.substr(0, lastDot);
 
     return id;
+}
+
+
+PWIZ_API_DECL CVID pepXMLSoftwareNameToCVID(const std::string& softwareName)
+{
+    return AnalysisSoftwareTranslator::instance->translate(softwareName);
+}
+
+PWIZ_API_DECL const std::string& softwareCVIDToPepXMLSoftwareName(CVID softwareCVID)
+{
+    return AnalysisSoftwareTranslator::instance->translate(softwareCVID);
+}
+
+PWIZ_API_DECL CVID pepXMLScoreNameToCVID(CVID softwareCVID, const std::string& scoreName)
+{
+    return ScoreTranslator::instance->translate(softwareCVID, scoreName);
+}
+
+PWIZ_API_DECL const std::string& scoreCVIDToPepXMLScoreName(CVID softwareCVID, CVID scoreCVID)
+{
+    return ScoreTranslator::instance->translate(softwareCVID, scoreCVID);
+}
+
+PWIZ_API_DECL CVID nativeIdStringToCVID(const std::string& id)
+{
+    return NativeIdTranslator::instance->translate(id);
 }
 
 

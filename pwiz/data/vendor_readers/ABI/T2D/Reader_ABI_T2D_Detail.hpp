@@ -1,5 +1,5 @@
 //
-// $Id: Reader_ABI_T2D_Detail.hpp 1772 2010-02-01 14:18:08Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

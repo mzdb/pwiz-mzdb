@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_MetadataFixerTest.cpp 4922 2013-09-05 22:33:08Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

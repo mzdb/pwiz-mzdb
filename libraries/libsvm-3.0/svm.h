@@ -1,4 +1,4 @@
-// $Id: svm.h 2383 2010-11-22 23:02:49Z chambm $
+// $Id$
 #ifndef _LIBSVM_H
 #define _LIBSVM_H
 

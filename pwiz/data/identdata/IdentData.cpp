@@ -1,5 +1,5 @@
 //
-// $Id: IdentData.cpp 10246 2016-12-05 20:12:14Z chambm $
+// $Id$
 //
 //
 // Original author: Robert Burke <robert.burke@proteowizard.org>

@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_Smoother.cpp 3180 2011-12-19 23:17:13Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -81,8 +81,8 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Smoother::spectrum(size_t index, bool get
 
     try
     {
-        vector<double>& mzs = s->getMZArray()->data;
-        vector<double>& intensities = s->getIntensityArray()->data;
+        BinaryData<double>& mzs = s->getMZArray()->data;
+        BinaryData<double>& intensities = s->getIntensityArray()->data;
         vector<double> smoothedMZs, smoothedIntensities;
         algorithm_->smooth(mzs, intensities, smoothedMZs, smoothedIntensities);
         mzs.swap(smoothedMZs);

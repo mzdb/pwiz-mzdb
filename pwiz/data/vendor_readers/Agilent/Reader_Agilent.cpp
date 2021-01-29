@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Agilent.cpp 10577 2017-03-06 23:55:31Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -31,7 +31,10 @@ PWIZ_API_DECL std::string pwiz::msdata::Reader_Agilent::identify(const std::stri
 {
     if (bfs::is_directory(filename))
     {
-        if (bfs::exists(bfs::path(filename) / "AcqData"))
+        auto filepath = bfs::path(filename) / "AcqData";
+        if (bfs::exists(filepath) &&
+            (bfs::exists(filepath / "mspeak.bin") ||
+             bfs::exists(filepath / "msprofile.bin")))
             return getType();
     }
     else if (bal::icontains(filename, ".d/AcqData/mspeak.bin") ||
@@ -83,6 +86,10 @@ void initializeInstrumentConfigurationPtrs(MSData& msd,
     if (cvidModel == MS_Agilent_instrument_model)
         commonInstrumentParams->userParams.push_back(UserParam("instrument model", rawfile->getDeviceName(deviceType)));
     commonInstrumentParams->set(cvidModel);
+
+    auto serialNumber = rawfile->getDeviceSerialNumber(deviceType);
+    if (!serialNumber.empty())
+        commonInstrumentParams->set(MS_instrument_serial_number, serialNumber);
 
     // create instrument configuration templates based on the instrument model
     vector<InstrumentConfiguration> configurations = createInstrumentConfigurations(rawfile);
@@ -217,7 +224,7 @@ void Reader_Agilent::read(const string& filename,
     MassHunterDataPtr dataReader(MassHunterData::create(filename));
 
     shared_ptr<SpectrumList_Agilent> sl(new SpectrumList_Agilent(result, dataReader, config));
-    shared_ptr<ChromatogramList_Agilent> cl(new ChromatogramList_Agilent(dataReader));
+    shared_ptr<ChromatogramList_Agilent> cl(new ChromatogramList_Agilent(dataReader, config));
     result.run.spectrumListPtr = sl;
     result.run.chromatogramListPtr = cl;
 

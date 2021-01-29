@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_LockmassRefinerTest.cpp 10112 2016-10-19 16:19:19Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -52,6 +52,7 @@ void test(const string& filepath, double lockmassMz, double lockmassTolerance)
     msd.run.spectrumListPtr = sl;
 
     DiffConfig config;
+    config.ignoreExtraBinaryDataArrays = true;
     config.ignoreMetadata = true;
 
     Diff<MSData, DiffConfig> diff(msd, targetResult, config);
@@ -89,14 +90,19 @@ int main(int argc, char* argv[])
         vector<string> rawpaths;
         parseArgs(args, rawpaths);
 
-        BOOST_FOREACH(const string& filepath, rawpaths)
+        int tests = 0;
+        for(const string& filepath : rawpaths)
         {
             if (bal::ends_with(filepath, "ATEHLSTLSEK_profile.raw"))
             {
+                ++tests;
                 test(filepath, 684.3469, 0.1);
                 test(filepath, 0, 0.1);
             }
         }
+
+        if (tests == 0)
+            throw runtime_error("did not run any tests");
     }
     catch (exception& e)
     {

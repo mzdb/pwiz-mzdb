@@ -1,5 +1,5 @@
 //
-// $Id: FeatureDetectorSimple.cpp 2051 2010-06-15 18:39:13Z chambm $
+// $Id$
 //
 //
 // Original author: Kate Hoff <Katherine.Hoff@cshs.org>

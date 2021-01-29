@@ -1,6 +1,6 @@
 #if !defined AUTO_VECTOR_H
 #define AUTO_VECTOR_H
-// $Id: auto_vector.h 3300 2012-02-15 22:38:20Z chambm $
+// $Id$
 //------------------------------------
 // Reliable Software (c) 2003
 // www.relisoft.com

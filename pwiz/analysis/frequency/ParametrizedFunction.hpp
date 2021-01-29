@@ -1,5 +1,5 @@
 //
-// $Id: ParametrizedFunction.hpp 11133 2017-07-24 18:53:52Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

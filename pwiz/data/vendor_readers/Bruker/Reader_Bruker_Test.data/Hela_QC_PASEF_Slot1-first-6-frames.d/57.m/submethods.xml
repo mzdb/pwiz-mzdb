@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<method>
+<submethods>
+<submethod program="HyStar_LC" revision="0">
+<name>100 min 37 % B 400 nl</name>
+<files>
+<file name="hystar.method"/>
+</files>
+</submethod>
+<submethod program="DataAnalysis" revision="0">
+<name>DA_nanoElute cal (110-112min)_KMA.m</name>
+<files>
+<file name="DataAnalysis.Method"/>
+</files>
+</submethod>
+<submethod program="OtofImpacTEMControl" revision="0">
+<name>20170925_5.0SN12brute20kIMEX.m</name>
+<files>
+<file name="microTOFQImpacTemAcquisition.method"/>
+</files>
+</submethod>
+<submethod program="HyStar_Autosampler" revision="0">
+<name>Standard</name>
+<files/>
+</submethod>
+</submethods>
+<locked>false</locked>
+<readonly>true</readonly>
+<comment></comment>
+</method>

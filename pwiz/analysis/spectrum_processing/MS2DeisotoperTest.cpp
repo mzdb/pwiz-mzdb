@@ -1,5 +1,5 @@
 //
-// $Id: MS2DeisotoperTest.cpp 6389 2014-06-13 19:46:19Z frenchwr $
+// $Id$
 //
 //
 // Original author: William French <william.r.french <a.t> vanderbilt.edu>
@@ -140,8 +140,8 @@ int test()
         for (size_t i=0; i < calculator->size(); ++i) 
         {
             SpectrumPtr s = calculator->spectrum(i,true);
-            vector<double>& mzs = s->getMZArray()->data;
-            vector<double>& intensities = s->getIntensityArray()->data;
+            BinaryData<double>& mzs = s->getMZArray()->data;
+            BinaryData<double>& intensities = s->getIntensityArray()->data;
 
             vector<double> goldMZArray = parseDoubleArray(goldStandard[i].inputMZArray);
             vector<double> goldIntensityArray = parseDoubleArray(goldStandard[i].inputIntensityArray);

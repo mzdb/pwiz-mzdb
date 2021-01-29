@@ -1,5 +1,5 @@
 //
-// $Id: PeakFinder.hpp 1318 2009-09-15 17:48:07Z dkessner $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

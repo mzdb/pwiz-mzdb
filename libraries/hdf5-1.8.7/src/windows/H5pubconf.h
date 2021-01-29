@@ -310,7 +310,7 @@
 /* #undef H5_HAVE_STRUCT_TEXT_INFO */
 
 /* Define if `struct timezone' is defined */
-#define H5_HAVE_STRUCT_TIMEZONE 1
+/* #undef H5_HAVE_STRUCT_TIMEZONE */
 
 /* Define to 1 if `tm_zone' is member of `struct tm'. */
 /* #undef H5_HAVE_STRUCT_TM_TM_ZONE */
@@ -358,7 +358,8 @@
 #define H5_HAVE_THREADSAFE 1
 
 /* Define if `timezone' is a global variable */
-#define H5_HAVE_TIMEZONE 1
+// edited by nicksh to fix VS2015 build
+// #define H5_HAVE_TIMEZONE 1
 
 /* Define if the ioctl TIOCGETD is defined */
 /* #undef H5_HAVE_TIOCGETD */

@@ -1,5 +1,5 @@
 //
-// $Id: CubicHermiteSplineTest.cpp 11171 2017-08-07 15:01:18Z chambm $
+// $Id$
 //
 //
 // Original author: Austin Keller <atkeller .@. uw.edu>

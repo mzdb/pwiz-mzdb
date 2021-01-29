@@ -1,5 +1,5 @@
 //
-// $Id: Digestion.cpp 10922 2017-06-06 17:54:26Z chambm $ 
+// $Id$ 
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -301,18 +301,14 @@ const string& Digestion::getCleavageAgentRegex(CVID agentCvid)
 }
 
 
-namespace {
-    
-// match zero or one regex term like (?<=[KR]) or (?<=K) or (?<![KR]) or (?<!K)
-// followed by zero or one term like (?=[KR]) or (?=K) or (?![KR]) or (?!K)
-// 4 capture groups: [!=] [A-Z] for each look: 0                1                        2                3
-const bxp::sregex cutNoCutRegex = bxp::sregex::compile("(?:\\(+\\?<([=!])(\\[[A-Z]+\\]|[A-Z])\\)+)?(?:\\(+\\?([=!])(\\[[A-Z]+\\]|[A-Z])\\)+)?");
-
-} // namespace
-
 
 string Digestion::disambiguateCleavageAgentRegex(const string& cleavageAgentRegex)
 {
+    // match zero or one regex term like (?<=[KR]) or (?<=K) or (?<![KR]) or (?<!K)
+    // followed by zero or one term like (?=[KR]) or (?=K) or (?![KR]) or (?!K)
+    // 4 capture groups: [!=] [A-Z] for each look:                 0                1                        2                3
+    const static bxp::sregex cutNoCutRegex = bxp::sregex::compile("(?:\\(+\\?<([=!])(\\[[A-Z]+\\]|[A-Z])\\)+)?(?:\\(+\\?([=!])(\\[[A-Z]+\\]|[A-Z])\\)+)?");
+
     if (cleavageAgentRegex.find_first_of("BJXZ") == string::npos)
         return cleavageAgentRegex;
 

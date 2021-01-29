@@ -1,5 +1,5 @@
 //
-// $Id: Serializer_Text.cpp 6909 2014-11-19 17:18:29Z chambm $
+// $Id$
 //
 //
 // Original author: Robert Burke <robert.burke@proteowizard.org>

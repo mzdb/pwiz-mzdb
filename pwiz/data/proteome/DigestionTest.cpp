@@ -1,5 +1,5 @@
 //
-// $Id: DigestionTest.cpp 10922 2017-06-06 17:54:26Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

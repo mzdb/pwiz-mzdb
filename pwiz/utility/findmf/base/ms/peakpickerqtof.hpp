@@ -1,5 +1,5 @@
 //
-// $Id: peakpickerqtof.hpp 6337 2014-06-06 20:04:10Z witek96 $
+// $Id$
 //
 //
 // Original author: Witold Wolski <wewolski@gmail.com>

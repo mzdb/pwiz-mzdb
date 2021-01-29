@@ -1,5 +1,5 @@
 //
-// $Id: SavitzkyGolaySmoother.cpp 2901 2011-08-03 20:16:57Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

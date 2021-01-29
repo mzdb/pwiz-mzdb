@@ -1,5 +1,5 @@
 #
-# $Id: ext-zlib.jam 5943 2014-03-20 20:38:29Z chambm $
+# $Id$
 #
 
 #~ Copyright Redshift Software, Inc. 2006.
@@ -27,9 +27,9 @@ rule init ( version ? : location : options * )
     {
         .initialized = true ;
 
-        if [ path.exists $(location).tar.bz2 ] && ! --incremental in [ modules.peek : ARGV ]
+        if [ path.exists $(location).tar.bz2 ]
         {
-            tar.extract $(location).tar.bz2 : *.c *.h : : : check-last-file-only ;
+            tar.extract $(location).tar.bz2 : *.c *.h : : : <check-last-file-only>true ;
         }
         else if ! [ path.exists $(location) ]
         {

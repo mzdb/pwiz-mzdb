@@ -1,5 +1,5 @@
 //
-// $Id: MSDataAnalyzer.hpp 4171 2012-12-06 18:45:39Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

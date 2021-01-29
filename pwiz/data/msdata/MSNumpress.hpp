@@ -1,5 +1,5 @@
 //
-// $Id: MSNumpress.hpp 10984 2017-06-21 19:28:05Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Johan Teleman <johan.teleman@immun.lth.se>

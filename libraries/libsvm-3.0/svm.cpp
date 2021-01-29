@@ -1,4 +1,4 @@
-// $Id: svm.cpp 2383 2010-11-22 23:02:49Z chambm $
+// $Id$
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

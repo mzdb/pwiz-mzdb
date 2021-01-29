@@ -1,5 +1,5 @@
 //
-// $Id: BinaryIndexStream.cpp 11578 2017-11-14 20:57:43Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -182,7 +182,7 @@ class stream_vector_const_iterator
 
 	bool operator<(const _Myt& _Right) const
 	{
-		return (next_ < _Right.next_);
+		return streamPtr_.get() && (next_ < _Right.next_) ;
 	}
 
 	bool operator>(const _Myt& _Right) const

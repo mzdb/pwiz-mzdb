@@ -1,4 +1,4 @@
-// $Id: random_access_compressed_ifstream.cpp 9706 2016-05-12 00:42:42Z brendanx $
+// $Id$
 //
 // This is just an istream which chooses its streambuf implementation
 // based on whether the file is gzipped or not.  Could be extended

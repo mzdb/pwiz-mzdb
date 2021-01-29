@@ -1,5 +1,5 @@
 //
-// $Id: PepXMLCat.hpp 2503 2011-02-07 18:13:48Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

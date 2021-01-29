@@ -1,5 +1,5 @@
 ;//
-// $Id: MSData.hpp 6385 2014-06-12 22:56:04Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -30,18 +30,18 @@
 
 #ifdef PWIZ_BINDINGS_CLI_COMBINED
     #include "../common/ParamTypes.hpp"
+    #include "../common/BinaryData.hpp"
 #else
     #include "../common/SharedCLI.hpp"
     #using "pwiz_bindings_cli_common.dll" as_friend
+
+    // list of friend assemblies that are permitted to access MSData's internal members
+    [assembly:System::Runtime::CompilerServices::InternalsVisibleTo("pwiz_bindings_cli_analysis")];
 #endif
 
 #include "pwiz/data/msdata/MSData.hpp"
 #include "pwiz/data/msdata/Version.hpp"
 #pragma warning( pop )
-
-
-// list of friend assemblies that are permitted to access MSData's internal members
-[assembly:System::Runtime::CompilerServices::InternalsVisibleTo("pwiz_bindings_cli_analysis")];
 
 
 namespace pwiz {
@@ -783,12 +783,6 @@ public DEFINE_STD_VECTOR_WRAPPER_FOR_REFERENCE_TYPE(ProductList, pwiz::msdata::P
 
 
 /// <summary>
-/// A list of doubles; implements the IList&lt;double&gt; interface
-/// </summary>
-public DEFINE_STD_VECTOR_WRAPPER_FOR_VALUE_TYPE(BinaryData, double, double, NATIVE_VALUE_TO_CLI, CLI_VALUE_TO_NATIVE_VALUE);
-
-
-/// <summary>
 /// The structure into which encoded binary data goes. Byte ordering is always little endian (Intel style). Computers using a different endian style MUST convert to/from little endian when writing/reading mzML
 /// </summary>
 public ref class BinaryDataArray : public ParamContainer
@@ -809,14 +803,51 @@ public ref class BinaryDataArray : public ParamContainer
     /// <summary>
     /// the binary data.
     /// </summary>
-    property BinaryData^ data
+    property pwiz::CLI::util::BinaryDataDouble^ data
     {
-        BinaryData^ get();
-        void set(BinaryData^ value);
+        pwiz::CLI::util::BinaryDataDouble^ get();
+        void set(pwiz::CLI::util::BinaryDataDouble^ value);
     }
 
 
     BinaryDataArray();
+
+    /// <summary>
+    /// returns true iff the element contains no params and all members are empty or null
+    /// </summary>
+    bool empty() new;
+};
+
+
+/// <summary>
+/// A BinaryDataArray that stores integer values instead of doubles.
+/// </summary>
+public ref class IntegerDataArray : public ParamContainer
+{
+    DEFINE_SHARED_DERIVED_INTERNAL_BASE_CODE(pwiz::msdata, IntegerDataArray, ParamContainer);
+
+    public:
+
+    /// <summary>
+    /// this optional attribute may reference the 'id' attribute of the appropriate dataProcessing.
+    /// </summary>
+    property DataProcessing^ dataProcessing
+    {
+        DataProcessing^ get();
+        void set(DataProcessing^ value);
+    }
+
+    /// <summary>
+    /// the binary data.
+    /// </summary>
+    property pwiz::CLI::util::BinaryDataInteger^ data
+    {
+        pwiz::CLI::util::BinaryDataInteger^ get();
+        void set(pwiz::CLI::util::BinaryDataInteger^ value);
+    }
+
+
+    IntegerDataArray();
 
     /// <summary>
     /// returns true iff the element contains no params and all members are empty or null
@@ -973,6 +1004,12 @@ public DEFINE_STD_VECTOR_WRAPPER_FOR_REFERENCE_TYPE(BinaryDataArrayList, pwiz::m
 
 
 /// <summary>
+/// A list of IntegerDataArray references; implements the IList&lt;IntegerDataArray&gt; interface
+/// </summary>
+public DEFINE_STD_VECTOR_WRAPPER_FOR_REFERENCE_TYPE(IntegerDataArrayList, pwiz::msdata::IntegerDataArrayPtr, IntegerDataArray, NATIVE_SHARED_PTR_TO_CLI, CLI_TO_NATIVE_SHARED_PTR);
+
+
+/// <summary>
 /// A list of MZIntensityPair references; implements the IList&lt;MZIntensityPair&gt; interface
 /// </summary>
 public DEFINE_STD_VECTOR_WRAPPER_FOR_REFERENCE_TYPE(MZIntensityPairList, pwiz::msdata::MZIntensityPair, MZIntensityPair, NATIVE_REFERENCE_TO_CLI, CLI_TO_NATIVE_REFERENCE);
@@ -1093,6 +1130,15 @@ public ref class Spectrum : public ParamContainer
         void set(BinaryDataArrayList^ value);
     }
 
+    /// <summary>
+    /// list of integer data arrays.
+    /// </summary>
+    property IntegerDataArrayList^ integerDataArrays
+    {
+        IntegerDataArrayList^ get();
+        void set(IntegerDataArrayList^ value);
+    }
+
 
     Spectrum();
 
@@ -1115,6 +1161,11 @@ public ref class Spectrum : public ParamContainer
     /// get intensity array (may be null)
     /// </summary>
     BinaryDataArray^ getIntensityArray();
+
+    /// <summary>
+    /// get array with specified CVParam (may be null)
+    /// </summary>
+    BinaryDataArray^ getArrayByCVID(CVID arrayType);
 
     /// <summary>
     /// set binary data arrays
@@ -1225,6 +1276,15 @@ public ref class Chromatogram : public ParamContainer
         void set(BinaryDataArrayList^ value);
     }
 
+    /// <summary>
+    /// list of integer data arrays.
+    /// </summary>
+    property IntegerDataArrayList^ integerDataArrays
+    {
+        IntegerDataArrayList^ get();
+        void set(IntegerDataArrayList^ value);
+    }
+
 
     Chromatogram();
 
@@ -1242,6 +1302,16 @@ public ref class Chromatogram : public ParamContainer
     /// set binary data arrays
     /// </summary>
     void setTimeIntensityPairs(TimeIntensityPairList^ input, CVID timeUnits, CVID intensityUnits);
+
+    /// <summary>
+    /// get time array (may be null)
+    /// </summary>
+    BinaryDataArray^ getTimeArray();
+
+    /// <summary>
+    /// get intensity array (may be null)
+    /// </summary>
+    BinaryDataArray^ getIntensityArray();
 };
 
 
@@ -1337,7 +1407,8 @@ public ref class SpectrumList
 
     /// <summary>
     /// retrieve a spectrum by index
-    /// <para>- binary data arrays will be provided if (getBinaryData == true)</para>
+    /// <para>- defaultArrayLength will be provided if detailLevel is at least DetailLevel.FullMetadata</para>
+    /// <para>- binary data arrays will be provided if detailLevel is at least DetailLevel.FullData</para>
     /// <para>- client may assume the underlying Spectrum^ is valid</para>
     /// </summary>
     virtual Spectrum^ spectrum(int index, DetailLevel detailLevel);
@@ -1448,6 +1519,14 @@ public ref class ChromatogramList
     /// <para>- client may assume the underlying Chromatogram^ is valid</para>
     /// </summary>
     virtual Chromatogram^ chromatogram(int index, bool getBinaryData);
+
+    /// <summary>
+    /// retrieve a chromatogram by index
+    /// <para>- defaultArrayLength will be provided if detailLevel is at least DetailLevel.FullMetadata</para>
+    /// <para>- binary data arrays will be provided if detailLevel is at least DetailLevel.FullData</para>
+    /// <para>- client may assume the underlying Chromatogram^ is valid</para>
+    /// </summary>
+    virtual Chromatogram^ chromatogram(int index, DetailLevel detailLevel);
 
     /// <summary>
     /// returns the data processing affecting chromatograms retrieved through this interface

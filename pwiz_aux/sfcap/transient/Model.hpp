@@ -1,5 +1,5 @@
 //
-// $Id: Model.hpp 1638 2009-12-18 23:26:34Z chambm $
+// $Id$
 //
 //
 // Darren Kessner <darren@proteowizard.org>

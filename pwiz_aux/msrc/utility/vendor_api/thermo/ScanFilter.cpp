@@ -1,5 +1,5 @@
 /*
-    $Id: ScanFilter.cpp 11018 2017-06-30 19:18:31Z chambm $
+    $Id$
     Description: parsing for Thermo/Xcalibur "filter line".
     Date: April 16, 2008
 
@@ -448,7 +448,7 @@ const static boost::regex filterRegex("^(?<analyzer>FTMS|ITMS|TQMS|SQMS|TOFMS|SE
                          "(?<source>EI|CI|FAB|ESI|APCI|NSI|TSP|FD|MALDI|GD)?\\s*"
                          "(?<corona>!corona|corona)?\\s*"
                          "(?<photoIonization>!pi|pi)?\\s*"
-                         "(?<sourceCID>!sid|sid=\\d+(?:\\.\\d+))?\\s*"
+                         "(?<sourceCID>!sid|sid=-?\\d+(?:\\.\\d+))?\\s*"
                          "(?<detectorSet>!det|det=\\d+(?:\\.\\d+))?\\s*"
                          "(?:cv=(?<compensationVoltage>-?\\d+(?:\\.\\d+)?))?\\s*"
                          "(?<rapid>!r|r)?\\s*"
@@ -600,7 +600,18 @@ ScanFilter::parse(const string& filterLine)
                 if (saTypes.size() != saEnergies.size())
                     throw runtime_error("number of saType and saEnergy groups must be the same");
 
-                if (!saTypes.empty())
+                // check for Lumos style supplemental activation filter format: it looks like multiple precursors
+                if (msLevel_ == 2 && saTypes.empty() &&
+                    (int) precursorMZs_.size() == msLevel_ && precursorMZs_[0] == precursorMZs_[1] &&
+                    activationTypes.size() > 1 && precursorEnergies_.size() > 1)
+                {
+                    saTypes_.resize(1, parseActivationType(activationTypes[1]));
+                    saEnergies_.resize(1, precursorEnergies_[1]);
+                    precursorMZs_.erase(precursorMZs_.begin() + 1);
+                    precursorEnergies_.erase(precursorEnergies_.begin() + 1);
+                    activationType_ = static_cast<ActivationType>(activationType_ | saTypes_[0]); // only use SA type from first precursor
+                }
+                else if (!saTypes.empty())
                 {
                     if (saTypes.size() < precursorMZs.size())
                     {
@@ -630,14 +641,20 @@ ScanFilter::parse(const string& filterLine)
 
                     activationType_ = static_cast<ActivationType>(activationType_ | saTypes_[0]); // only use SA type from current precursor
                 }
-                else if (msLevel_ == 2) // if sa flag is set on ms2 scan with no saTypes, it's still supplemental CID or HCD
+                
+                if (msLevel_ == 2 && saTypes_.empty()) // if sa flag is set on ms2 scan with no saTypes, it's still supplemental CID or HCD
                 {
                     // CONSIDER: does detector set always mean CID is really HCD?
+                    ActivationType saType;
                     if (detectorSet_ == TriBool_True &&
                         massAnalyzerType_ == ScanFilterMassAnalyzerType_FTMS)
-                        activationType_ = static_cast<ActivationType>(activationType_ | ActivationType_HCD);
+                        saType = ActivationType_HCD;
                     else
-                        activationType_ = static_cast<ActivationType>(activationType_ | ActivationType_CID);
+                        saType = ActivationType_CID;
+
+                    activationType_ = static_cast<ActivationType>(activationType_ | saType);
+                    saTypes_.resize(1, saType);
+                    saEnergies_.resize(precursorMZs.size(), 0); // every precursor must have an energy and it defaults to 0 if not present
                 }
             }
             else if (detectorSet_ == TriBool_True &&

@@ -1,5 +1,5 @@
 //
-// $Id: SharedCLI.hpp 2705 2011-05-18 21:39:11Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -23,8 +23,13 @@
 #ifndef _SHAREDCLI_HPP_
 #define _SHAREDCLI_HPP_
 
+#ifndef NOMINMAX
+# define NOMINMAX
+#endif
+
 #include <stdlib.h>
 #include <vcclr.h>
+#pragma unmanaged
 #include <string>
 #include <vector>
 #include <boost/shared_ptr.hpp>
@@ -35,6 +40,7 @@
 
 #include "pwiz/utility/misc/cpp_cli_utilities.hpp"
 using namespace pwiz::util;
+#pragma managed
 
 //#define GC_DEBUG
 
@@ -200,6 +206,14 @@ property System::String^ Name \
 { \
     System::String^ get() {return ToSystemString(base().Name.c_str());} \
     void set(System::String^ value) {base().Name = ToStdString(value);} \
+}
+
+// wraps a const char* native member variable
+#define DEFINE_C_STRING_PROPERTY(Name) \
+property System::String^ Name \
+{ \
+    System::String^ get() {return ToSystemString(base().Name);} \
+    void set(System::String^ value) {base().Name = strdup(ToStdString(value).c_str());} \
 }
 
 // wraps a native member variable with no indirection (and owned by the class)

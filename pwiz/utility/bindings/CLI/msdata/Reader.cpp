@@ -1,5 +1,5 @@
 //
-// $Id: Reader.cpp 10226 2016-11-29 00:23:37Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -79,6 +79,29 @@ static void copyReaderConfig(pwiz::msdata::Reader::Config& config, ReaderConfig^
     config.combineIonMobilitySpectra = readerConfig->combineIonMobilitySpectra;
     config.unknownInstrumentIsError = readerConfig->unknownInstrumentIsError;
     config.adjustUnknownTimeZonesToHostTimeZone = readerConfig->adjustUnknownTimeZonesToHostTimeZone;
+    config.preferOnlyMsLevel = readerConfig->preferOnlyMsLevel;
+    config.allowMsMsWithoutPrecursor = readerConfig->allowMsMsWithoutPrecursor;
+    config.sortAndJitter = readerConfig->sortAndJitter;
+    config.globalChromatogramsAreMs1Only = readerConfig->globalChromatogramsAreMs1Only;
+
+    if (readerConfig->isolationMzAndMobilityFilter != nullptr)
+        for each (MzMobilityWindow^ filter in readerConfig->isolationMzAndMobilityFilter)
+        {
+            if (filter->mobilityBounds != nullptr && filter->mz != nullptr)
+            {
+                double lb = filter->mobilityBounds->Item1, ub = filter->mobilityBounds->Item2;
+                config.isolationMzAndMobilityFilter.emplace_back(filter->mz->Value, std::make_pair(lb, ub));
+            }
+            else if (filter->mobilityBounds != nullptr)
+            {
+                double lb = filter->mobilityBounds->Item1, ub = filter->mobilityBounds->Item2;
+                config.isolationMzAndMobilityFilter.emplace_back(std::make_pair(lb, ub));
+            }
+            else if (filter->mz != nullptr)
+                config.isolationMzAndMobilityFilter.emplace_back(filter->mz->Value);
+            else
+                throw std::invalid_argument("MzMobilityWindows must have either m/z or mobility bounds set");
+        }
 }
 
 void Reader::read(System::String^ filename, System::String^ head, MSData^ result, int sampleIndex, ReaderConfig^ readerConfig)
@@ -181,6 +204,37 @@ array<System::String^>^ ReaderList::readIds(System::String^ filename)
     }
     CATCH_AND_FORWARD
 }
+
+
+auto toSystemString = [](const auto& i) {return ToSystemString(i, false); };
+auto toCVID = [](const auto& i) {return (pwiz::CLI::cv::CVID) i; };
+
+IList<System::String^>^ ReaderList::getTypes()
+{
+    return (IList<System::String^>^) ToSystemArray<String^, std::string>(base().getTypes(), toSystemString);
+}
+
+IList<CVID>^ ReaderList::getCvTypes()
+{
+    return (IList<CVID>^) ToSystemArray<CVID, pwiz::cv::CVID>(base().getCvTypes(), toCVID);
+}
+
+IList<System::String^>^ ReaderList::getFileExtensions()
+{
+    return (IList<System::String^>^) ToSystemArray<String^, std::string>(base().getFileExtensions(), toSystemString);
+}
+
+
+IDictionary<System::String^, IList<System::String^>^>^ ReaderList::getFileExtensionsByType()
+{
+    auto result = gcnew Dictionary<String^, IList<String^>^>();
+    for (const auto& pair : base().getFileExtensionsByType())
+    {
+        result->Add(ToSystemString(pair.first, false), (IList<System::String^>^) ToSystemArray<String^, std::string>(pair.second, toSystemString));
+    }
+    return result;
+}
+
 
 namespace {
 

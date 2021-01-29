@@ -1,5 +1,5 @@
 //
-// $Id: MassHunterDataTest.cpp 6239 2014-05-24 03:37:45Z chambm $
+// $Id$
 //
 //
 // Original author: Brendan MacLean <brendanx .@. u.washington.edu>

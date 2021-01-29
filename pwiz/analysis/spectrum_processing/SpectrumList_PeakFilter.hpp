@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_PeakFilter.hpp 11566 2017-11-09 23:16:53Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

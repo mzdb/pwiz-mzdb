@@ -1,5 +1,5 @@
 //
-// $Id: simplepickertest.cpp 5471 2014-01-09 10:15:33Z witek96 $
+// $Id$
 //
 //
 // Original author: Witold Wolski <wewolski@gmail.com>

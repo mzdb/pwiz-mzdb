@@ -1,5 +1,5 @@
 //
-// $Id: RawFileCOM.h 11511 2017-10-25 16:39:22Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <Darren.Kessner@cshs.org>

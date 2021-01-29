@@ -1,5 +1,5 @@
 //
-// $Id: FrequencyEstimatorSimple.cpp 10370 2017-01-16 22:33:53Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

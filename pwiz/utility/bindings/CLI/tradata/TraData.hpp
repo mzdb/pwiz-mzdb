@@ -1,5 +1,5 @@
 ;//
-// $Id: TraData.hpp 2165 2010-07-31 16:25:10Z chambm $
+// $Id$
 //
 //
 // Original author: Jay Holman <jay.holman .@. vanderbilt.edu>
@@ -33,15 +33,14 @@
 #else
     #include "../common/SharedCLI.hpp"
     #using "pwiz_bindings_cli_common.dll" as_friend
+
+    // list of friend assemblies that are permitted to access MSData's internal members
+    [assembly:System::Runtime::CompilerServices::InternalsVisibleTo("pwiz_bindings_cli_analysis")];
 #endif
 
 #include "pwiz/data/tradata/TraData.hpp"
 #include "pwiz/data/tradata/Version.hpp"
 #pragma warning( pop )
-
-
-// list of friend assemblies that are permitted to access MSData's internal members
-[assembly:System::Runtime::CompilerServices::InternalsVisibleTo("pwiz_bindings_cli_analysis")];
 
 
 namespace pwiz {

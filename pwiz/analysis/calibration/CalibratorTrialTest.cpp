@@ -1,5 +1,5 @@
 //
-// $Id: CalibratorTrialTest.cpp 1191 2009-08-14 19:33:05Z chambm $
+// $Id$
 //
 //
 // Darren Kessner <darren@proteowizard.org>

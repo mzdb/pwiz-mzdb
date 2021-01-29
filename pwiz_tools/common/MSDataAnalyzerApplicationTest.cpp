@@ -1,5 +1,5 @@
 //
-// $Id: MSDataAnalyzerApplicationTest.cpp 6148 2014-05-06 18:03:46Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -69,11 +69,11 @@ void test()
         "file2",
         "file3",
         "file4",
-        "--filter", "coffee",
+        "--filter", "peakPicking true 1-",
         "-x", "command1",
         "-x", "command2",
         tempFilename_,
-        "--filter", "news media"
+        "--filter", "index 0-"
     };
 
     int argc = sizeof(argv)/sizeof(const char*);

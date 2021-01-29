@@ -1,5 +1,5 @@
 //
-// $Id: ProteomeData.hpp 2027 2010-06-09 22:54:33Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

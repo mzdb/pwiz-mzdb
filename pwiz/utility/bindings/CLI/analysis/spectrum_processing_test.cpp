@@ -1,5 +1,5 @@
 //
-// $Id: spectrum_processing_test.cpp 7408 2015-04-21 22:54:31Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -95,7 +95,7 @@ void testPeakFilter()
     Spectrum^ sf = slpf->spectrum(0, true);
     unit_assert(sf->defaultArrayLength == 5);
 
-    BinaryData^ intensityListFiltered = sf->getIntensityArray()->data;
+    BinaryDataDouble^ intensityListFiltered = sf->getIntensityArray()->data;
     unit_assert(intensityListFiltered->Count == 5);
     unit_assert(intensityListFiltered[0] == 5);
     unit_assert(intensityListFiltered[4] == 4);

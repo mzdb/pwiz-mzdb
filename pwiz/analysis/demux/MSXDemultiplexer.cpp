@@ -1,5 +1,5 @@
 //
-// $Id: MSXDemultiplexer.cpp 10370 2017-01-16 22:33:53Z chambm $
+// $Id$
 //
 //
 // Original author: Jarrett Egertson <jegertso .@. uw.edu>
@@ -47,7 +47,7 @@ namespace analysis {
         pmc_ = pmc;
     }
 
-    void MSXDemultiplexer::BuildDeconvBlock(size_t index, const vector<size_t>& muxIndices, MatrixPtr& masks, MatrixPtr& signal)
+    void MSXDemultiplexer::BuildDeconvBlock(size_t index, const vector<size_t>& muxIndices, MatrixPtr& masks, MatrixPtr& signal) const
     {
         assert(sl_);
         assert(pmc_);

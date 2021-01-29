@@ -1,5 +1,5 @@
 //
-// $Id: Reader_ABI.cpp 9964 2016-08-09 20:32:10Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -46,7 +46,6 @@ PWIZ_API_DECL std::string pwiz::msdata::Reader_ABI::identify(const std::string& 
 #include "SpectrumList_ABI.hpp"
 #include "ChromatogramList_ABI.hpp"
 #include "Reader_ABI_Detail.hpp"
-#include <windows.h> // GetModuleFileName
 
 
 namespace pwiz {
@@ -114,7 +113,7 @@ void fillInMetadata(const string& wiffpath, MSData& msd, WiffFilePtr wifffile,
         // otherwise add the sample name as a suffix
         if(sampleName.find(msd.id) != string::npos)
             msd.id = sampleName;
-        else
+        else if (msd.id.find(sampleName) == string::npos)
             msd.id += "-" + sampleName;
     }
 
@@ -142,8 +141,24 @@ void fillInMetadata(const string& wiffpath, MSData& msd, WiffFilePtr wifffile,
     if (sl) sl->setDataProcessingPtr(dpPwiz);
     if (cl) cl->setDataProcessingPtr(dpPwiz);
 
-    InstrumentConfigurationPtr ic = translateAsInstrumentConfiguration(wifffile->getInstrumentModel(), IonSpray);
+    auto instrumentModel = InstrumentModel_Unknown;
+    try
+    {
+        instrumentModel = wifffile->getInstrumentModel();
+    }
+    catch (runtime_error&)
+    {
+        if (config.unknownInstrumentIsError)
+            throw;
+    }
+
+    InstrumentConfigurationPtr ic = translateAsInstrumentConfiguration(instrumentModel, IonSpray);
     ic->softwarePtr = acquisitionSoftware;
+
+    auto serialNumber = wifffile->getInstrumentSerialNumber();
+    if (!serialNumber.empty())
+        ic->set(MS_instrument_serial_number, serialNumber);
+
     msd.instrumentConfigurationPtrs.push_back(ic);
     msd.run.defaultInstrumentConfigurationPtr = ic;
 
@@ -164,7 +179,6 @@ void cacheExperiments(WiffFilePtr wifffile, ExperimentsMap& experimentsMap, int 
 
 } // namespace
 
-
 PWIZ_API_DECL
 void Reader_ABI::read(const string& filename,
                       const string& head,
@@ -182,7 +196,7 @@ void Reader_ABI::read(const string& filename,
         cacheExperiments(wifffile, experimentsMap, runIndex);
 
         SpectrumList_ABI* sl = new SpectrumList_ABI(result, wifffile, experimentsMap, runIndex, config);
-        ChromatogramList_ABI* cl = new ChromatogramList_ABI(result, wifffile, experimentsMap, runIndex);
+        ChromatogramList_ABI* cl = new ChromatogramList_ABI(result, wifffile, experimentsMap, runIndex, config);
         result.run.spectrumListPtr = SpectrumListPtr(sl);
         result.run.chromatogramListPtr = ChromatogramListPtr(cl);
 
@@ -221,7 +235,7 @@ void Reader_ABI::read(const string& filename,
                 cacheExperiments(wifffile, experimentsMap, i);
 
                 SpectrumList_ABI* sl = new SpectrumList_ABI(result, wifffile, experimentsMap, i, config);
-                ChromatogramList_ABI* cl = new ChromatogramList_ABI(result, wifffile, experimentsMap, i);
+                ChromatogramList_ABI* cl = new ChromatogramList_ABI(result, wifffile, experimentsMap, i, config);
                 result.run.spectrumListPtr = SpectrumListPtr(sl);
                 result.run.chromatogramListPtr = ChromatogramListPtr(cl);
 

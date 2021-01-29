@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2013 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -33,9 +33,9 @@
 #ifndef CERES_PUBLIC_AUTODIFF_LOCAL_PARAMETERIZATION_H_
 #define CERES_PUBLIC_AUTODIFF_LOCAL_PARAMETERIZATION_H_
 
+#include "ceres/local_parameterization.h"
 #include "ceres/internal/autodiff.h"
 #include "ceres/internal/scoped_ptr.h"
-#include "ceres/local_parameterization.h"
 
 namespace ceres {
 
@@ -58,7 +58,7 @@ namespace ceres {
 //
 // For example, Quaternions have a three dimensional local
 // parameterization. It's plus operation can be implemented as (taken
-// from interncal/ceres/auto_diff_local_parameterization_test.cc)
+// from internal/ceres/auto_diff_local_parameterization_test.cc)
 //
 //   struct QuaternionPlus {
 //     template<typename T>
@@ -107,11 +107,18 @@ namespace ceres {
 template <typename Functor, int kGlobalSize, int kLocalSize>
 class AutoDiffLocalParameterization : public LocalParameterization {
  public:
+  AutoDiffLocalParameterization() :
+      functor_(new Functor()) {}
+
+  // Takes ownership of functor.
+  explicit AutoDiffLocalParameterization(Functor* functor) :
+      functor_(functor) {}
+
   virtual ~AutoDiffLocalParameterization() {}
   virtual bool Plus(const double* x,
                     const double* delta,
                     double* x_plus_delta) const {
-    return Functor()(x, delta, x_plus_delta);
+    return (*functor_)(x, delta, x_plus_delta);
   }
 
   virtual bool ComputeJacobian(const double* x, double* jacobian) const {
@@ -128,7 +135,7 @@ class AutoDiffLocalParameterization : public LocalParameterization {
     const double* parameter_ptrs[2] = {x, zero_delta};
     double* jacobian_ptrs[2] = { NULL, jacobian };
     return internal::AutoDiff<Functor, double, kGlobalSize, kLocalSize>
-        ::Differentiate(Functor(),
+        ::Differentiate(*functor_,
                         parameter_ptrs,
                         kGlobalSize,
                         x_plus_delta,
@@ -137,6 +144,9 @@ class AutoDiffLocalParameterization : public LocalParameterization {
 
   virtual int GlobalSize() const { return kGlobalSize; }
   virtual int LocalSize() const { return kLocalSize; }
+
+ private:
+  internal::scoped_ptr<Functor> functor_;
 };
 
 }  // namespace ceres

@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_LockmassRefiner.hpp 9095 2015-11-01 01:14:24Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

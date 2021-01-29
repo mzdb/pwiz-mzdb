@@ -1,5 +1,5 @@
 //
-// $Id: proteome.hpp 2219 2010-09-01 17:15:11Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -27,13 +27,13 @@
 #pragma warning( push )
 #pragma warning( disable : 4634 4635 )
 
-#pragma unmanaged
+//#pragma unmanaged
 #include "pwiz/data/common/cv.hpp"
 #include "pwiz/data/proteome/AminoAcid.hpp"
 #include "pwiz/data/proteome/Peptide.hpp"
 #include "pwiz/data/proteome/Digestion.hpp"
 #include "pwiz/data/proteome/Version.hpp"
-#pragma managed
+//#pragma managed
 
 #ifdef PWIZ_BINDINGS_CLI_COMBINED
     #include "../common/ParamTypes.hpp"

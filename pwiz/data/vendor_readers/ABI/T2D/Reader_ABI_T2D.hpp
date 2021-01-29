@@ -1,5 +1,5 @@
 //
-// $Id: Reader_ABI_T2D.hpp 3808 2012-07-24 20:31:10Z donmarsh $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -61,7 +61,9 @@ class PWIZ_API_DECL Reader_ABI_T2D : public Reader
         read(filename, head, *results.back());
     }
 
-    virtual const char * getType() const {return "ABSciex T2D";}
+    virtual const char * getType() const {return "AB/Sciex T2D";}
+    virtual CVID getCvType() const {return MS_SCIEX_TOF_TOF_T2D_format;}
+    virtual std::vector<std::string> getFileExtensions() const {return {".t2d"};}
 };
 
 

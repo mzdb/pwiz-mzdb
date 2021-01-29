@@ -1,5 +1,5 @@
 //
-// $Id: Diff.cpp 3706 2012-06-16 15:31:33Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

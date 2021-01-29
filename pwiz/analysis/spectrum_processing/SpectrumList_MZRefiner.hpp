@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_MZRefiner.hpp 8985 2015-10-12 22:38:57Z chambm $
+// $Id$
 //
 //
 // Original author: Bryson Gibbons <bryson.gibbons@pnnl.gov>
@@ -61,7 +61,7 @@ namespace analysis {
 class PWIZ_API_DECL SpectrumList_MZRefiner : public msdata::SpectrumListWrapper
 {
     public:
-    SpectrumList_MZRefiner(const msdata::MSData& msd, const std::string& identFilePath, const std::string& cvTerm, const std::string& rangeSet, const util::IntegerSet& msLevelsToRefine, double step = 0.0, int maxStep = 0, pwiz::util::IterationListenerRegistry* ilr = NULL);
+    SpectrumList_MZRefiner(const msdata::MSData& msd, const std::string& identFilePath, const std::string& cvTerm, const std::string& rangeSet, const util::IntegerSet& msLevelsToRefine, double step = 0.0, int maxStep = 0, bool assumeHighRes = false, pwiz::util::IterationListenerRegistry* ilr = NULL);
 
     /// \name SpectrumList interface
     //@{

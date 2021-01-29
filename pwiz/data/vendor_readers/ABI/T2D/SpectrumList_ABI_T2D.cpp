@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_ABI_T2D.cpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

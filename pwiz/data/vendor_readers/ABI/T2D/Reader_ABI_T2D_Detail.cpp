@@ -1,5 +1,5 @@
 //
-// $Id: Reader_ABI_T2D_Detail.cpp 4238 2012-12-20 21:56:49Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_ChargeStateCalculatorTest.cpp 6827 2014-10-22 17:54:33Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

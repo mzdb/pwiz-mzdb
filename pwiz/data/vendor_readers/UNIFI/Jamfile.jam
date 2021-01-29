@@ -1,5 +1,5 @@
 #
-# $Id: Jamfile.jam 11392 2017-09-18 18:41:40Z chambm $
+# $Id$
 #
 #
 # Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -117,7 +117,7 @@ rule test-requirements ( properties * )
     {
         .extract-once = true ;
         import tar ;
-        tar.extract $(TEST_DATA_PATH).tar.bz2 : : : : check-last-file-only ;
+        tar.extract $(TEST_DATA_PATH).tar.bz2 : : : : <check-last-file-only>true ;
     }
     
     local result ;

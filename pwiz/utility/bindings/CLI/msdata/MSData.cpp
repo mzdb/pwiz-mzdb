@@ -1,5 +1,5 @@
 //
-// $Id: MSData.cpp 10794 2017-04-25 20:19:20Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -392,10 +392,26 @@ BinaryDataArray::BinaryDataArray()
 DataProcessing^ BinaryDataArray::dataProcessing::get() {return NATIVE_SHARED_PTR_TO_CLI(b::DataProcessingPtr, DataProcessing, (*base_)->dataProcessingPtr);}
 void BinaryDataArray::dataProcessing::set(DataProcessing^ value) {(*base_)->dataProcessingPtr = CLI_TO_NATIVE_SHARED_PTR(b::DataProcessingPtr, value);}
 
-BinaryData^ BinaryDataArray::data::get() {return base_->get() ? gcnew BinaryData(&(*base_)->data, this) : nullptr;}
-void BinaryDataArray::data::set(BinaryData^ value) {(*base_)->data = *value->base_;}
+pwiz::CLI::util::BinaryDataDouble^ BinaryDataArray::data::get() {return gcnew pwiz::CLI::util::BinaryDataDouble(&(*base_)->data, this);}
+void BinaryDataArray::data::set(pwiz::CLI::util::BinaryDataDouble^ value) {(*base_)->data = value->base();}
 
 bool BinaryDataArray::empty()
+{
+    return (*base_)->empty();
+}
+
+
+IntegerDataArray::IntegerDataArray()
+: ParamContainer(new b::IntegerDataArray())
+{base_ = new boost::shared_ptr<b::IntegerDataArray>(static_cast<b::IntegerDataArray*>(ParamContainer::base_)); LOG_CONSTRUCT(__FUNCTION__)}
+
+DataProcessing^ IntegerDataArray::dataProcessing::get() {return NATIVE_SHARED_PTR_TO_CLI(b::DataProcessingPtr, DataProcessing, (*base_)->dataProcessingPtr);}
+void IntegerDataArray::dataProcessing::set(DataProcessing^ value) {(*base_)->dataProcessingPtr = CLI_TO_NATIVE_SHARED_PTR(b::DataProcessingPtr, value);}
+
+pwiz::CLI::util::BinaryDataInteger^ IntegerDataArray::data::get() {return gcnew pwiz::CLI::util::BinaryDataInteger(&(*base_)->data, this);}
+void IntegerDataArray::data::set(pwiz::CLI::util::BinaryDataInteger^ value) {(*base_)->data = value->base();}
+
+bool IntegerDataArray::empty()
 {
     return (*base_)->empty();
 }
@@ -488,6 +504,9 @@ ProductList^ Spectrum::products::get() {return gcnew ProductList(&(*base_)->prod
 BinaryDataArrayList^ Spectrum::binaryDataArrays::get() {return gcnew BinaryDataArrayList(&(*base_)->binaryDataArrayPtrs, this);}
 void Spectrum::binaryDataArrays::set(BinaryDataArrayList^ value) {(*base_)->binaryDataArrayPtrs = *value->base_;}
 
+IntegerDataArrayList^ Spectrum::integerDataArrays::get() { return gcnew IntegerDataArrayList(&(*base_)->integerDataArrayPtrs, this); }
+void Spectrum::integerDataArrays::set(IntegerDataArrayList^ value) { (*base_)->integerDataArrayPtrs = *value->base_; }
+
 void Spectrum::getMZIntensityPairs(MZIntensityPairList^% output)
 {
     try
@@ -501,12 +520,32 @@ void Spectrum::getMZIntensityPairs(MZIntensityPairList^% output)
 
 BinaryDataArray^ Spectrum::getMZArray()
 {
-    try {return gcnew BinaryDataArray(new b::BinaryDataArrayPtr((*base_)->getMZArray()));} CATCH_AND_FORWARD
+    try
+    {
+        auto arrayPtr = (*base_)->getMZArray();
+        return arrayPtr ? gcnew BinaryDataArray(new b::BinaryDataArrayPtr(arrayPtr)) : nullptr;
+    }
+    CATCH_AND_FORWARD
 }
 
 BinaryDataArray^ Spectrum::getIntensityArray()
 {
-    try {return gcnew BinaryDataArray(new b::BinaryDataArrayPtr((*base_)->getIntensityArray()));} CATCH_AND_FORWARD
+    try
+    {
+        auto arrayPtr = (*base_)->getIntensityArray();
+        return arrayPtr ? gcnew BinaryDataArray(new b::BinaryDataArrayPtr(arrayPtr)) : nullptr;
+    }
+    CATCH_AND_FORWARD
+}
+
+BinaryDataArray^ Spectrum::getArrayByCVID(CVID arrayType)
+{
+    try
+    {
+        auto arrayPtr = (*base_)->getArrayByCVID((pwiz::cv::CVID) arrayType);
+        return arrayPtr ? gcnew BinaryDataArray(new b::BinaryDataArrayPtr(arrayPtr)) : nullptr;
+    }
+    CATCH_AND_FORWARD
 }
 
 void Spectrum::setMZIntensityPairs(MZIntensityPairList^ input)
@@ -575,14 +614,17 @@ void Chromatogram::defaultArrayLength::set(System::UInt64 value) {(*base_)->defa
 DataProcessing^ Chromatogram::dataProcessing::get()  {return NATIVE_SHARED_PTR_TO_CLI(pwiz::msdata::DataProcessingPtr, DataProcessing, (*base_)->dataProcessingPtr);}
 //void set(DataProcessing^ value) {(*base_)->dataProcessingPtr = *value->base_;}
 
-Precursor^ Chromatogram::precursor::get() {return gcnew Precursor(&(*base_)->precursor);}
+Precursor^ Chromatogram::precursor::get() {return gcnew Precursor(&(*base_)->precursor, this);}
 void Chromatogram::precursor::set(Precursor^ value) {(*base_)->precursor = *value->base_;}
 
-Product^ Chromatogram::product::get() {return gcnew Product(&(*base_)->product);}
+Product^ Chromatogram::product::get() {return gcnew Product(&(*base_)->product, this);}
 void Chromatogram::product::set(Product^ value) {(*base_)->product = *value->base_;}
 
 BinaryDataArrayList^ Chromatogram::binaryDataArrays::get() {return gcnew BinaryDataArrayList(&(*base_)->binaryDataArrayPtrs, this);}
 void Chromatogram::binaryDataArrays::set(BinaryDataArrayList^ value) {(*base_)->binaryDataArrayPtrs = *value->base_;}
+
+IntegerDataArrayList^ Chromatogram::integerDataArrays::get() { return gcnew IntegerDataArrayList(&(*base_)->integerDataArrayPtrs, this); }
+void Chromatogram::integerDataArrays::set(IntegerDataArrayList^ value) { (*base_)->integerDataArrayPtrs = *value->base_; }
 
 void Chromatogram::getTimeIntensityPairs(TimeIntensityPairList^% output)
 {
@@ -598,6 +640,26 @@ void Chromatogram::getTimeIntensityPairs(TimeIntensityPairList^% output)
 void Chromatogram::setTimeIntensityPairs(TimeIntensityPairList^ input, CVID timeUnits, CVID intensityUnits)
 {
     try {(*base_)->setTimeIntensityPairs(*input->base_, (pwiz::cv::CVID) timeUnits, (pwiz::cv::CVID) intensityUnits);} CATCH_AND_FORWARD
+}
+
+BinaryDataArray^ Chromatogram::getTimeArray()
+{
+    try
+    {
+        auto arrayPtr = (*base_)->getTimeArray();
+        return arrayPtr ? gcnew BinaryDataArray(new b::BinaryDataArrayPtr(arrayPtr)) : nullptr;
+    }
+    CATCH_AND_FORWARD
+}
+
+BinaryDataArray^ Chromatogram::getIntensityArray()
+{
+    try
+    {
+        auto arrayPtr = (*base_)->getIntensityArray();
+        return arrayPtr ? gcnew BinaryDataArray(new b::BinaryDataArrayPtr(arrayPtr)) : nullptr;
+    }
+    CATCH_AND_FORWARD
 }
 
 bool Chromatogram::empty()
@@ -741,6 +803,11 @@ Chromatogram^ ChromatogramList::chromatogram(int index)
 Chromatogram^ ChromatogramList::chromatogram(int index, bool getBinaryData)
 {
     try {return gcnew Chromatogram(new b::ChromatogramPtr((*base_)->chromatogram((size_t) index, getBinaryData)));} CATCH_AND_FORWARD
+}
+
+Chromatogram^ ChromatogramList::chromatogram(int index, DetailLevel detailLevel)
+{
+    try { return gcnew Chromatogram(new b::ChromatogramPtr((*base_)->chromatogram((size_t)index, (b::DetailLevel) detailLevel))); } CATCH_AND_FORWARD
 }
 
 DataProcessing^ ChromatogramList::dataProcessing()

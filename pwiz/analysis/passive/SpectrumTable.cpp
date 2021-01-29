@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumTable.cpp 4106 2012-11-14 04:33:39Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

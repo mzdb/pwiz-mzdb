@@ -1,5 +1,5 @@
 //
-// $Id: Reader_ABI_Detail.hpp 8903 2015-09-29 18:17:40Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

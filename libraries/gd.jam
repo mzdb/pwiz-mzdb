@@ -1,5 +1,5 @@
 #
-# $Id: gd.jam 5940 2014-03-20 17:32:54Z chambm $
+# $Id$
 #
 
 #~ Copyright Vanderbilt University 2011.
@@ -84,9 +84,9 @@ rule init ( version ? : location : options * )
         path-constant FREETYPE_SOURCE : $(freetype-src-location[1]) ;
         using freetype : 2.4.7 : $(FREETYPE_SOURCE) : $(options) ;
 
-        if [ path.exists $(location).tar.bz2 ] && ! --incremental in [ modules.peek : ARGV ]
+        if [ path.exists $(location).tar.bz2 ]
         {
-            tar.extract $(location).tar.bz2 : *.c *.cxx *.h : : : check-last-file-only ;
+            tar.extract $(location).tar.bz2 : *.c *.cxx *.h : : : <check-last-file-only>true ;
         }
         else if ! [ path.exists $(location) ]
         {

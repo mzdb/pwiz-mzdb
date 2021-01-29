@@ -11,7 +11,7 @@ echo Build started at %start%
 rem -j<n> indicates using the number of processors used for compiling (some say that you should use n+1 cores, in my case I have a quad-core so I set -j5)
 rem set debug-symbols=on to compile in debug mode
 rem call quickbuild -j5 toolset=msvc-12.0 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses --without-mz5 --without-agilent --without-bruker --without-sciex --without-shimadzu --without-waters --incremental debug-symbols=off > raw2mzDB.log 2>&1
-call quickbuild -j5 toolset=msvc-12.0 address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses --incremental debug-symbols=off > raw2mzDB.log 2>&1
+call quickbuild address-model=64 pwiz_mzdb --i-agree-to-the-vendor-licenses  --incremental  debug-symbols=on  2>&1
 rem return code is not very informative because success can have a code of 0 or 1... (the real test is to check if raw2mzDB.exe file exists or not)
 echo Compilation return code is %ERRORLEVEL%
 

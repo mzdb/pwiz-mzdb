@@ -1,5 +1,5 @@
 //
-// $Id: CubicHermiteSpline.hpp 10236 2016-11-30 21:31:54Z atkeller $
+// $Id$
 //
 //
 // Original author: Austin Keller <atkeller .@. uw.edu>

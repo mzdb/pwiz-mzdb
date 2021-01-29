@@ -1,5 +1,5 @@
 //
-// $Id: MSDataAnalyzerApplication.hpp 1874 2010-03-08 16:58:15Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

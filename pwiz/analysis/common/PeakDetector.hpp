@@ -1,5 +1,5 @@
 //
-// $Id: PeakDetector.hpp 1191 2009-08-14 19:33:05Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -50,7 +50,7 @@ struct PWIZ_API_DECL PeakDetector
     virtual void detect(const std::vector<double>& x, const std::vector<double>& y,
                         std::vector<double>& xPeakValues, std::vector<double>& yPeakValues,
                         std::vector<Peak>* peaks = NULL) = 0;
-
+    virtual const char* name() const = 0;
     virtual ~PeakDetector() {}
 };
 

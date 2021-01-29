@@ -1,5 +1,5 @@
 //
-// $Id: ChromatogramList_XICGenerator.hpp 7408 2015-04-21 22:54:31Z chambm $
+// $Id$
 //
 //
 // Original author: Eric Purser <Eric.Purser .@. Vanderbilt.edu>

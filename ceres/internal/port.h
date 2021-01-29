@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -31,20 +31,68 @@
 #ifndef CERES_PUBLIC_INTERNAL_PORT_H_
 #define CERES_PUBLIC_INTERNAL_PORT_H_
 
-#include <string>
+// This file needs to compile as c code.
+#ifdef __cplusplus
+#include <cstddef>
+#include "ceres/internal/config.h"
+#if defined(CERES_TR1_MEMORY_HEADER)
+#include <tr1/memory>
+#else
+#include <memory>
+#endif
 
 namespace ceres {
 
-// It is unfortunate that this import of the entire standard namespace is
-// necessary. The reasons are historical and won't be explained here, but
-// suffice to say it is not a mistake and can't be removed without breaking
-// things outside of the Ceres optimization package.
-using namespace std;
+#if defined(CERES_TR1_SHARED_PTR)
+using std::tr1::shared_ptr;
+#else
+using std::shared_ptr;
+#endif
 
-// This is necessary to properly handle the case that there is a different
-// "string" implementation in the global namespace.
-using std::string;
+// We allocate some Eigen objects on the stack and other places they
+// might not be aligned to X(=16 [SSE], 32 [AVX] etc)-byte boundaries.  If we
+// have C++11, we can specify their alignment (which is desirable, as it means
+// we can safely enable vectorisation on matrices).  However, the standard gives
+// wide lattitude as to what alignments are legal.  It must be the case that
+// alignments up to alignof(std::max_align_t) are valid, but this might be < 16
+// on some platforms, in which case even if using C++11, on these platforms
+// we should not attempt to align to X-byte boundaries.  If using < C++11,
+// we cannot specify the alignment.
+#ifdef CERES_USE_CXX11
+namespace port_constants {
+static constexpr size_t kMaxAlignBytes =
+    // Work around a GCC 4.8 bug
+    // (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=56019) where
+    // std::max_align_t is misplaced.
+#if defined (__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ == 8
+    alignof(::max_align_t);
+#else
+    alignof(std::max_align_t);
+#endif
+}  // namespace port_constants
+#endif
 
 }  // namespace ceres
+
+#endif  // __cplusplus
+
+// A macro to signal which functions and classes are exported when
+// building a DLL with MSVC.
+//
+// Note that the ordering here is important, CERES_BUILDING_SHARED_LIBRARY
+// is only defined locally when Ceres is compiled, it is never exported to
+// users.  However, in order that we do not have to configure config.h
+// separately for building vs installing, if we are using MSVC and building
+// a shared library, then both CERES_BUILDING_SHARED_LIBRARY and
+// CERES_USING_SHARED_LIBRARY will be defined when Ceres is compiled.
+// Hence it is important that the check for CERES_BUILDING_SHARED_LIBRARY
+// happens first.
+#if defined(_MSC_VER) && defined(CERES_BUILDING_SHARED_LIBRARY)
+# define CERES_EXPORT __declspec(dllexport)
+#elif defined(_MSC_VER) && defined(CERES_USING_SHARED_LIBRARY)
+# define CERES_EXPORT __declspec(dllimport)
+#else
+# define CERES_EXPORT
+#endif
 
 #endif  // CERES_PUBLIC_INTERNAL_PORT_H_

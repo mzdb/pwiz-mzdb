@@ -1,5 +1,5 @@
 //
-// $Id: MSDataAnalyzerApplication.cpp 4444 2013-03-26 22:20:46Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -163,7 +163,7 @@ PWIZ_API_DECL void MSDataAnalyzerApplication::run(MSDataAnalyzer& analyzer, ostr
 {
     namespace bfs = boost::filesystem;
 
-    if (!filenames.empty())
+    if (!filenames.empty() && !bfs::exists(outputDirectory))
         bfs::create_directories(outputDirectory);
 
     FullReaderList readers;

@@ -46,7 +46,7 @@ generators.register-c-compiler diab.compile.c++ : CPP : OBJ : <toolset>diab ;
 generators.register-c-compiler diab.compile.c : C : OBJ : <toolset>diab ;
 
 
-# unlike most compliers, Diab defaults to static linking.
+# unlike most compilers, Diab defaults to static linking.
 # flags cxx LINKFLAGS <runtime-link>static :  ;
 flags diab.compile OPTIONS <debug-symbols>on : -g ;
 flags diab.link OPTIONS <debug-symbols>on : -g ;
@@ -63,15 +63,16 @@ flags diab.compile OPTIONS <cflags> ;
 flags diab.compile.c++ OPTIONS <cxxflags> ;
 flags diab.compile DEFINES <define> ;
 
-flags diab.compile.c++ OPTIONS <exception-handling>off  : -Xno-exceptions   ;
+flags diab.compile.c++ OPTIONS <exception-handling>off  : -Xno-exceptions ;
 # So Dinkum STL knows when exceptions are disabled
-flags diab.compile DEFINES <exception-handling>off  : _NO_EX=1   ;
+flags diab.compile.c++ DEFINES <exception-handling>off  : _NO_EX=1 ;
+flags diab.compile.c++ DEFINES <rtti>off : _NO_RTTI ;
 flags diab.compile INCLUDES <include> ;
 flags diab.link OPTIONS <linkflags> ;
 
 flags diab.compile OPTIONS <link>shared : -Xpic ;
 #flags diab.compile OPTIONS <link>static : ;
-# get VxWorks link options from shell enviorment
+# get VxWorks link options from shell environment
 flags diab.link OPTIONS <link>static : [ os.environ LDFLAGS_STATIC ]  ;
 flags diab.link.dll OPTIONS          : [ os.environ LDFLAGS_SO ] ;
 flags diab.link OPTIONS <link>shared : [ os.environ LDFLAGS_DYNAMIC ] ;

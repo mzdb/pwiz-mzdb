@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_MGF_Test.cpp 10372 2017-01-17 18:29:18Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

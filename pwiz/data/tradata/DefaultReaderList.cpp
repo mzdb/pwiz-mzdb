@@ -1,5 +1,5 @@
 //
-// $Id: DefaultReaderList.cpp 6909 2014-11-19 17:18:29Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

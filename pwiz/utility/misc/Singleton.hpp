@@ -1,5 +1,5 @@
 //
-// $Id: Singleton.hpp 2903 2011-08-03 21:54:44Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

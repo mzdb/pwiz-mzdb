@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumPeakExtractor.cpp 10348 2017-01-11 18:26:26Z chambm $
+// $Id$
 //
 //
 // Original author: Jarrett Egertson <jegertso .@. uw.edu>

@@ -1,5 +1,5 @@
 //
-// $Id: ReferenceRead_mz5.cpp 11537 2017-10-31 17:55:02Z chambm $
+// $Id$
 //
 //
 // Original authors: Mathias Wilhelm <mw@wilhelmonline.com>

@@ -1,5 +1,5 @@
 //
-// $Id: IPIFASTADatabase.hpp 1407 2009-10-10 17:07:39Z paragmallick $ 
+// $Id$ 
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

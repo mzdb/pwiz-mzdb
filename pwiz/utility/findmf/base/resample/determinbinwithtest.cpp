@@ -1,5 +1,5 @@
 //
-// $Id: determinbinwithtest.cpp 6503 2014-07-15 20:11:51Z pcbrefugee $
+// $Id$
 //
 // Original author: Witold Wolski <wewolski@gmail.com>
 //

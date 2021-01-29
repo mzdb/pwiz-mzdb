@@ -1,5 +1,5 @@
 //
-// $Id: DelimReader.cpp 9934 2016-08-02 17:48:03Z chambm $
+// $Id$
 //
 //
 // Origional author: Robert Burke <robert.burke@proteowizard.org>

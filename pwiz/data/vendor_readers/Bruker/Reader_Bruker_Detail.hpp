@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Bruker_Detail.hpp 11022 2017-07-03 17:43:28Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

@@ -1,5 +1,5 @@
 //
-// $Id: RegionAnalyzer.hpp 4136 2012-11-21 21:17:24Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

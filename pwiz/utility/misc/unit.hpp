@@ -1,5 +1,5 @@
 //
-// $Id: unit.hpp 11537 2017-10-31 17:55:02Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -28,9 +28,8 @@
 #include "Exception.hpp"
 #include "DateTime.hpp"
 #include "Filesystem.hpp"
+#include "Stream.hpp"
 #include "pwiz/utility/math/round.hpp"
-#include <string>
-#include <sstream>
 #include <cmath>
 #include <boost/filesystem/detail/utf8_codecvt_facet.hpp>
 
@@ -90,10 +89,10 @@ inline std::string quote_string(const string& str) {return "\"" + str + "\"";}
 
 
 #define unit_assert_operator_equal(expected, actual) \
-    (!(expected == actual) ? throw std::runtime_error(unit_assert_equal_message(__FILE__, __LINE__, lexical_cast<string>(expected), lexical_cast<string>(actual), #actual)) : 0)
+    (!((expected) == (actual)) ? throw std::runtime_error(unit_assert_equal_message(__FILE__, __LINE__, lexical_cast<string>(expected), lexical_cast<string>(actual), #actual)) : 0)
 
 #define unit_assert_operator_equal_to_stream(expected, actual, os) \
-    ((os) << (!(expected == actual) ? unit_assert_equal_message(__FILE__, __LINE__, lexical_cast<string>(expected), lexical_cast<string>(actual), #actual) + "\n" : ""))
+    ((os) << (!((expected) == (actual)) ? unit_assert_equal_message(__FILE__, __LINE__, lexical_cast<string>(expected), lexical_cast<string>(actual), #actual) + "\n" : ""))
 
 
 #define unit_assert_equal(x, y, epsilon) \
@@ -193,8 +192,10 @@ inline std::string escape_teamcity_string(const std::string& str)
 
 // without PWIZ_DOCTEST defined, disable doctest macros; when it is defined, doctest will be configured with main()
 #if !defined(PWIZ_DOCTEST) && !defined(PWIZ_DOCTEST_NO_MAIN)
+#ifndef __cplusplus_cli
 #define DOCTEST_CONFIG_DISABLE
 #include "libraries/doctest.h"
+#endif
 #else
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "libraries/doctest.h"
@@ -209,7 +210,7 @@ int main(int argc, char* argv[])
         doctest::Context context;
         testExitStatus = context.run();
     }
-    catch (exception& e)
+    catch (std::exception& e)
     {
         TEST_FAILED(e.what())
     }

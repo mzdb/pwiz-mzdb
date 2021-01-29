@@ -24,6 +24,7 @@
 #ifndef __BB__
 #define __BB__
 
+
 #include <algorithm>
 #include <unordered_map>
 #include <set>
@@ -349,7 +350,9 @@ public:
             if ( it->second.empty())
                 continue;
             Centroid<l_mz_t, l_int_t>& p = *(it->second.front());
-            _rtmin = std::min(p.rt, _rtmin);
+            //VDS TO CONTIONU COMPILE ///_rtmin = std::min(p.rt, _rtmin);
+			if (p.rt < _rtmin)
+				_rtmin = p.rt;
             break;
         }
 
@@ -365,7 +368,11 @@ public:
             if ( it->second.empty())
                 continue;
             Centroid<l_mz_t, l_int_t>& p = *(it->second.front());
-            _rtmax = std::max(p.rt, _rtmin);
+			//VDS TO CONTIONU COMPILE /// _rtmax = std::max(p.rt, _rtmin);
+			_rtmax = _rtmin;
+			if (p.rt > _rtmin) //VDS min ????
+				_rtmax = p.rt;
+
             break;
         }
     }

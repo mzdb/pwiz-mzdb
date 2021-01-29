@@ -1,5 +1,5 @@
 //
-// $Id: PeakelGrower.hpp 2469 2011-01-18 19:27:57Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

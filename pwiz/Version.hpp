@@ -1,5 +1,5 @@
 //
-// $Id: Version.hpp 1195 2009-08-14 22:12:04Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -36,6 +36,7 @@ struct PWIZ_API_DECL Version
     static int Major();
     static int Minor();
     static int Revision();
+    static std::string Branch(); // Source control branch name (usually "master", indicating trunk code line in Git)
     static std::string str();
     static std::string LastModified();
 };

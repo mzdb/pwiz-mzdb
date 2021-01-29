@@ -1,5 +1,5 @@
 //
-// $Id: TraData.hpp 1987 2010-05-17 19:40:16Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

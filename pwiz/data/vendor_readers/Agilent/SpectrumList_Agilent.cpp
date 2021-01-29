@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_Agilent.cpp 10496 2017-02-21 17:50:44Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -85,11 +85,11 @@ PWIZ_API_DECL size_t SpectrumList_Agilent::find(const string& id) const
     {
         map<string, size_t>::const_iterator scanItr = idToIndexMap_.find(id);
         if (scanItr == idToIndexMap_.end())
-            return size_;
+            return checkNativeIdFindResult(size_, id);
         return scanItr->second;
     }
 
-    return size();
+    return checkNativeIdFindResult(size_, id);
 }
 
 
@@ -147,8 +147,6 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLev
 
     if (isIonMobilityScan)
     {
-        //result->set(MS_base_peak_intensity, scanRecordPtr->getBasePeakIntensity(), MS_number_of_detector_counts);
-        //result->set(MS_total_ion_current, scanRecordPtr->getTic(), MS_number_of_detector_counts);
         scan.set(MS_scan_start_time, scanRecordPtr->getRetentionTime(), UO_minute);
     }
     else
@@ -232,7 +230,10 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLev
         if (ie.frameIndex != lastFrameIndex_)
             lastFrame_ = rawfile_->getIonMobilityFrame(lastFrameIndex_ = ie.frameIndex);
         if (config_.combineIonMobilitySpectra)
-            driftScan = lastFrame_->getTotalScan();
+        {
+            result->set(MS_total_ion_current, lastFrame_->getTic(), MS_number_of_detector_counts);
+            scan.set(MS_ion_mobility_drift_time, (lastFrame_->getDriftTimeRange().start + lastFrame_->getDriftTimeRange().end) / 2, UO_millisecond);
+        }
         else
         {
             driftScan = lastFrame_->getScan(ie.driftBinIndex);
@@ -260,8 +261,8 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLev
     }
 
 
-    vector<double> xArray;
-    vector<float> yArray;
+    pwiz::util::BinaryData<double> xArray;
+    pwiz::util::BinaryData<float> yArray;
 
     MSStorageMode storageMode;
     bool hasProfile;
@@ -276,18 +277,30 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLev
     }
     else
     {
-        storageMode = driftScan->getMSStorageMode();
-        hasProfile = storageMode == MSStorageMode_ProfileSpectrum;
         canCentroid = false;
+        storageMode = MSStorageMode_ProfileSpectrum;
+        hasProfile = storageMode == MSStorageMode_ProfileSpectrum;
 
-        xArray = driftScan->getXArray();
-        yArray = driftScan->getYArray();
+        auto frameMzRange = lastFrame_->getMzRange();
+        minMaxMz.start = frameMzRange.start;
+        minMaxMz.end = frameMzRange.end;
 
-        if (xArray.empty() || yArray.empty())
-            return result;
+        if (driftScan)
+        {
+            xArray = driftScan->getXArray();
+            yArray = driftScan->getYArray();
 
-        minMaxMz.start = xArray.front();
-        minMaxMz.end = xArray.back();
+            if (!xArray.empty())
+            {
+                minMaxMz.start = xArray.front();
+                minMaxMz.end = xArray.back();
+
+                double tic;
+                tic = accumulate(yArray.begin(), yArray.end(), 0);
+                result->set(MS_total_ion_current, tic, MS_number_of_detector_counts);
+            }
+        }
+
         scan.scanWindows.push_back(ScanWindow(minMaxMz.start, minMaxMz.end, MS_m_z));
     }
 
@@ -337,15 +350,26 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLev
     {
         result->setMZIntensityArrays(vector<double>(), vector<double>(), MS_number_of_detector_counts);
 
-        vector<double>& mzArray = result->getMZArray()->data;
-        vector<double>& intensityArray = result->getIntensityArray()->data;
+        pwiz::util::BinaryData<double>& mzArray = result->getMZArray()->data;
+        pwiz::util::BinaryData<double>& intensityArray = result->getIntensityArray()->data;
 
         if (doCentroid)
             result->set(MS_profile_spectrum); // let SpectrumList_PeakPicker know this was a profile spectrum
 
-        if (doCentroid || xArray.size() < 3)
+
+        if (isIonMobilityScan && config_.combineIonMobilitySpectra)
         {
-            mzArray.assign(xArray.begin(), xArray.end());
+            BinaryDataArrayPtr mobility(new BinaryDataArray);
+            result->binaryDataArrayPtrs.push_back(mobility);
+            CVParam arrayType(MS_raw_ion_mobility_array);
+            arrayType.units = UO_millisecond;
+            mobility->cvParams.emplace_back(arrayType);
+
+            lastFrame_->getCombinedSpectrumData(mzArray, intensityArray, mobility->data, config_.ignoreZeroIntensityPoints, config_.isolationMzAndMobilityFilter);
+        }
+        else if (doCentroid || xArray.size() < 3)
+        {
+            mzArray = xArray;
             intensityArray.assign(yArray.begin(), yArray.end());
         }
         else
@@ -357,46 +381,48 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLev
             intensityArray.resize(xArray.size());
             double *mzPtr = &mzArray[0];
             double *intPtr = &intensityArray[0];
+            double *xPtr = &xArray[0];
+            float *yPtr = &yArray[0];
 
             size_t index=0;
             size_t lastIndex = yArray.size();
-            while ((index < lastIndex) && (0==yArray[index])) index++; // look for first nonzero value
+            while ((index < lastIndex) && (0==yPtr[index])) index++; // look for first nonzero value
 
             if (index < lastIndex) // we have at least one nonzero value
             {
                 if (index>0)
                 {
-                    *mzPtr++ = xArray[index-1];
-                    *intPtr++ = 0;
+                    *mzPtr = xArray[index - 1]; ++mzPtr;
+                    *intPtr = 0; ++intPtr;
                 }
-                *mzPtr++ = xArray[index];
-                *intPtr++ = yArray[index];
+                *mzPtr = xPtr[index]; ++mzPtr;
+                *intPtr = yPtr[index]; ++intPtr;
                 index++;
 
                 while ( index < lastIndex )
                 {
-                    if (0 != yArray[index])
+                    if (0 != yPtr[index])
                     {
-                        *mzPtr++ = xArray[index];
-                        *intPtr++ = yArray[index++];
+                        *mzPtr = xPtr[index]; ++mzPtr;
+                        *intPtr = yPtr[index++]; ++intPtr;
                     }
                     else // skip over a run of zeros if possible, preserving those adjacent to nonzeros
                     {
-                        *mzPtr++ = xArray[index];  // we're adjacent to a nonzero so save this one at least
-                        *intPtr++ = 0;
+                        *mzPtr = xPtr[index]; ++mzPtr; // we're adjacent to a nonzero so save this one at least
+                        *intPtr = 0; ++intPtr;
                         // now look for next nonzero value if any
                         size_t z = index+1;
-                        float *y=&yArray[index];
+                        float *y = &yPtr[index];
                         while (z<lastIndex && (0==*++y)) z++;
-                        if (z < lastIndex )
+                        if (z < lastIndex)
                         {
                             if (z != index+1) // did we cover a run of zeros?
                             {
-                                *mzPtr++ = xArray[z-1]; // write a single adjacent zero
-                                *intPtr++ = 0;
+                                *mzPtr = xPtr[z - 1]; ++mzPtr; // write a single adjacent zero
+                                *intPtr = 0; ++intPtr;
                             }
-                            *mzPtr++ = xArray[z]; 
-                            *intPtr++ = yArray[z];
+                            *mzPtr = xPtr[z]; ++mzPtr;
+                            *intPtr = yPtr[z]; ++intPtr;
                         }
                         index = z+1;
                     }
@@ -409,14 +435,33 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLev
 
         if (!mzArray.empty())
         {
-            result->set(MS_lowest_observed_m_z, mzArray.front(), MS_m_z);
-            result->set(MS_highest_observed_m_z, mzArray.back(), MS_m_z);
+            for (size_t i = 0; i < 10; ++i)
+            {
+                if (intensityArray[i] > 0)
+                {
+                    result->set(MS_lowest_observed_m_z, mzArray[i], MS_m_z);
+                    break;
+                }
+            }
+
+            for (size_t i = intensityArray.size()-1; i > 0; --i)
+            {
+                if (intensityArray[i] > 0)
+                {
+                    result->set(MS_highest_observed_m_z, mzArray[i], MS_m_z);
+                    break;
+                }
+            }
         }
         result->defaultArrayLength = mzArray.size();
     }
     else
     {
-        if (doCentroid || xArray.size() < 3)
+        if (isIonMobilityScan && config_.combineIonMobilitySpectra)
+        {
+            result->defaultArrayLength = lastFrame_->getCombinedSpectrumDataSize(config_.ignoreZeroIntensityPoints, config_.isolationMzAndMobilityFilter);
+        }
+        else if (doCentroid || xArray.size() < 3)
         {
             result->defaultArrayLength = (size_t) yArray.size();
 
@@ -494,8 +539,8 @@ PWIZ_API_DECL pwiz::analysis::Spectrum3DPtr SpectrumList_Agilent::spectrum3d(dou
 
         boost::container::flat_map<double, float>& driftSpectrum = (*result)[driftScan->getDriftTime()];
         size_t numDataPoints = (size_t) driftScan->getTotalDataPoints();
-        const vector<double>& mzArray = driftScan->getXArray();
-        const vector<float>& intensityArray = driftScan->getYArray();
+        const pwiz::util::BinaryData<double>& mzArray = driftScan->getXArray();
+        const pwiz::util::BinaryData<float>& intensityArray = driftScan->getYArray();
         driftSpectrum.reserve(numDataPoints);
         for (size_t i = 0; i < numDataPoints; ++i)
             driftSpectrum[mzArray[i]] = intensityArray[i];
@@ -503,9 +548,12 @@ PWIZ_API_DECL pwiz::analysis::Spectrum3DPtr SpectrumList_Agilent::spectrum3d(dou
     return result;
 }
 
-PWIZ_API_DECL bool SpectrumList_Agilent::canConvertDriftTimeAndCCS() const { return rawfile_->canConvertDriftTimeAndCCS(); };
-PWIZ_API_DECL double SpectrumList_Agilent::driftTimeToCCS(double driftTime, double mz, int charge) const { return rawfile_->driftTimeToCCS(driftTime, mz, charge); }
-PWIZ_API_DECL double SpectrumList_Agilent::ccsToDriftTime(double ccs, double mz, int charge) const { return rawfile_->ccsToDriftTime(ccs, mz, charge); }
+
+PWIZ_API_DECL bool SpectrumList_Agilent::hasIonMobility() const { return rawfile_->hasIonMobilityData(); }
+PWIZ_API_DECL bool SpectrumList_Agilent::hasCombinedIonMobility() const { return rawfile_->hasIonMobilityData() && config_.combineIonMobilitySpectra; }
+PWIZ_API_DECL bool SpectrumList_Agilent::canConvertIonMobilityAndCCS() const { return rawfile_->canConvertDriftTimeAndCCS(); };
+PWIZ_API_DECL double SpectrumList_Agilent::ionMobilityToCCS(double driftTime, double mz, int charge) const { return rawfile_->driftTimeToCCS(driftTime, mz, charge); }
+PWIZ_API_DECL double SpectrumList_Agilent::ccsToIonMobility(double ccs, double mz, int charge) const { return rawfile_->ccsToDriftTime(ccs, mz, charge); }
 
 
 PWIZ_API_DECL void SpectrumList_Agilent::createIndex() const
@@ -535,7 +583,7 @@ PWIZ_API_DECL void SpectrumList_Agilent::createIndex() const
                 ie.index = index_.size() - 1;
 
                 std::back_insert_iterator<std::string> sink(ie.id);
-                generate(sink, "scanId=" << int_, ie.scanId);
+                generate(sink, "merged=" << int_ << " frame=" << int_, ie.scanId, ie.scanId);
                 idToIndexMap_[ie.id] = ie.index;
             }
             else
@@ -657,9 +705,11 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, bool getB
 PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLevel detailLevel) const {return SpectrumPtr();}
 PWIZ_API_DECL SpectrumPtr SpectrumList_Agilent::spectrum(size_t index, DetailLevel detailLevel, const pwiz::util::IntegerSet& msLevelsToCentroid) const {return SpectrumPtr();}
 PWIZ_API_DECL pwiz::analysis::Spectrum3DPtr SpectrumList_Agilent::spectrum3d(double scanStartTime, const boost::icl::interval_set<double>& driftTimeRanges) const {return pwiz::analysis::Spectrum3DPtr();}
-PWIZ_API_DECL bool SpectrumList_Agilent::canConvertDriftTimeAndCCS() const { return false; }
-PWIZ_API_DECL double SpectrumList_Agilent::driftTimeToCCS(double driftTime, double mz, int charge) const {return 0;}
-PWIZ_API_DECL double SpectrumList_Agilent::ccsToDriftTime(double ccs, double mz, int charge) const {return 0;}
+PWIZ_API_DECL bool SpectrumList_Agilent::hasIonMobility() const { return false; }
+PWIZ_API_DECL bool SpectrumList_Agilent::hasCombinedIonMobility() const { return false; }
+PWIZ_API_DECL bool SpectrumList_Agilent::canConvertIonMobilityAndCCS() const { return false; }
+PWIZ_API_DECL double SpectrumList_Agilent::ionMobilityToCCS(double driftTime, double mz, int charge) const {return 0;}
+PWIZ_API_DECL double SpectrumList_Agilent::ccsToIonMobility(double ccs, double mz, int charge) const {return 0;}
 
 } // detail
 } // msdata

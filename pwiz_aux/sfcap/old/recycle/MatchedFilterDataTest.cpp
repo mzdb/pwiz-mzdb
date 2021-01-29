@@ -1,5 +1,5 @@
 //
-// $Id: MatchedFilterDataTest.cpp 1195 2009-08-14 22:12:04Z chambm $
+// $Id$
 //
 //
 // Darren Kessner <darren@proteowizard.org>

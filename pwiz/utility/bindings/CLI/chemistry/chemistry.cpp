@@ -1,5 +1,5 @@
 //
-// $Id: chemistry.cpp 3317 2012-02-27 16:36:06Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

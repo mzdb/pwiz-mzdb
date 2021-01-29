@@ -1,5 +1,5 @@
 #
-# $Id: freetype.jam 5940 2014-03-20 17:32:54Z chambm $
+# $Id$
 #
 
 #~ Copyright Rene Rivera 2007.
@@ -20,9 +20,9 @@ rule init ( version ? : location : options * )
     {
         .initialized = true ;
 
-        if [ path.exists $(location).tar.bz2 ] && ! --incremental in [ modules.peek : ARGV ]
+        if [ path.exists $(location).tar.bz2 ]
         {
-            tar.extract $(location).tar.bz2 : *.c *.h : : : check-last-file-only ;
+            tar.extract $(location).tar.bz2 : *.c *.h : : : <check-last-file-only>true ;
         }
         else if ! [ path.exists $(location) ]
         {

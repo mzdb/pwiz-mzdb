@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_PeakPicker.hpp 9035 2015-10-24 18:58:07Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -45,15 +45,20 @@ class PWIZ_API_DECL SpectrumList_PeakPicker : public msdata::SpectrumListWrapper
                             bool preferVendorPeakPicking,
                             const util::IntegerSet& msLevelsToPeakPick);
 
+    /// returns true if the given file 
+    static bool supportsVendorPeakPicking(const std::string& rawpath);
 
     static bool accept(const msdata::SpectrumListPtr& inner);
 
     virtual msdata::SpectrumPtr spectrum(size_t index, msdata::DetailLevel detailLevel) const;
     virtual msdata::SpectrumPtr spectrum(size_t index, bool getBinaryData = false) const;
 
+    const util::IntegerSet& msLevels() const { return msLevelsToPeakPick_; }
+
     private:
     PeakDetectorPtr algorithm_;
     const util::IntegerSet msLevelsToPeakPick_;
+    std::string noVendorCentroidingWarningMessage_;
     int mode_;
 };
 

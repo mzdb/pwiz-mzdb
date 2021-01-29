@@ -1,5 +1,5 @@
 //
-// $Id: Unimod.cpp 2937 2011-08-12 21:10:15Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

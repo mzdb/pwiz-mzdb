@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_PrecursorRecalculator.cpp 6643 2014-09-01 21:24:30Z paragmallick $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

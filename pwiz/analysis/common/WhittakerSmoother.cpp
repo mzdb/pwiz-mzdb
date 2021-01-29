@@ -1,5 +1,5 @@
 //
-// $Id: WhittakerSmoother.cpp 1191 2009-08-14 19:33:05Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -24,7 +24,7 @@
 
 #include "WhittakerSmoother.hpp"
 #include "pwiz/utility/misc/Export.hpp"
-#include "pwiz/utility/misc/Container.hpp"
+#include "pwiz/utility/misc/Std.hpp"
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include "pwiz/utility/math/MatrixInverse.hpp"

@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_PrecursorRefineTest.cpp 4457 2013-03-29 19:33:27Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Chris Paulse <cpaulse@systemsbiology.org>

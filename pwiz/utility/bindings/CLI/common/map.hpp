@@ -1,5 +1,5 @@
 //
-// $Id: map.hpp 2705 2011-05-18 21:39:11Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

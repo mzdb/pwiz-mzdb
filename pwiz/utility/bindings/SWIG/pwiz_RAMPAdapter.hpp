@@ -1,7 +1,7 @@
 //
 // pwiz_RAMPAdapter.hpp
 //
-// $Id: pwiz_RAMPAdapter.hpp 1862 2010-03-05 00:39:34Z pcbrefugee $
+// $Id$
 //
 // a lightweight wrapper allowing SWIG to wrap some useful pwiz code
 // Q: why wrap a wrapper?  A: SWIG can't handle namespaces

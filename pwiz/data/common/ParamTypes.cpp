@@ -1,5 +1,5 @@
 //
-// $Id: ParamTypes.cpp 11566 2017-11-09 23:16:53Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

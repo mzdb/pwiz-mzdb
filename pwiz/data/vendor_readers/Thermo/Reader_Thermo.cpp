@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Thermo.cpp 8904 2015-09-29 19:20:14Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -87,7 +87,8 @@ namespace {
 
 void initializeInstrumentConfigurationPtrs(MSData& msd,
                                            RawFile& rawfile,
-                                           const SoftwarePtr& instrumentSoftware)
+                                           const SoftwarePtr& instrumentSoftware,
+                                           const InstrumentData& instData)
 {
     CVID cvidModel = translateAsInstrumentModel(rawfile.getInstrumentModel());
 
@@ -96,10 +97,12 @@ void initializeInstrumentConfigurationPtrs(MSData& msd,
     commonInstrumentParams->id = "CommonInstrumentParams";
     msd.paramGroupPtrs.push_back(commonInstrumentParams);
 
-    if (cvidModel == MS_Thermo_Electron_instrument_model)
-        commonInstrumentParams->userParams.push_back(UserParam("instrument model", rawfile.value(InstModel)));
+    if (cvidModel == MS_Thermo_Electron_instrument_model && !instData.Model.empty())
+        commonInstrumentParams->userParams.push_back(UserParam("instrument model", instData.Model));
     commonInstrumentParams->set(cvidModel);
-    commonInstrumentParams->set(MS_instrument_serial_number, rawfile.value(InstSerialNumber));
+
+    if (!instData.SerialNumber.empty())
+        commonInstrumentParams->set(MS_instrument_serial_number, instData.SerialNumber);
 
     // create instrument configuration templates based on the instrument model
     vector<InstrumentConfiguration> configurations = createInstrumentConfigurations(rawfile);
@@ -134,8 +137,21 @@ void fillInMetadata(const string& filename, RawFile& rawfile, MSData& msd, const
 
     msd.id = bfs::basename(p);
 
-    /*SamplePtr samplePtr(new Sample("sample"));
-    for (int i=0; i < (int) ValueID_Double_Count; ++i)
+    // reset controller which may have been changed by Spectrum/ChromatogramList index enumeration
+    if (rawfile.getNumberOfControllersOfType(Controller_MS) > 0)
+        rawfile.setCurrentController(Controller_MS, 1);
+
+    auto instData = rawfile.getInstrumentData();
+
+    string sampleID = rawfile.getSampleID();
+    if (!sampleID.empty())
+    {
+        SamplePtr samplePtr(new Sample(sampleID));
+        samplePtr->set(MS_sample_name, sampleID);
+        msd.samplePtrs.push_back(samplePtr);
+    }
+
+    /*for (int i=0; i < (int) ValueID_Double_Count; ++i)
         if (rawfile.value((ValueID_Double) i) > 0)
             samplePtr->userParams.push_back(UserParam(rawfile.name((ValueID_Double) i),
                                                       lexical_cast<string>(rawfile.value((ValueID_Double) i)),
@@ -149,13 +165,12 @@ void fillInMetadata(const string& filename, RawFile& rawfile, MSData& msd, const
         if (!rawfile.value((ValueID_String) i).empty())
             samplePtr->userParams.push_back(UserParam(rawfile.name((ValueID_String) i),
                                                       rawfile.value((ValueID_String) i),
-                                                      "xsd:string"));
-    msd.samplePtrs.push_back(samplePtr);*/
+                                                      "xsd:string"));*/
 
     SoftwarePtr softwareXcalibur(new Software);
     softwareXcalibur->id = "Xcalibur";
     softwareXcalibur->set(MS_Xcalibur);
-    softwareXcalibur->version = rawfile.value(InstSoftwareVersion);
+    softwareXcalibur->version = instData.SoftwareVersion;
     msd.softwarePtrs.push_back(softwareXcalibur);
 
     SoftwarePtr softwarePwiz(new Software);
@@ -217,13 +232,14 @@ void fillInMetadata(const string& filename, RawFile& rawfile, MSData& msd, const
         msd.fileDescription.fileContent.set(MS_SRM_chromatogram);
 
     // add instrument configuration metadata
-    initializeInstrumentConfigurationPtrs(msd, rawfile, softwareXcalibur);
+    initializeInstrumentConfigurationPtrs(msd, rawfile, softwareXcalibur, instData);
     if (!msd.instrumentConfigurationPtrs.empty())
         msd.run.defaultInstrumentConfigurationPtr = msd.instrumentConfigurationPtrs[0];
-    else
+
+    if (!instData.Model.empty() && !instData.Name.empty() && rawfile.getInstrumentModel() == InstrumentModelType_Unknown)
     {
         if (config.unknownInstrumentIsError)
-            throw runtime_error("[Reader_Thermo::fillInMetadata] unable to parse instrument model; please report this error to the ProteoWizard developers with this information: model(" + rawfile.value(InstModel) + ") name(" + rawfile.value(InstName) + "); if want to convert the file anyway, use the ignoreUnknownInstrumentError flag");
+            throw runtime_error("[Reader_Thermo::fillInMetadata] unable to parse instrument model; make sure you are using the latest version of ProteoWizard; if you are, please report this error to the ProteoWizard developers with this information: model(" + instData.Model + ") name(" + instData.Name + "); if want to convert the file anyway, use the ignoreUnknownInstrumentError flag");
         // TODO: else log warning
     }
 
@@ -253,7 +269,6 @@ void Reader_Thermo::read(const string& filename,
     // instantiate RawFile, share ownership with SpectrumList_Thermo
 
     RawFilePtr rawfile = RawFile::create(filename);
-    rawfile->setCurrentController(Controller_MS, 1);
 
     shared_ptr<SpectrumList_Thermo> sl(new SpectrumList_Thermo(result, rawfile, config));
     shared_ptr<ChromatogramList_Thermo> cl(new ChromatogramList_Thermo(result, rawfile, config));

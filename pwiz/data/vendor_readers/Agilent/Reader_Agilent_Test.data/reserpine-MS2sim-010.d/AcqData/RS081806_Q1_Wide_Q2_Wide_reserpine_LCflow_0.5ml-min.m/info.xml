@@ -1,0 +1,3 @@
+<?xml version="1.0"?>
+<!--Picard Method XML file-->
+<Properties><Version>A.00.01</Version><PreRunScript><EngineName>AcqEng</EngineName><ProjectName>AcqEngSystem.mac</ProjectName><ModuleName>SCP_System</ModuleName><ProcedureName>SCP_MSCalibValveOn</ProcedureName><InParameter></InParameter><DisplayString>SCP_MSCalibValveOn(){Acquisition : AcqEngSystem : SCP_System}</DisplayString></PreRunScript><PostRunScript><EngineName>AcqEng</EngineName><ProjectName>AcqEngSystem.mac</ProjectName><ModuleName>SCP_System</ModuleName><ProcedureName>SCP_MSCalibValveOn</ProcedureName><InParameter></InParameter><DisplayString>SCP_MSCalibValveOn(){Acquisition : AcqEngSystem : SCP_System}</DisplayString></PostRunScript><Description>Default Method</Description></Properties>

@@ -1,5 +1,5 @@
 //
-// $Id: PeptideID_pepXML.cpp 3095 2011-11-01 21:12:23Z broter $
+// $Id$
 //
 //
 // Original author: Robert Burke <robert.burke@cshs.org>

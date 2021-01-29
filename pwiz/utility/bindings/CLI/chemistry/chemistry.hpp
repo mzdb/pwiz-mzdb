@@ -1,5 +1,5 @@
 //
-// $Id: chemistry.hpp 6866 2014-10-31 22:32:26Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -27,10 +27,11 @@
 #pragma warning( push )
 #pragma warning( disable : 4634 4635 )
 
-#pragma unmanaged
+//#pragma unmanaged
 #include "pwiz/utility/chemistry/Chemistry.hpp"
 #include "pwiz/utility/chemistry/MZTolerance.hpp"
-#pragma managed
+#include <sstream>
+//#pragma managed
 
 #include "../common/SharedCLI.hpp"
 #pragma warning( pop )
@@ -75,7 +76,7 @@ public DEFINE_STD_VECTOR_WRAPPER_FOR_REFERENCE_TYPE(MassDistribution, pwiz::chem
 /// <summary>enumeration of the elements</summary>
 public enum class Element
 {
-    C, H, O, N, S, P, _13C, _2H, _18O, _15N,
+    C, H, O, N, S, P, _13C, _2H, _18O, _15N,  // Order matters: _15N is the end of the CHONSP entries
     He, Li, Be, B, F, Ne, 
     Na, Mg, Al, Si, Cl, Ar, K, Ca, 
     Sc, Ti, V, Cr, Mn, Fe, Co, Ni, Cu, Zn, 
@@ -87,7 +88,7 @@ public enum class Element
     Tl, Pb, Bi, Po, At, Rn, Fr, Ra, Ac, Th, 
     Pa, U, Np, Pu, Am, Cm, Bk, Cf, Es, Fm, 
     Md, No, Lr, Rf, Db, Sg, Bh, Hs, Mt, Uun, 
-    Uuu, Uub, Uuq, Uuh
+    Uuu, Uub, Uuq, Uuh, _3H
 };
 
 

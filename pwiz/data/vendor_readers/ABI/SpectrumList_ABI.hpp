@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_ABI.hpp 6585 2014-08-07 22:49:28Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -19,8 +19,7 @@
 // limitations under the License.
 //
 
-#ifndef _SPECTRUMLIST_ABI_
-#define _SPECTRUMLIST_ABI_
+#pragma once
 
 #include "pwiz/utility/misc/Export.hpp"
 #include "pwiz/data/msdata/SpectrumListBase.hpp"
@@ -97,5 +96,3 @@ class PWIZ_API_DECL SpectrumList_ABI : public SpectrumListBase
 } // detail
 } // msdata
 } // pwiz
-
-#endif

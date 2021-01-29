@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_FilterTest.cpp 10650 2017-03-27 21:23:14Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -62,7 +62,7 @@ SpectrumListPtr createSpectrumList()
 {
     SpectrumListSimplePtr sl(new SpectrumListSimple);
 
-    for (size_t i=0; i<10; ++i)
+    for (size_t i=0; i<11; ++i)
     {
         SpectrumPtr spectrum(new Spectrum);
         spectrum->index = i;
@@ -76,6 +76,13 @@ SpectrumListPtr createSpectrumList()
             mzint.insert(mzint.end(), MZIntensityPair(j*100, j*j));
         }
         spectrum->setMZIntensityPairs(mzint, MS_number_of_detector_counts);
+
+        if (i == 10)
+        {
+            spectrum->set(MS_emission_spectrum);
+            sl->spectra.push_back(spectrum);
+            continue;
+        }
 
         bool isMS1 = i%3==0;
         spectrum->set(MS_ms_level, isMS1 ? 1 : 2);
@@ -92,8 +99,11 @@ SpectrumListPtr createSpectrumList()
         }
         else
         {
-            if (i%2)
-                p->componentList.push_back(Component(MS_orbitrap, 0/*order*/));
+            if (i % 2)
+            {
+                p->componentList.push_back(Component(MS_quadrupole, 0/*order*/));
+                p->componentList.push_back(Component(MS_orbitrap, 1/*order*/));
+            }
             else
                 p->componentList.push_back(Component(MS_radial_ejection_linear_ion_trap, 0/*order*/));
         }
@@ -166,6 +176,8 @@ struct EvenPredicate : public SpectrumList_Filter::Predicate
     {
         return spectrumIdentity.index%2 == 0;
     }
+
+    virtual string describe() const { return ""; }
 };
 
 
@@ -181,7 +193,7 @@ void testEven(SpectrumListPtr sl)
         *os_ << endl;
     }
 
-    unit_assert(filter.size() == 5);
+    unit_assert(filter.size() == 6);
 
     for (size_t i=0, end=filter.size(); i<end; i++)
     {
@@ -209,13 +221,15 @@ struct EvenMS2Predicate : public SpectrumList_Filter::Predicate
         CVParam param = spectrum.cvParamChild(MS_spectrum_type);
         if (param.cvid == CVID_Unknown) return boost::logic::indeterminate;
         if (!cvIsA(param.cvid, MS_mass_spectrum))
-            return true; // MS level filter doesn't affect non-MS spectra
+            return false;
 
         param = spectrum.cvParam(MS_ms_level);
         if (param.cvid == CVID_Unknown) return boost::logic::indeterminate;
 
         return (param.valueAs<int>() == 2);
     }
+
+    virtual string describe() const { return ""; }
 };
 
 
@@ -257,6 +271,8 @@ struct SelectedIndexPredicate : public SpectrumList_Filter::Predicate
     {
         return pastMaxIndex;
     }
+
+    virtual string describe() const { return ""; }
 };
 
 
@@ -297,6 +313,8 @@ struct HasBinaryDataPredicate : public SpectrumList_Filter::Predicate
             return boost::logic::indeterminate;
         return !spectrum.binaryDataArrayPtrs[0]->data.empty();
     }
+
+    virtual string describe() const { return ""; }
 };
 
 
@@ -440,41 +458,61 @@ void testMSLevelSet(SpectrumListPtr sl)
 {
     if (os_) *os_ << "testMSLevelSet:\n";
 
-    IntegerSet msLevelSet;
-    msLevelSet.insert(1);
-
-    SpectrumList_Filter filter(sl, SpectrumList_FilterPredicate_MSLevelSet(msLevelSet));
-    
-    if (os_) 
     {
-        printSpectrumList(filter, *os_);
-        *os_ << endl;
+        IntegerSet msLevelSet;
+        msLevelSet.insert(1);
+
+        SpectrumList_Filter filter(sl, SpectrumList_FilterPredicate_MSLevelSet(msLevelSet));
+
+        if (os_)
+        {
+            printSpectrumList(filter, *os_);
+            *os_ << endl;
+        }
+
+        unit_assert(filter.size() == 4);
+        unit_assert(filter.spectrumIdentity(0).id == "scan=100");
+        unit_assert(filter.spectrumIdentity(1).id == "scan=103");
+        unit_assert(filter.spectrumIdentity(2).id == "scan=106");
+        unit_assert(filter.spectrumIdentity(3).id == "scan=109");
     }
 
-    unit_assert(filter.size() == 4);
-    unit_assert(filter.spectrumIdentity(0).id == "scan=100");
-    unit_assert(filter.spectrumIdentity(1).id == "scan=103");
-    unit_assert(filter.spectrumIdentity(2).id == "scan=106");
-    unit_assert(filter.spectrumIdentity(3).id == "scan=109");
-
-    IntegerSet msLevelSet2;
-    msLevelSet2.insert(2);
-
-    SpectrumList_Filter filter2(sl, SpectrumList_FilterPredicate_MSLevelSet(msLevelSet2));
-    
-    if (os_) 
     {
-        printSpectrumList(filter2, *os_);
-        *os_ << endl;
+        IntegerSet msLevelSet;
+        msLevelSet.insert(2);
+
+        SpectrumList_Filter filter(sl, SpectrumList_FilterPredicate_MSLevelSet(msLevelSet));
+
+        if (os_)
+        {
+            printSpectrumList(filter, *os_);
+            *os_ << endl;
+        }
+
+        unit_assert(filter.size() == 6);
+        unit_assert(filter.spectrumIdentity(0).id == "scan=101");
+        unit_assert(filter.spectrumIdentity(1).id == "scan=102");
+        unit_assert(filter.spectrumIdentity(2).id == "scan=104");
+        unit_assert(filter.spectrumIdentity(3).id == "scan=105");
+        unit_assert(filter.spectrumIdentity(4).id == "scan=107");
+        unit_assert(filter.spectrumIdentity(5).id == "scan=108");
     }
 
-    unit_assert(filter2.size() == 6);
-    unit_assert(filter2.spectrumIdentity(0).id == "scan=101");
-    unit_assert(filter2.spectrumIdentity(1).id == "scan=102");
-    unit_assert(filter2.spectrumIdentity(2).id == "scan=104");
-    unit_assert(filter2.spectrumIdentity(3).id == "scan=105");
-    unit_assert(filter2.spectrumIdentity(4).id == "scan=107");
-    unit_assert(filter2.spectrumIdentity(5).id == "scan=108");
+    {
+        IntegerSet msLevelSet;
+        msLevelSet.insert(0);
+
+        SpectrumList_Filter filter(sl, SpectrumList_FilterPredicate_MSLevelSet(msLevelSet));
+
+        if (os_)
+        {
+            printSpectrumList(filter, *os_);
+            *os_ << endl;
+        }
+
+        unit_assert_operator_equal(1, filter.size());
+        unit_assert(filter.spectrumIdentity(0).id == "scan=110");
+    }
 }
 
 void testMS2Activation(SpectrumListPtr sl)

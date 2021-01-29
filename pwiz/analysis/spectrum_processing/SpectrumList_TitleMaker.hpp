@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_TitleMaker.hpp 2532 2011-03-03 22:48:24Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -53,6 +53,7 @@ class PWIZ_API_DECL SpectrumList_TitleMaker : public msdata::SpectrumListWrapper
     /// <BasePeakMz> - Spectrum::cvParam("base peak m/z")
     /// <BasePeakIntensity> - Spectrum::cvParam("base peak intensity")
     /// <TotalIonCurrent> - Spectrum::cvParam("total ion current")
+    /// <IonMobility> - Scan::cvParam("ion mobility drift time") or Scan::cvParam("inverse reduced ion mobility")
     SpectrumList_TitleMaker(const msdata::MSData& msd, const std::string& format);
 
     static bool accept(const msdata::SpectrumListPtr& inner) {return true;}

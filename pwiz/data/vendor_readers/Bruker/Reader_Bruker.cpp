@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Bruker.cpp 11022 2017-07-03 17:43:28Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -51,7 +51,7 @@ std::string pwiz::msdata::Reader_Bruker::identify(const std::string& filename,
         case Reader_Bruker_Format_YEP: return "Bruker YEP";
         case Reader_Bruker_Format_BAF: return "Bruker BAF";
         case Reader_Bruker_Format_U2: return "Bruker U2";
-        case Reader_Bruker_Format_BAF_and_U2: return "Bruker BAF/U2";
+        case Reader_Bruker_Format_BAF_and_U2: return "Bruker BAF";
         case Reader_Bruker_Format_TDF: return "Bruker TDF";
 
         case Reader_Bruker_Format_Unknown:
@@ -120,11 +120,31 @@ void fillInMetadata(const bfs::path& rootpath, MSData& msd, Reader_Bruker_Format
 
     msd.id = bfs::basename(rootpath);
 
-    SoftwarePtr software(new Software);
-    software->id = "CompassXtract";
-    software->set(MS_CompassXtract);
-    software->version = "3.1.7";
-    msd.softwarePtrs.push_back(software);
+    SoftwarePtr apiSoftware(new Software);
+    msd.softwarePtrs.push_back(apiSoftware);
+    switch (format)
+    {
+        case Reader_Bruker_Format_BAF:
+        case Reader_Bruker_Format_BAF_and_U2:
+            apiSoftware->id = "BAF2SQL";
+            apiSoftware->set(MS_Bruker_software);
+            apiSoftware->userParams.emplace_back("software name", "BAF2SQL");
+            apiSoftware->version = "2.7.300.20-112";
+            break;
+
+        case Reader_Bruker_Format_TDF:
+            apiSoftware->id = "TIMS_SDK";
+            apiSoftware->set(MS_Bruker_software);
+            apiSoftware->userParams.emplace_back("software name", "TIMS SDK");
+            apiSoftware->version = "2.3.101.131-791";
+            break;
+
+        default:
+            apiSoftware->id = "CompassXtract";
+            apiSoftware->set(MS_CompassXtract);
+            apiSoftware->version = "3.1.7";
+            break;
+    }
 
     SoftwarePtr acquisitionSoftware(new Software);
     CVID acquisitionSoftwareCvid = translateAsAcquisitionSoftware(compassDataPtr);
@@ -172,7 +192,13 @@ void fillInMetadata(const bfs::path& rootpath, MSData& msd, Reader_Bruker_Format
 
     initializeInstrumentConfigurationPtrs(msd, compassDataPtr, acquisitionSoftware);
     if (!msd.instrumentConfigurationPtrs.empty())
+    {
         msd.run.defaultInstrumentConfigurationPtr = msd.instrumentConfigurationPtrs[0];
+
+        auto serialNumber = compassDataPtr->getInstrumentSerialNumber();
+        if (!serialNumber.empty())
+            msd.run.defaultInstrumentConfigurationPtr->set(MS_instrument_serial_number, serialNumber);
+    }
 
     msd.run.id = msd.id;
     msd.run.startTimeStamp = encode_xml_datetime(compassDataPtr->getAnalysisDateTime());
@@ -191,16 +217,12 @@ void Reader_Bruker::read(const string& filename,
     if (runIndex != 0)
         throw ReaderFail("[Reader_Bruker::read] multiple runs not supported");
 
-    string::const_iterator unicodeCharItr = std::find_if(filename.begin(), filename.end(), [](char ch) { return !isprint(ch) || static_cast<int>(ch) < 0; });
-    if (unicodeCharItr != filename.end())
-    {
-        auto utf8CharAsString = [](string::const_iterator ch, string::const_iterator end) { string utf8; while (ch != end && *ch < 0) { utf8 += *ch; ++ch; }; return utf8; };
-        throw ReaderFail(string("[Reader_Bruker::read()] Bruker API does not support Unicode in filepaths ('") + utf8CharAsString(unicodeCharItr, filename.end()) + "')");
-    }
+    if (findUnicodeBytes(filename) != filename.end())
+        throw ReaderFail("[Reader_Bruker::read()] Bruker API does not support Unicode in filepaths ('" + filename + "')");
 
     Reader_Bruker_Format format = Bruker::format(filename);
     if (format == Reader_Bruker_Format_Unknown)
-        throw ReaderFail("[Reader_Bruker::read] Path given is not a recognized Bruker format");
+        throw ReaderFail("[Reader_Bruker::read] Path given ('" + filename + "') is not a recognized Bruker format");
 
 
     // trim filename from end of source path if necessary (it's not valid to pass to CompassXtract)
@@ -208,10 +230,11 @@ void Reader_Bruker::read(const string& filename,
     if (bfs::is_regular_file(rootpath))
         rootpath = rootpath.branch_path();
 
-    CompassDataPtr compassDataPtr(CompassData::create(rootpath.string(), format));
+    CompassDataPtr compassDataPtr(CompassData::create(rootpath.string(), config.combineIonMobilitySpectra, format, 
+        config.preferOnlyMsLevel, config.allowMsMsWithoutPrecursor, config.isolationMzAndMobilityFilter));
 
-    SpectrumList_Bruker* sl = new SpectrumList_Bruker(result, rootpath.string(), format, compassDataPtr);
-    ChromatogramList_Bruker* cl = new ChromatogramList_Bruker(result, rootpath.string(), format, compassDataPtr);
+    SpectrumList_Bruker* sl = new SpectrumList_Bruker(result, rootpath.string(), format, compassDataPtr, config);
+    ChromatogramList_Bruker* cl = new ChromatogramList_Bruker(result, rootpath.string(), format, compassDataPtr, config);
     result.run.spectrumListPtr = SpectrumListPtr(sl);
     result.run.chromatogramListPtr = ChromatogramListPtr(cl);
 

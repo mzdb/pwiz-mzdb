@@ -1,5 +1,5 @@
 //
-// $Id: FeatureModeler.hpp 1342 2009-09-17 22:40:11Z dkessner $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

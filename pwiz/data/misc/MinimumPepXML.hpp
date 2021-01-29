@@ -1,5 +1,5 @@
 //
-// $Id: MinimumPepXML.hpp 1970 2010-05-11 20:23:31Z broter $
+// $Id$
 //
 //
 // Original author: Kate Hoff <katherine.hoff@proteowizard.org>

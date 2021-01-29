@@ -1,4 +1,4 @@
-/* $Id: mt19937ar.h 1814 2010-02-16 22:52:44Z chambm $
+/* $Id$
 
    A C-program for MT19937, with initialization improved 2002/1/26.
    Coded by Takuji Nishimura and Makoto Matsumoto.

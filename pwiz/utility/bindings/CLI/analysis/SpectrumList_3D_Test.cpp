@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_3D_Test.cpp 10494 2017-02-21 16:53:20Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

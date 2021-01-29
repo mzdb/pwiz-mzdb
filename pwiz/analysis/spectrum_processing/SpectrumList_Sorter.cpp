@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_Sorter.cpp 2972 2011-09-09 22:42:04Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

@@ -1,5 +1,5 @@
 //
-// $Id: DataFilter.hpp 11567 2017-11-09 23:53:32Z chambm $
+// $Id$
 //
 //
 // Original author: Chris Paulse <cpaulse <a.t> systemsbiology.org>

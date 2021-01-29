@@ -1,5 +1,5 @@
 //
-// $Id: Reader_ABI_T2D_Test.cpp 4129 2012-11-20 00:05:37Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        pwiz::util::testReader(pwiz::msdata::Reader_ABI_T2D(), testArgs, testAcceptOnly, Is_T2D_Directory());
+        pwiz::util::testReader(pwiz::msdata::Reader_ABI_T2D(), testArgs, testAcceptOnly, Is_T2D_Directory()).check();
     }
     catch (exception& e)
     {

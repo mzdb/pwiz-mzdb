@@ -1,5 +1,5 @@
 //
-// $Id: rtapprox.cpp 1195 2009-08-14 22:12:04Z chambm $
+// $Id$
 //
 //
 // Robert Burke <robert.burke@cshs.org>

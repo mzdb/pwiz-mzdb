@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Agilent.hpp 3808 2012-07-24 20:31:10Z donmarsh $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -55,6 +55,8 @@ class PWIZ_API_DECL Reader_Agilent : public Reader
     }
 
 	virtual const char *getType() const {return "Agilent MassHunter";}
+    virtual CVID getCvType() const {return MS_Agilent_MassHunter_format;}
+    virtual std::vector<std::string> getFileExtensions() const {return {".d"};}
 };
 
 

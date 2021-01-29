@@ -1,5 +1,5 @@
 //
-// $Id: examples.cpp 1672 2010-01-07 00:12:19Z chambm $ 
+// $Id$ 
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

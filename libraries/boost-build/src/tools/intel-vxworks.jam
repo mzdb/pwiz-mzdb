@@ -42,7 +42,7 @@ if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
 
 # Initializes the intel-vxworks toolset
 #   version in mandatory
-#   name (default icc) is used to invoke the specified intel complier
+#   name (default icc) is used to invoke the specified intel compiler
 #   compile and link options allow you to specify addition command line options for each version
 rule init ( version ? :  command * : options * )
 {
@@ -53,8 +53,6 @@ rule init ( version ? :  command * : options * )
         : $(command) : /opt/intel_cc_80/bin ] ;
 
     common.handle-options intel-vxworks : $(condition) : $(command) : $(options) ;
-
-    gcc.init-link-flags intel-vxworks vxworks $(condition) ;
 
     # handle <library-path>
     # local library-path = [ feature.get-values <library-path> : $(options) ] ;
@@ -76,7 +74,7 @@ rule init ( version ? :  command * : options * )
             local lib_path = $(root)/lib $(root:P)/lib/$(bin:B) ;
             if $(.debug-configuration)
             {
-                ECHO notice: using intel libraries :: $(condition) :: $(lib_path) ;
+                ECHO notice\: using intel libraries "::" $(condition) "::" $(lib_path) ;
             }
             flags intel-vxworks.link RUN_PATH $(condition) : $(lib_path) ;
         }

@@ -1,5 +1,5 @@
 //
-// $Id: Reader_ABI_Detail.cpp 10385 2017-01-20 20:35:32Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -82,6 +82,7 @@ InstrumentConfigurationPtr translateAsInstrumentConfiguration(InstrumentModel in
         case API4500QTrap:
         case API5500QTrap:
         case API6500QTrap:
+        case GenericQTrap:
             ic.componentList.push_back(source);
             ic.componentList.push_back(Component(MS_quadrupole, 2));
             ic.componentList.push_back(Component(MS_quadrupole, 3));
@@ -145,6 +146,7 @@ PWIZ_API_DECL CVID translateAsInstrumentModel(InstrumentModel instrumentModel)
         case API4500QTrap:      return MS_QTRAP_4500;
         case API5500QTrap:      return MS_QTRAP_5500;
         case API6500QTrap:      return MS_QTRAP_6500;
+        case GenericQTrap:      return MS_Q_TRAP;
         case API4600TripleTOF:  return MS_TripleTOF_4600;
         case API5600TripleTOF:  return MS_TripleTOF_5600;
         case API6600TripleTOF:  return MS_TripleTOF_6600;

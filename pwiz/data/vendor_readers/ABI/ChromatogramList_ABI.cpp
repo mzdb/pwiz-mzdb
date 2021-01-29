@@ -1,5 +1,5 @@
 //
-// $Id: ChromatogramList_ABI.cpp 9490 2016-03-22 22:20:36Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -40,11 +40,13 @@ namespace detail {
 
 
 PWIZ_API_DECL ChromatogramList_ABI::ChromatogramList_ABI(const MSData& msd, WiffFilePtr wifffile,
-                                                         const ExperimentsMap& experimentsMap, int sample)
+                                                         const ExperimentsMap& experimentsMap, int sample,
+                                                         const Reader::Config& config)
 :   msd_(msd),
     wifffile_(wifffile),
     experimentsMap_(experimentsMap),
     sample(sample),
+    config_(config),
     size_(0),
     indexInitialized_(util::init_once_flag_proxy)
 {
@@ -81,6 +83,12 @@ PWIZ_API_DECL size_t ChromatogramList_ABI::find(const string& id) const
 
 PWIZ_API_DECL ChromatogramPtr ChromatogramList_ABI::chromatogram(size_t index, bool getBinaryData) const
 {
+    return chromatogram(index, getBinaryData ? DetailLevel_FullData : DetailLevel_FullMetadata);
+}
+
+
+PWIZ_API_DECL ChromatogramPtr ChromatogramList_ABI::chromatogram(size_t index, DetailLevel detailLevel) const
+{
     boost::call_once(indexInitialized_.flag, boost::bind(&ChromatogramList_ABI::createIndex, this));
     if (index>size_)
         throw runtime_error(("[ChromatogramList_ABI::chromatogram()] Bad index: " 
@@ -97,40 +105,37 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_ABI::chromatogram(size_t index, b
     result->id = ie.id;
     result->set(ie.chromatogramType);
 
+    bool getBinaryData = detailLevel == DetailLevel_FullData;
+
     switch (ie.chromatogramType)
     {
         case MS_TIC_chromatogram:
         {
-            map<double, double> fullFileTIC;
+            if (detailLevel < DetailLevel_FullMetadata)
+                return result;
 
-            int sampleCount = wifffile_->getSampleCount();
-            for (int i=1; i <= sampleCount; ++i)
+            multimap<double, pair<int, double>> fullFileTIC;
+
+            int periodCount = wifffile_->getPeriodCount(ie.sample);
+            for (int ii=1; ii <= periodCount; ++ii)
             {
-                try
-                {
-                    int periodCount = wifffile_->getPeriodCount(i);
-                    for (int ii=1; ii <= periodCount; ++ii)
-                    {
-                        //Console::WriteLine("Sample {0}, Period {1}", i, ii);
+                //Console::WriteLine("Sample {0}, Period {1}", i, ii);
 
-                        int experimentCount = wifffile_->getExperimentCount(i, ii);
-                        for (int iii=1; iii <= experimentCount; ++iii)
-                        {
-                            ExperimentPtr msExperiment = (i == sample
-                                ? experimentsMap_.find(pair<int, int>(ii, iii))->second
-                                : wifffile_->getExperiment(i, ii, iii));
-
-                            // add current experiment TIC to full file TIC
-                            vector<double> times, intensities;
-                            msExperiment->getTIC(times, intensities);
-                            for (int iiii = 0, end = intensities.size(); iiii < end; ++iiii)
-                                fullFileTIC[times[iiii]] += intensities[iiii];
-                        }
-                    }
-                }
-                catch (exception&)
+                int experimentCount = wifffile_->getExperimentCount(ie.sample, ii);
+                for (int iii=1; iii <= experimentCount; ++iii)
                 {
-                    // TODO: log warning
+                    ExperimentPtr msExperiment = experimentsMap_.find(pair<int, int>(ii, iii))->second;
+                    
+                    if (config_.globalChromatogramsAreMs1Only && msExperiment->getExperimentType() != MS)
+                        continue;
+
+                    int msLevel = msExperiment->getMsLevel(1);
+
+                    // add current experiment TIC to full file TIC
+                    vector<double> times, intensities;
+                    msExperiment->getTIC(times, intensities);
+                    for (int iiii = 0, end = intensities.size(); iiii < end; ++iiii)
+                        fullFileTIC.insert(make_pair(times[iiii], make_pair(msLevel, intensities[iiii])));
                 }
             }
 
@@ -141,18 +146,78 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_ABI::chromatogram(size_t index, b
                 BinaryDataArrayPtr timeArray = result->getTimeArray();
                 BinaryDataArrayPtr intensityArray = result->getIntensityArray();
 
+                auto msLevelArray = boost::make_shared<IntegerDataArray>();
+                result->integerDataArrayPtrs.emplace_back(msLevelArray);
+                msLevelArray->set(MS_non_standard_data_array, "ms level", UO_dimensionless_unit);
+                msLevelArray->data.reserve(fullFileTIC.size());
+
                 timeArray->data.reserve(fullFileTIC.size());
                 intensityArray->data.reserve(fullFileTIC.size());
-                for (map<double, double>::iterator itr = fullFileTIC.begin();
-                     itr != fullFileTIC.end();
-                     ++itr)
+                for (auto itr = fullFileTIC.begin(); itr != fullFileTIC.end(); ++itr)
                 {
                     timeArray->data.push_back(itr->first);
-                    intensityArray->data.push_back(itr->second);
+                    intensityArray->data.push_back(itr->second.second);
+                    msLevelArray->data.push_back(itr->second.first);
                 }
             }
 
             result->defaultArrayLength = fullFileTIC.size();
+        }
+        break;
+
+        case MS_basepeak_chromatogram:
+        {
+            if (detailLevel < DetailLevel_FullMetadata)
+                return result;
+
+            multimap<double, pair<int, double>> fullFileBPC;
+
+            int periodCount = wifffile_->getPeriodCount(ie.sample);
+            for (int ii = 1; ii <= periodCount; ++ii)
+            {
+                //Console::WriteLine("Sample {0}, Period {1}", i, ii);
+
+                int experimentCount = wifffile_->getExperimentCount(ie.sample, ii);
+                for (int iii = 1; iii <= experimentCount; ++iii)
+                {
+                    ExperimentPtr msExperiment = experimentsMap_.find(pair<int, int>(ii, iii))->second;
+
+                    if (config_.globalChromatogramsAreMs1Only && msExperiment->getExperimentType() != MS)
+                        continue;
+
+                    int msLevel = msExperiment->getMsLevel(1);
+
+                    // add current experiment BPC to full file BPC
+                    vector<double> times, intensities;
+                    msExperiment->getBPC(times, intensities);
+                    for (int iiii = 0, end = intensities.size(); iiii < end; ++iiii)
+                        fullFileBPC.insert(make_pair(times[iiii], make_pair(msLevel, intensities[iiii])));
+                }
+            }
+
+            result->setTimeIntensityArrays(std::vector<double>(), std::vector<double>(), UO_minute, MS_number_of_detector_counts);
+
+            if (getBinaryData)
+            {
+                BinaryDataArrayPtr timeArray = result->getTimeArray();
+                BinaryDataArrayPtr intensityArray = result->getIntensityArray();
+
+                auto msLevelArray = boost::make_shared<IntegerDataArray>();
+                result->integerDataArrayPtrs.emplace_back(msLevelArray);
+                msLevelArray->set(MS_non_standard_data_array, "ms level", UO_dimensionless_unit);
+                msLevelArray->data.reserve(fullFileBPC.size());
+
+                timeArray->data.reserve(fullFileBPC.size());
+                intensityArray->data.reserve(fullFileBPC.size());
+                for (const auto& kvp : fullFileBPC)
+                {
+                    timeArray->data.push_back(kvp.first);
+                    intensityArray->data.push_back(kvp.second.second);
+                    msLevelArray->data.push_back(kvp.second.first);
+                }
+            }
+
+            result->defaultArrayLength = fullFileBPC.size();
         }
         break;
 
@@ -170,7 +235,7 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_ABI::chromatogram(size_t index, b
             //result->precursor.isolationWindow.set(MS_isolation_window_upper_offset, ie.q1, MS_m_z);
             result->precursor.activation.set(MS_CID);
             result->precursor.activation.set(MS_collision_energy, target.collisionEnergy, UO_electronvolt);
-            result->precursor.activation.userParams.push_back(UserParam("MS_declustering_potential", lexical_cast<string>(target.declusteringPotential), "xs:float"));
+            //result->precursor.activation.userParams.push_back(UserParam("MS_declustering_potential", lexical_cast<string>(target.declusteringPotential), "xs:float"));
 
             result->product.isolationWindow.set(MS_isolation_window_target_m_z, ie.q3, MS_m_z);
             //result->product.isolationWindow.set(MS_isolation_window_lower_offset, ie.q3, MS_m_z);
@@ -180,9 +245,12 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_ABI::chromatogram(size_t index, b
             if (polarityType != CVID_Unknown)
                 result->set(polarityType);
 
+            if (detailLevel < DetailLevel_FullMetadata)
+                return result;
+
             result->setTimeIntensityArrays(std::vector<double>(), std::vector<double>(), UO_minute, MS_number_of_detector_counts);
 
-            vector<double> times, intensities;
+            pwiz::util::BinaryData<double> times, intensities;
             experiment->getSIC(ie.transition, times, intensities);
             result->defaultArrayLength = times.size();
 
@@ -195,6 +263,66 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_ABI::chromatogram(size_t index, b
             }
         }
         break;
+
+        case MS_SIM_chromatogram:
+        {
+            ExperimentPtr experiment = ie.experiment;
+            pwiz::vendor_api::ABI::Target target;
+            experiment->getSIM(ie.transition, target);
+
+            // TODO: move to global scan settings or leave out entirely?
+            result->userParams.push_back(UserParam("MS_dwell_time", lexical_cast<string>(target.dwellTime /* milliseconds->seconds */ / 1000.0), "xs:float"));
+
+            result->precursor.isolationWindow.set(MS_isolation_window_target_m_z, ie.q1, MS_m_z);
+            //result->precursor.isolationWindow.set(MS_isolation_window_lower_offset, ie.q1, MS_m_z);
+            //result->precursor.isolationWindow.set(MS_isolation_window_upper_offset, ie.q1, MS_m_z);
+            result->precursor.activation.set(MS_CID);
+            result->precursor.activation.set(MS_collision_energy, target.collisionEnergy, UO_electronvolt);
+            //result->precursor.activation.userParams.push_back(UserParam("MS_declustering_potential", lexical_cast<string>(target.declusteringPotential), "xs:float"));
+
+            CVID polarityType = ABI::translate(experiment->getPolarity());
+            if (polarityType != CVID_Unknown)
+                result->set(polarityType);
+
+            if (detailLevel < DetailLevel_FullMetadata)
+                return result;
+
+            result->setTimeIntensityArrays(std::vector<double>(), std::vector<double>(), UO_minute, MS_number_of_detector_counts);
+
+            pwiz::util::BinaryData<double> times, intensities;
+            experiment->getSIC(ie.transition, times, intensities);
+            result->defaultArrayLength = times.size();
+
+            if (getBinaryData)
+            {
+                BinaryDataArrayPtr timeArray = result->getTimeArray();
+                BinaryDataArrayPtr intensityArray = result->getIntensityArray();
+                std::swap(timeArray->data, times);
+                std::swap(intensityArray->data, intensities);
+            }
+        }
+        break;
+
+        case MS_pressure_chromatogram:
+        case MS_flow_rate_chromatogram:
+        {
+            if (detailLevel < DetailLevel_FullMetadata)
+                return result;
+
+            WiffFile::ADCTrace adcTrace;
+            wifffile_->getADCTrace(ie.sample, ie.transition, adcTrace);
+
+            CVID units = ie.chromatogramType == MS_pressure_chromatogram ? UO_pascal : UO_microliters_per_minute;
+
+            if (getBinaryData)
+                result->setTimeIntensityArrays(adcTrace.x, adcTrace.y, UO_minute, units);
+            else
+            {
+                result->setTimeIntensityArrays(std::vector<double>(), std::vector<double>(), UO_minute, units);
+                result->defaultArrayLength = adcTrace.x.size();
+            }
+        }
+        break;
     }
 
     return result;
@@ -204,11 +332,24 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_ABI::chromatogram(size_t index, b
 PWIZ_API_DECL void ChromatogramList_ABI::createIndex() const
 {
     index_.push_back(IndexEntry());
-    IndexEntry& ie = index_.back();
-    ie.index = index_.size()-1;
-    ie.id = "TIC";
-    ie.chromatogramType = MS_TIC_chromatogram;
-    idToIndexMap_[ie.id] = ie.index;
+    {
+        IndexEntry& ie = index_.back();
+        ie.index = index_.size() - 1;
+        ie.id = "TIC";
+        ie.sample = sample;
+        ie.chromatogramType = MS_TIC_chromatogram;
+        idToIndexMap_[ie.id] = ie.index;
+    }
+
+    index_.push_back(IndexEntry());
+    {
+        IndexEntry& ie = index_.back();
+        ie.index = index_.size() - 1;
+        ie.id = "BPC";
+        ie.sample = sample;
+        ie.chromatogramType = MS_basepeak_chromatogram;
+        idToIndexMap_[ie.id] = ie.index;
+    }
 
     pwiz::vendor_api::ABI::Target target;
 
@@ -248,7 +389,53 @@ PWIZ_API_DECL void ChromatogramList_ABI::createIndex() const
                 ie.id = oss.str();
                 idToIndexMap_[ie.id] = ie.index;
             }
+
+            for (int iiii = 0; iiii < (int)msExperiment->getSIMSize(); ++iiii)
+            {
+                msExperiment->getSIM(iiii, target);
+
+                index_.push_back(IndexEntry());
+                IndexEntry& ie = index_.back();
+                ie.chromatogramType = MS_SIM_chromatogram;
+                ie.q1 = target.Q1;
+                ie.q3 = 0;
+                ie.sample = sample;
+                ie.period = ii;
+                ie.experiment = msExperiment;
+                ie.transition = iiii;
+                ie.index = index_.size() - 1;
+
+                std::ostringstream oss;
+                oss << polarityStringForFilter(ABI::translate(ie.experiment->getPolarity())) <<
+                    "SIM SIC Q1=" << ie.q1 <<
+                    " sample=" << ie.sample <<
+                    " period=" << ie.period <<
+                    " experiment=" << ie.experiment->getExperimentNumber() <<
+                    " transition=" << ie.transition;
+                ie.id = oss.str();
+                idToIndexMap_[ie.id] = ie.index;
+            }
         }
+    }
+
+    for (int i = 0, end = wifffile_->getADCTraceCount(sample); i < end; ++i)
+    {
+        string name = wifffile_->getADCTraceName(sample, i);
+        if (!bal::icontains(name, "Pressure") && !bal::icontains(name, "Flow"))
+            continue;
+
+        bal::replace_all(name, "AAO Companion App. -", "");
+        bal::trim(name);
+        name += " (channel " + lexical_cast<string>(i + 1) + ")";
+
+        index_.push_back(IndexEntry());
+        IndexEntry& ie = index_.back();
+        ie.index = index_.size() - 1;
+        ie.id = name;
+        ie.sample = sample;
+        ie.transition = i;
+        ie.chromatogramType = bal::icontains(name, "Pressure") ? MS_pressure_chromatogram : MS_flow_rate_chromatogram;
+        idToIndexMap_[ie.id] = ie.index;
     }
 
     size_ = index_.size();

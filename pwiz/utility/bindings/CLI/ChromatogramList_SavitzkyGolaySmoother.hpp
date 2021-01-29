@@ -1,5 +1,5 @@
 //
-// $Id: ChromatogramList_SavitzkyGolaySmoother.hpp 1195 2009-08-14 22:12:04Z chambm $
+// $Id$
 //
 //
 // Original author: Eric Purser <Eric.Purser@Vanderbilt.edu>

@@ -1,5 +1,5 @@
 //
-// $Id: UIMFReaderTest.cpp 6770 2014-10-09 20:35:21Z chambm $
+// $Id$
 //
 //
 // Original author: Brendan MacLean <brendanx .@. u.washington.edu>

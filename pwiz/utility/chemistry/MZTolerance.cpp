@@ -1,5 +1,5 @@
 //
-// $Id: MZTolerance.cpp 10462 2017-02-10 17:52:32Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -45,9 +45,10 @@ PWIZ_API_DECL istream& operator>>(istream& is, MZTolerance& mzt)
 
     // in order to handle both '10ppm' and '10 ppm', this is easier than istream (which may or may not have skipws flag set)
     getline(is, temp);
-    size_t endOfValue = temp.find_first_not_of("0123456789.-");
+    size_t startOfValue = temp.find_first_of("0123456789.-");
+    size_t endOfValue = temp.find_first_not_of("0123456789.-", startOfValue);
     size_t startOfUnits = temp.find_first_not_of(" ", endOfValue);
-    mzt.value = lexical_cast<double>(temp.data(), endOfValue);
+    mzt.value = lexical_cast<double>(temp.data()+startOfValue, endOfValue-startOfValue);
     temp.erase(temp.begin(), temp.begin()+startOfUnits);
 
     bal::to_lower(temp);

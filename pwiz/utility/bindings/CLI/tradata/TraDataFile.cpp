@@ -1,5 +1,5 @@
 //
-// $Id: TraDataFile.cpp 2908 2011-08-05 16:41:41Z chambm $
+// $Id$
 //
 //
 // Original author: Jay Holman <jay.holman .@. vanderbilt.edu>

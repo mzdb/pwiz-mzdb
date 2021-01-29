@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_3D.hpp 6385 2014-06-12 22:56:04Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

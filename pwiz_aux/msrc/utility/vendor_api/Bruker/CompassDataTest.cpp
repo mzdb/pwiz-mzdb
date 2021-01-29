@@ -1,5 +1,5 @@
 //
-// $Id: CompassDataTest.cpp 4622 2013-06-03 19:26:21Z chambm $
+// $Id$
 //
 // 
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

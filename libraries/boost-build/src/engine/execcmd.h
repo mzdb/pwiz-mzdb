@@ -15,6 +15,7 @@
 #ifndef EXECCMD_H
 #define EXECCMD_H
 
+#include "config.h"
 #include "lists.h"
 #include "strings.h"
 #include "timestamp.h"
@@ -63,9 +64,15 @@ int exec_check
 #define EXEC_CHECK_LINE_TOO_LONG  103
 #define EXEC_CHECK_TOO_LONG       104
 
+/* Prevents action output from being written
+ * immediately to stdout/stderr.
+ */
+#define EXEC_CMD_QUIET 1
+
 void exec_cmd
 (
     string const * command,
+    int flags,
     ExecCmdCallback func,
     void * closure,
     LIST * shell

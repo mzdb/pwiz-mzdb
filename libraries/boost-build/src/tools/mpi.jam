@@ -547,7 +547,7 @@ rule configured ( )
   return $(.configured) ;
 }
 
-# Returs the "extra" requirements needed to build MPI. These requirements are
+# Returns the "extra" requirements needed to build MPI. These requirements are
 # part of the /mpi//mpi library target, but they need to be added to anything
 # that uses MPI directly to work around bugs in BBv2's propagation of
 # requirements.
@@ -589,12 +589,16 @@ generators.register-standard testing.expect-success
   : RUN_MPI_OUTPUT : RUN_MPI ;
 
 # The number of processes to spawn when executing an MPI test.
-feature mpi:processes : : free incidental ;
+feature "mpi:processes" : : free incidental ;
 
 # The flag settings on testing.capture-output do not
 # apply to mpi.capture output at the moment.
 # Redo this explicitly.
 toolset.flags mpi.capture-output ARGS <testing.arg> ;
+toolset.uses-features mpi.capture-output :
+    <testing.launcher> <testing.execute> <dll-path> <xdll-path> <target-os>
+    <mpi:processes> ;
+
 rule capture-output ( target : sources * : properties * )
 {
     # Use the standard capture-output rule to run the tests
@@ -617,7 +621,7 @@ rule capture-output ( target : sources * : properties * )
 # a list of numbers, which indicates how many processes each test run will use. For
 # example, passing 1 2 7 will run the test with 1 process, then 2 processes, then 7
 # 7 processes. The name provided is just the base name: the actual tests will be
-# the name followed by a hypen, then the number of processes.
+# the name followed by a hyphen, then the number of processes.
 rule mpi-test ( name : sources * : requirements * : schedule * )
 {
     sources ?= $(name).cpp ;

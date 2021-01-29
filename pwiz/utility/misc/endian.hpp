@@ -1,5 +1,5 @@
 //
-// $Id: endian.hpp 3214 2012-01-13 01:08:04Z pcbrefugee $ 
+// $Id$ 
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

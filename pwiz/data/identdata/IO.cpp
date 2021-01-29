@@ -1,5 +1,5 @@
 //
-// $Id: IO.cpp 8868 2015-09-22 20:51:26Z kaipot $
+// $Id$
 //
 //
 // Original author: Robert Burke <robert.burke@proteowizard.org>
@@ -3876,11 +3876,14 @@ struct HandlerSpectrumIdentificationItem : public HandlerIdentifiableParamContai
 
             string value;
             getAttribute(attributes, peptide_ref(version), value);
-            map<string, PeptidePtr>::const_iterator findItr = sequenceIndex.peptides.find(value);
-            if (findItr == sequenceIndex.peptides.end())
-                siip->peptidePtr = PeptidePtr(new Peptide(value));
-            else
-                siip->peptidePtr = findItr->second;
+            if (!value.empty())
+            {
+                map<string, PeptidePtr>::const_iterator findItr = sequenceIndex.peptides.find(value);
+                if (findItr == sequenceIndex.peptides.end())
+                    siip->peptidePtr = PeptidePtr(new Peptide(value));
+                else
+                    siip->peptidePtr = findItr->second;
+            }
 
             getAttribute(attributes, "rank", siip->rank);
 

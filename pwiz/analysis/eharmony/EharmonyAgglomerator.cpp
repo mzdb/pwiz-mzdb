@@ -1,5 +1,5 @@
 //
-// $Id: EharmonyAgglomerator.cpp 1539 2009-11-19 20:12:28Z khoff $
+// $Id$
 //
 //
 // Original author: Kate Hoff <katherine.hoff@proteowizard.org>

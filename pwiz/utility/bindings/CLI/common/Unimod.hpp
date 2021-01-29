@@ -1,5 +1,5 @@
 //
-// $Id: Unimod.hpp 4922 2013-09-05 22:33:08Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

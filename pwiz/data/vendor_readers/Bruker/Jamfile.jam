@@ -1,5 +1,5 @@
 #
-# $Id: Jamfile.jam 7135 2015-01-29 18:17:05Z chambm $
+# $Id$
 #
 #
 # Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -44,7 +44,6 @@ rule vendor-api-requirements ( properties * )
 {
     local result ;
     if <toolset>msvc in $(properties) &&
-       <runtime-debugging>off in $(properties) &&
        [ project-exists $(API_PATH) ] &&
        [ bruker-dll-location $(API_PATH) : $(properties) ] &&
        ! [ without-binary-msdata $(properties) ] &&
@@ -84,7 +83,6 @@ rule has-bruker-reader ( properties * )
 {
     local result ;
     if <toolset>msvc in $(properties) &&
-       <runtime-debugging>off in $(properties) &&
        [ project-exists $(API_PATH) ] &&
        [ bruker-dll-location $(API_PATH) : $(properties) ] &&
        ! [ without-binary-msdata $(properties) ] &&
@@ -98,7 +96,7 @@ rule has-bruker-reader ( properties * )
 rule filesystem-shared ( properties * )
 {
     # HACK: <link>shared isn't being passed in properties like I'd expect, so I also check the command-line
-    if <link>shared in $(properties) || link=shared in [ modules.peek : ARGV ]
+    if <link>shared in $(properties) || "link=shared" in [ modules.peek : ARGV ]
     {
         result += <library>/ext/boost//filesystem/<link>shared ;
     }
@@ -109,7 +107,18 @@ rule filesystem-shared ( properties * )
 }
 
 # shared with pwiz_vendor_api_bruker
-obj Reader_Bruker_Detail : Reader_Bruker_Detail.cpp : <conditional>@has-bruker-reader <conditional>@filesystem-shared : : <conditional>@filesystem-shared ;
+obj Reader_Bruker_Detail
+    : # sources
+        Reader_Bruker_Detail.cpp
+    : # requirements
+        <conditional>@has-bruker-reader
+        <conditional>@filesystem-shared
+        <library>$(PWIZ_ROOT_PATH)/pwiz/data/msdata//pwiz_data_msdata
+    : # default-build
+    : # usage-requirements
+        <conditional>@filesystem-shared
+        <library>$(PWIZ_ROOT_PATH)/pwiz/data/msdata//pwiz_data_msdata
+    ;
 
 
 lib pwiz_reader_bruker
@@ -119,11 +128,9 @@ lib pwiz_reader_bruker
         ChromatogramList_Bruker.cpp
         Reader_Bruker_Detail
     : # requirements
-        <library>$(PWIZ_ROOT_PATH)/pwiz/data/msdata//pwiz_data_msdata
         <conditional>@vendor-api-requirements
     : # default-build
     : # usage-requirements
-        <library>$(PWIZ_ROOT_PATH)/pwiz/data/msdata//pwiz_data_msdata
         <conditional>@vendor-api-requirements
     ;
 
@@ -140,12 +147,12 @@ rule warn-once ( message )
 
 rule test-requirements ( properties * )
 {
-    # decompress test data if available (on any platform)
+    # decompress test data if available (on any platform); only the raw data is used from the tarball; the mzMLs are checked into source control
     if ! $(.extract-once) && [ path.exists $(TEST_DATA_PATH).tar.bz2 ]
     {
         .extract-once = true ;
         import tar ;
-        tar.extract $(TEST_DATA_PATH).tar.bz2 : : : : check-last-file-only ;
+        tar.extract $(TEST_DATA_PATH).tar.bz2 : : : : <keep-old-files>true ; # <check-last-file-only>true TODO: restore check-last-file-only when tarball needs to be updated (and mzMLs are removed)
     }
     
     local result ;

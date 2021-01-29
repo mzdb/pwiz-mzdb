@@ -1,5 +1,5 @@
 //
-// $Id: determinebinwidth.hpp 6090 2014-04-24 15:13:12Z witek96 $
+// $Id$
 //
 //
 // Original author: Witold Wolski <wewolski@gmail.com>

@@ -1,5 +1,5 @@
 //
-// $Id: MidacData.cpp 10502 2017-02-22 16:33:49Z chambm $
+// $Id$
 //
 //
 // Original author: Brendan MacLean <brendanx .@. u.washington.edu>
@@ -83,11 +83,17 @@ struct FrameImpl : public Frame
 
     virtual int getFrameIndex() const;
     virtual TimeRange getDriftTimeRange() const;
+    virtual MassRange getMzRange() const;
     virtual double getRetentionTime() const;
+    virtual double getTic() const;
     virtual int getDriftBinsPresent() const;
     virtual const std::vector<short>& getNonEmptyDriftBins() const;
     virtual DriftScanPtr getScan(int driftBinIndex) const;
     virtual DriftScanPtr getTotalScan() const;
+
+    virtual void getCombinedSpectrumData(pwiz::util::BinaryData<double>& mz, pwiz::util::BinaryData<double>& intensities, pwiz::util::BinaryData<double>& mobilities,
+                                         bool ignoreZeroIntensityPoints, const std::vector<pwiz::chemistry::MzMobilityWindow>& mzMobilityFilter) const;
+    virtual size_t getCombinedSpectrumDataSize(bool ignoreZeroIntensityPoints, const std::vector<pwiz::chemistry::MzMobilityWindow>& mzMobilityFilter) const;
 
     private:
     int frameIndex_;
@@ -111,8 +117,8 @@ struct DriftScanImpl : public DriftScan
     virtual int getScanId() const;
 
     virtual int getTotalDataPoints() const;
-    virtual const std::vector<double>& getXArray() const;
-    virtual const std::vector<float>& getYArray() const;
+    virtual const pwiz::util::BinaryData<double>& getXArray() const;
+    virtual const pwiz::util::BinaryData<float>& getYArray() const;
 
     private:
     MSStorageMode msStorageMode_;
@@ -124,12 +130,14 @@ struct DriftScanImpl : public DriftScan
     double collisionEnergy_;
     double driftTime_;
     int scanId_;
-    std::vector<double> xArray_;
-    std::vector<float> yArray_;
+    pwiz::util::BinaryData<double> xArray_;
+    pwiz::util::BinaryData<float> yArray_;
 };
 
 MidacDataImpl::MidacDataImpl(const std::string& path)
 {
+    massHunterRootPath_ = path;
+
     try
     {
         String^ filepath = ToSystemString(path);
@@ -147,12 +155,31 @@ MidacDataImpl::MidacDataImpl(const std::string& path)
             imsReader_->FrameInfo(1)->FrameUnitConverter;
         }
 
+        ticTimes_.resize(imsReader_->FileInfo->NumFrames);
+        ticIntensities_.resize(ticTimes_.size());
+        //ticTimesMs1_.resize(imsReader_->FileInfo->NumFrame / 2);
+        //ticIntensitiesMs1_.resize(ticTimes_.size() / 2);
+        for (size_t i = 0; i < ticTimes_.size(); ++i)
+        {
+            auto frameInfo = imsReader_->FrameInfo(i+1);
+            ticTimes_[i] = frameInfo->AcqTimeRange->Min;
+            ticIntensities_[i] = frameInfo->Tic;
+
+
+            double collisionEnergy = getScanRecord(i)->getCollisionEnergy();
+            if (collisionEnergy == 0)
+            {
+                ticTimesMs1_.push_back(ticTimes_[i]);
+                ticIntensitiesMs1_.push_back(ticIntensities_[i]);
+            }
+        }
+
         hasProfileData_ = bfs::exists(bfs::path(path) / "AcqData/MSProfile.bin");
     }
     CATCH_AND_FORWARD
 }
 
-MidacDataImpl::~MidacDataImpl()
+MidacDataImpl::~MidacDataImpl() noexcept(false)
 {
     try {imsReader_->Close();} CATCH_AND_FORWARD
 }
@@ -215,7 +242,7 @@ MSStorageMode MidacDataImpl::getSpectraFormat() const
 
 int MidacDataImpl::getTotalScansPresent() const
 {
-    try {return (MSStorageMode) imsReader_->FileInfo->NumFrames * imsReader_->FileInfo->MaxNonTfsMsPerFrame;} CATCH_AND_FORWARD
+    try {return (int) imsReader_->FileInfo->NumFrames * imsReader_->FileInfo->MaxNonTfsMsPerFrame;} CATCH_AND_FORWARD
 }
 
 bool MidacDataImpl::hasProfileData() const
@@ -242,12 +269,12 @@ bool MidacDataImpl::canConvertDriftTimeAndCCS() const
 
 double MidacDataImpl::driftTimeToCCS(double driftTimeInMilliseconds, double mz, int charge) const
 {
-    try { return imsCcsReader_->CcsFromDriftTime(driftTimeInMilliseconds, mz, charge); } CATCH_AND_FORWARD
+    try { return imsCcsReader_->CcsFromDriftTime(driftTimeInMilliseconds, mz, abs(charge)); } CATCH_AND_FORWARD
 }
 
 double MidacDataImpl::ccsToDriftTime(double ccs, double mz, int charge) const
 {
-    try { return imsCcsReader_->DriftTimeFromCcs(ccs, mz, charge); } CATCH_AND_FORWARD
+    try { return imsCcsReader_->DriftTimeFromCcs(ccs, mz, abs(charge)); } CATCH_AND_FORWARD
 }
 
 ScanRecordPtr MidacDataImpl::getScanRecord(int rowNumber) const
@@ -260,24 +287,24 @@ const set<Transition>& MidacDataImpl::getTransitions() const
     return transitions_;
 }
 
-const automation_vector<double>& MidacDataImpl::getTicTimes() const
+const BinaryData<double>& MidacDataImpl::getTicTimes(bool ms1Only) const
 {
-    return ticTimes_;
+    return ms1Only ? ticTimesMs1_ : ticTimes_;
 }
 
-const automation_vector<double>& MidacDataImpl::getBpcTimes() const
+const BinaryData<double>& MidacDataImpl::getBpcTimes(bool ms1Only) const
 {
-    return bpcTimes_;
+    return ms1Only ? bpcTimesMs1_ : bpcTimes_;
 }
 
-const automation_vector<float>& MidacDataImpl::getTicIntensities() const
+const BinaryData<float>& MidacDataImpl::getTicIntensities(bool ms1Only) const
 {
-    return ticIntensities_;
+    return ms1Only ? ticIntensitiesMs1_ : ticIntensities_;
 }
 
-const automation_vector<float>& MidacDataImpl::getBpcIntensities() const
+const BinaryData<float>& MidacDataImpl::getBpcIntensities(bool ms1Only) const
 {
-    return bpcIntensities_;
+    return ms1Only ? bpcIntensitiesMs1_ : bpcIntensities_;
 }
 
 ChromatogramPtr MidacDataImpl::getChromatogram(const Transition& transition) const
@@ -403,9 +430,19 @@ TimeRange FrameImpl::getDriftTimeRange() const
     try {return managedRangeToNative<TimeRange>(frameInfo_->DriftTimeRange);} CATCH_AND_FORWARD
 }
 
+MassRange FrameImpl::getMzRange() const
+{
+    try { return managedRangeToNative<MassRange>(frameInfo_->MzRange); } CATCH_AND_FORWARD
+}
+
 double FrameImpl::getRetentionTime() const
 {
     try {return frameInfo_->AcqTimeRange->Min;} CATCH_AND_FORWARD
+}
+
+double FrameImpl::getTic() const
+{
+    try {return frameInfo_->Tic;} CATCH_AND_FORWARD
 }
 
 int FrameImpl::getDriftBinsPresent() const { return numDriftBins_; }
@@ -424,7 +461,7 @@ DriftScanPtr FrameImpl::getScan(int driftBinIndex) const
         MIDAC::IMidacSpecDataMs^ specData = (MIDAC::IMidacSpecDataMs^) specData_;
         imsReader_->FrameMs(frameIndex_ + 1, driftBinIndex, MIDAC::MidacSpecFormat::ZeroBounded, true, (MIDAC::IMidacSpecDataMs^%) specData);
         if (Object::ReferenceEquals(specData, nullptr))
-            throw gcnew System::Exception(ToSystemString("null spectrum returned for frame ") + frameIndex_ + " and drift bin " + driftBinIndex);;
+            throw gcnew System::Exception(ToSystemString("null spectrum returned for frame ") + frameIndex_ + " and drift bin " + driftBinIndex);
         specData_ = specData;
         return DriftScanPtr(new DriftScanImpl(specData_));
     }
@@ -435,7 +472,7 @@ DriftScanPtr FrameImpl::getTotalScan() const
 {
     try
     {
-        MIDAC::IMidacSpecDataMs^ specData = imsReader_->ProfileTotalFrameMs(MIDAC::MidacSpecFormat::ZeroBounded, frameIndex_+ 1);
+        MIDAC::IMidacSpecDataMs^ specData = imsReader_->ProfileTotalFrameMs(MIDAC::MidacSpecFormat::ZeroTrimmed, frameIndex_+ 1);
         if (Object::ReferenceEquals(specData, nullptr))
             throw gcnew System::Exception(ToSystemString("null spectrum returned for total scan of frame ") + frameIndex_);
         specData_ = specData;
@@ -444,11 +481,153 @@ DriftScanPtr FrameImpl::getTotalScan() const
     CATCH_AND_FORWARD
 }
 
+void FrameImpl::getCombinedSpectrumData(pwiz::util::BinaryData<double>& mz, pwiz::util::BinaryData<double>& intensities, pwiz::util::BinaryData<double>& mobilities,
+                                        bool ignoreZeroIntensityPoints, const std::vector<pwiz::chemistry::MzMobilityWindow>& mzMobilityFilter) const
+{
+    try
+    {
+        const auto& nonEmptyDriftBins = getNonEmptyDriftBins();
+
+        mz.clear();
+        intensities.clear();
+        mobilities.clear();
+        if (nonEmptyDriftBins.empty())
+            return;
+
+        MIDAC::IMidacSpecDataMs^ specData = (MIDAC::IMidacSpecDataMs^) specData_;
+
+        vector<short> driftBinsFiltered;
+        int expectedNonZeroPoints = 0;
+
+        if (mzMobilityFilter.empty())
+        {
+            driftBinsFiltered = nonEmptyDriftBins;
+            for (size_t i = 0; i < nonEmptyDriftBins.size(); ++i)
+            {
+                imsReader_->FrameMs(frameIndex_ + 1, nonEmptyDriftBins[i], MIDAC::MidacSpecFormat::Metadata, true, (MIDAC::IMidacSpecDataMs^%) specData);
+                expectedNonZeroPoints += specData->NonZeroPoints;
+            }
+        }
+        else
+        {
+            driftBinsFiltered.reserve(nonEmptyDriftBins.size());
+
+            for (size_t i = 0; i < nonEmptyDriftBins.size(); ++i)
+            {
+                imsReader_->FrameMs(frameIndex_ + 1, nonEmptyDriftBins[i], MIDAC::MidacSpecFormat::Metadata, true, (MIDAC::IMidacSpecDataMs^%) specData);
+
+                double driftTime = specData->DriftTimeRanges->Length > 0 ? specData->DriftTimeRanges[0]->Min : 0;
+
+                if (chemistry::MzMobilityWindow::mobilityValueInBounds(mzMobilityFilter, driftTime))
+                {
+                    expectedNonZeroPoints += specData->NonZeroPoints;
+                    driftBinsFiltered.push_back(nonEmptyDriftBins[i]);
+                }
+            }
+        }
+
+        if (!ignoreZeroIntensityPoints)
+            expectedNonZeroPoints = 3 * expectedNonZeroPoints + 2; // handle worst case scenario for preserving zeros adjacent to nonzeros ie 0,1,0,0,1,0,0,1,0,0,1,0
+
+        auto mzArray = gcnew cli::array<double>(expectedNonZeroPoints); 
+        auto intensityArray = gcnew cli::array<double>(expectedNonZeroPoints);
+        auto mobilityArray = gcnew cli::array<double>(expectedNonZeroPoints);
+        int lastNonZeroIndex = 0;
+
+        for (short driftBin : driftBinsFiltered)
+        {
+            imsReader_->FrameMs(frameIndex_ + 1, driftBin, ignoreZeroIntensityPoints ? MIDAC::MidacSpecFormat::ZeroTrimmed : MIDAC::MidacSpecFormat::ZeroBounded, true, (MIDAC::IMidacSpecDataMs^%) specData);
+            if (Object::ReferenceEquals(specData, nullptr))
+                throw gcnew System::Exception(ToSystemString("null spectrum returned for frame ") + frameIndex_ + " and drift bin " + driftBin);
+
+            double driftTime = specData->DriftTimeRanges->Length > 0 ? specData->DriftTimeRanges[0]->Min : 0;
+
+            for (int j = 0, end = specData->XArray->Length; j < end; ++j)
+            {
+                double intensity = specData->YArray[j];
+                // NB: ZeroTrimmed may actually have some zeros in it, but specData->NonZeroPoints does not include them
+                if (intensity == 0 && ignoreZeroIntensityPoints)
+                    continue;
+                mzArray[lastNonZeroIndex] = specData->XArray[j];
+                intensityArray[lastNonZeroIndex] = intensity;
+                mobilityArray[lastNonZeroIndex] = driftTime;
+                ++lastNonZeroIndex;
+            }
+
+            if (!ignoreZeroIntensityPoints)
+            {
+                // ZeroBounded seems to have a bug where it doesn't add a final trailing zero
+                double lastMzDelta = mzArray[lastNonZeroIndex - 1] - mzArray[lastNonZeroIndex - 2];
+                mzArray[lastNonZeroIndex] = mzArray[lastNonZeroIndex - 1] + lastMzDelta;
+                intensityArray[lastNonZeroIndex] = 0;
+                mobilityArray[lastNonZeroIndex] = mobilityArray[lastNonZeroIndex - 1];
+                ++lastNonZeroIndex;
+            }
+        }
+
+        if (ignoreZeroIntensityPoints)
+        {
+            ToBinaryData(mzArray, mz);
+            ToBinaryData(intensityArray, intensities);
+            ToBinaryData(mobilityArray, mobilities);
+        }
+        else
+        {
+            ToBinaryData(mzArray, 0, mz, 0, lastNonZeroIndex);
+            ToBinaryData(intensityArray, 0, intensities, 0, lastNonZeroIndex);
+            ToBinaryData(mobilityArray, 0, mobilities, 0, lastNonZeroIndex);
+        }
+    }
+    CATCH_AND_FORWARD
+}
+
+size_t FrameImpl::getCombinedSpectrumDataSize(bool ignoreZeroIntensityPoints, const std::vector<pwiz::chemistry::MzMobilityWindow>& mzMobilityFilter) const
+{
+    try
+    {
+        const auto& nonEmptyDriftBins = getNonEmptyDriftBins();
+
+        if (nonEmptyDriftBins.empty())
+            return 0;
+
+        MIDAC::IMidacSpecDataMs^ specData = (MIDAC::IMidacSpecDataMs^) specData_;
+
+        if (ignoreZeroIntensityPoints)
+        {
+            int expectedNonZeroPoints = 0;
+            for (size_t i = 0; i < nonEmptyDriftBins.size(); ++i)
+            {
+                imsReader_->FrameMs(frameIndex_ + 1, nonEmptyDriftBins[i], MIDAC::MidacSpecFormat::Metadata, true, (MIDAC::IMidacSpecDataMs^%) specData);
+                double driftTime = specData->DriftTimeRanges->Length > 0 ? specData->DriftTimeRanges[0]->Min : 0;
+
+                if (chemistry::MzMobilityWindow::mobilityValueInBounds(mzMobilityFilter, driftTime))
+                    expectedNonZeroPoints += specData->NonZeroPoints;
+            }
+            return expectedNonZeroPoints;
+        }
+        
+        int expectedPoints = 0;
+        for (size_t i = 0; i < nonEmptyDriftBins.size(); ++i)
+        {
+            imsReader_->FrameMs(frameIndex_ + 1, nonEmptyDriftBins[i], MIDAC::MidacSpecFormat::Metadata, true, (MIDAC::IMidacSpecDataMs^%) specData);
+            double driftTime = specData->DriftTimeRanges->Length > 0 ? specData->DriftTimeRanges[0]->Min : 0;
+
+            if (chemistry::MzMobilityWindow::mobilityValueInBounds(mzMobilityFilter, driftTime))
+            {
+                imsReader_->FrameMs(frameIndex_ + 1, nonEmptyDriftBins[i], MIDAC::MidacSpecFormat::ZeroBounded, true, (MIDAC::IMidacSpecDataMs^%) specData);
+                expectedPoints += specData->XArray->Length + 1; // add 1 for missing trailing zero
+            }
+        }
+        return expectedPoints;
+    }
+    CATCH_AND_FORWARD
+}
+
 
 DriftScanImpl::DriftScanImpl(MIDAC::IMidacSpecDataMs^ specData)
 {
-    ToStdVector<double, double>(specData->XArray, xArray_);
-    ToStdVector<float, float>(specData->YArray, yArray_);
+    ToBinaryData(specData->XArray, xArray_);
+    ToBinaryData(specData->YArray, yArray_);
     msStorageMode_ = (MSStorageMode)specData->MsStorageMode;
     deviceType_ = specData->DeviceInfo != nullptr ? (DeviceType)specData->DeviceInfo->DeviceType : DeviceType_Unknown;
     if (specData->MzOfInterestRanges != nullptr)
@@ -467,8 +646,8 @@ double DriftScanImpl::getDriftTime() const { return driftTime_; }
 int DriftScanImpl::getScanId() const { return scanId_; }
 
 int DriftScanImpl::getTotalDataPoints() const { return xArray_.size(); }
-const std::vector<double>& DriftScanImpl::getXArray() const { return xArray_; }
-const std::vector<float>& DriftScanImpl::getYArray() const { return yArray_; }
+const pwiz::util::BinaryData<double>& DriftScanImpl::getXArray() const { return xArray_; }
+const pwiz::util::BinaryData<float>& DriftScanImpl::getYArray() const { return yArray_; }
 
 
 } // Agilent

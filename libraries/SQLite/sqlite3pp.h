@@ -43,7 +43,7 @@ namespace sqlite3pp
         class aggregate;
     }
 
-    class null_type {};
+	struct null_type { bool operator==(const null_type&) const { return true; } };
     extern null_type ignore;
 
     int enable_shared_cache(bool fenable);
@@ -103,6 +103,9 @@ namespace sqlite3pp
         int save_to_file(const std::string& dbname);
 
         sqlite3_int64 last_insert_rowid() const;
+
+        bool has_table(const std::string& table);
+        bool has_table(const char* table);
 
         int error_code() const;
         char const* error_msg() const;

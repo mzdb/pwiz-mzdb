@@ -27,6 +27,7 @@
 
 #include "pwiz/data/common/cv.hpp"
 #include "pwiz_aux/msrc/utility/vendor_api/thermo/RawFile.h"
+#include "pwiz_aux/msrc/utility/vendor_api/thermo/RawFileValues.h"
 #include "pwiz_aux/msrc/utility/vendor_api/ABI/WiffFile.hpp"
 
 //#include "../utils/glog/logging.h"
@@ -190,7 +191,8 @@ class mzABSciexMetadataExtractor : public mzAbstractMetadataExtractor< mzABSciex
         try {
             filenameId = std::to_string(_wiffFilePtr->getSampleNames().size());
         } catch (exception& ) {}
-        return sample(new pwiz::msdata::Sample(filenameId, filename));
+		pwiz::msdata::SamplePtr sample(new pwiz::msdata::Sample(filenameId, filename));
+		return sample;
     }
 
     /// Always return true, WARNING
@@ -261,26 +263,28 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
     }
 
     virtual UserText getExtraDataAsUserText() {
-        std::auto_ptr<pwiz::vendor_api::Thermo::LabelValueArray> l = _rawfilePtr->getInstrumentMethods();
+		std::vector<std::string> l = _rawfilePtr->getInstrumentMethods();
         std::string instrumentMethods;
 
-        for (int i=0; i < l->size(); ++i) {
-            instrumentMethods += l->value(i) + "\n";
+        for (int i=0; i < l.size(); ++i) {
+            instrumentMethods += l.at(i) + "\n";
         }
         return UserText("instrumentMethods", instrumentMethods, XML_STRING);
 
     }
 
     virtual pwiz::msdata::SamplePtr getSample() {
-
+		
         std::string filename = "", filenameId = "";
         try {
-            filename = _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowRawFileName);
+            //filename = _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowRawFileName);
+			filename = _rawfilePtr->getFilename();
         } catch (exception& ) {
         }
 
         try {
-            filenameId =  _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowSampleID);
+            //filenameId =  _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowSampleID);
+			filenameId = _rawfilePtr->getSampleID();
         } catch (exception& ) {
         }
 
@@ -289,7 +293,7 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
         // id=UPS1 5fmol R1
         // name=D:\Data_LTQOrbitrap\Standards\UPS1\OVEMB150205_12.raw
         pwiz::msdata::SamplePtr sample(new pwiz::msdata::Sample(filename, filenameId));
-        try {
+       /* try {
             sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowComment),
                                                                  _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowComment),
                                                                  XML_STRING));
@@ -306,31 +310,31 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
                                                                  _rawfilePtr->value(pwiz::vendor_api::Thermo::CreatorID),
                                                                  XML_STRING));
         } catch (exception&) { }
-
+		
         try {
             sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowCalibrationFile),
                                                                  _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowCalibrationFile),
                                                                  XML_STRING));
         } catch (exception&) { }
-
+		
         try {
-            sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::InstSoftwareVersion),
-                                                                 _rawfilePtr->value(pwiz::vendor_api::Thermo::InstSoftwareVersion),
-                                                                 XML_STRING));
+			pwiz::vendor_api::Thermo::RawFileValues::ValueData<ValueID_String> dataByStr = pwiz::vendor_api::Thermo::RawFileValues::ValueData();
+			dataByStr[PWIZ_API_DECL.InstSoftwareVersion]->name;
+            sample->userParams.push_back(pwiz::msdata::UserParam(name, _rawfilePtr->getInstrumentData().SoftwareVersion,XML_STRING));
         } catch (exception&) { }
 
         try {
             std::string name = _rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod);
-            std::string value = _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowInstrumentMethod);
+            std::string value = _rawfilePtr->getInstrumentModel();
             pwiz::msdata::UserParam userParam = pwiz::msdata::UserParam(name, value, XML_STRING);
             sample->userParams.push_back(userParam);
         } catch (exception&) { }
-
+		
         try {
             sample->userParams.push_back(pwiz::msdata::UserParam(_rawfilePtr->name(pwiz::vendor_api::Thermo::SeqRowProcessingMethod),
                                                                  _rawfilePtr->value(pwiz::vendor_api::Thermo::SeqRowProcessingMethod),
                                                                  XML_STRING));
-        } catch (exception&) { }
+        } catch (exception&) { }*/
 
         return sample;
     }
@@ -357,15 +361,15 @@ class mzThermoMetadataExtractor : public mzAbstractMetadataExtractor< mzThermoMe
 
     /* return default values ?*/
     virtual inline double getLowMass() {
-        if (this->_rawfilePtr)
-            return this->_rawfilePtr->value(pwiz::vendor_api::Thermo::LowMass);
+       /* if (this->_rawfilePtr)
+            return this->_rawfilePtr->value(pwiz::vendor_api::Thermo::LowMass);*/
         return 0.0;
     }
 
     /* return default values ?*/
     virtual inline double getHighMass() {
-        if (this->_rawfilePtr)
-            return this->_rawfilePtr->value(pwiz::vendor_api::Thermo::HighMass);
+      /*  if (this->_rawfilePtr)
+            return this->_rawfilePtr->value(pwiz::vendor_api::Thermo::HighMass);*/
         return 0.0;
     }
 };
@@ -396,7 +400,7 @@ class mzBrukerMetadataExtractor : public mzAbstractMetadataExtractor< mzBrukerMe
             if (format == pwiz::msdata::detail::Bruker::Reader_Bruker_Format_Unknown) throw std::exception("[Reader_Bruker::read] Path given is not a recognized Bruker format");
             bfs::path rootpath = f;
             if (bfs::is_regular_file(rootpath)) rootpath = rootpath.branch_path();
-            _compassDataPtr = CompassData::create(rootpath.string(), format);
+            _compassDataPtr = pwiz::vendor_api::Bruker::CompassData::create(rootpath.string(), format);
         } catch(exception& e) { LOG(ERROR) << "Bruker Exception: " << e.what(); };
     }
 

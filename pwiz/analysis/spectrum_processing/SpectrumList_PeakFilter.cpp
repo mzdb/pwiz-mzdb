@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_PeakFilter.cpp 11566 2017-11-09 23:16:53Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -128,7 +128,7 @@ PWIZ_API_DECL void IsolationWindowFilter::operator () (const pwiz::msdata::Spect
 
     auto& mzArray = s->getMZArray()->data;
     auto& intensityArray = s->getIntensityArray()->data;
-    vector<double> filteredMzArray, filteredIntensityArray;
+    pwiz::util::BinaryData<double> filteredMzArray, filteredIntensityArray;
 
     for (const auto& interval : isolationWindows)
     {

@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Thermo_Test.cpp 7155 2015-02-03 22:38:32Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -26,9 +26,19 @@
 #include "pwiz/utility/misc/VendorReaderTestHarness.hpp"
 #include "pwiz/utility/misc/Filesystem.hpp"
 #include "pwiz/utility/misc/Std.hpp"
+#include "pwiz/data/common/diff_std.hpp"
 
 #ifdef PWIZ_READER_THERMO
 #include "Reader_Thermo_Detail.hpp"
+#include <windows.h>
+
+string modelTypeToName(InstrumentModelType modelType)
+{
+    for (const auto& mapping : nameToModelMapping)
+        if (mapping.modelType == modelType)
+            return mapping.name;
+    return "Unknown";
+}
 #endif
 
 struct IsRawFile : public pwiz::util::TestPathPredicate
@@ -58,6 +68,35 @@ int main(int argc, char* argv[])
         using namespace pwiz::msdata::detail::Thermo;
         using namespace pwiz::cv;
         using namespace pwiz::util;
+
+        // test that all Thermo instruments have a mapping
+        {
+            vector<CVID> allInstruments, mappedInstruments, unmappedInstruments, mappedButNotInCvHierarchy;
+
+            set<CVID> thermoBrands{ MS_Thermo_Finnigan_instrument_model, MS_Thermo_Electron_instrument_model, MS_Thermo_Scientific_instrument_model, MS_Finnigan_MAT_instrument_model };
+            auto isChildOfThermoBrand = [&](CVID cvid)
+            {
+                for (CVID brand : thermoBrands)
+                    if (cvIsA(cvid, brand))
+                        return true;
+                return false;
+            };
+
+            for (const auto& cvid : pwiz::cv::cvids())
+            {
+                if (thermoBrands.count(cvid) || !isChildOfThermoBrand(cvid))
+                    continue;
+                allInstruments.push_back(cvid);
+            }
+
+            for (const auto& mapping : nameToModelMapping)
+                mappedInstruments.push_back(translateAsInstrumentModel(parseInstrumentModelType(mapping.name)));
+
+            diff_impl::vector_diff(allInstruments, mappedInstruments, unmappedInstruments, mappedButNotInCvHierarchy);
+            auto instrumentTermNames = [](vector<CVID>& cvids) {ostringstream result; for (CVID cvid : cvids) result << cvTermInfo(cvid).name << "\n"; return result.str(); };
+            unit_assert_operator_equal("", instrumentTermNames(unmappedInstruments));
+            unit_assert_operator_equal("", instrumentTermNames(mappedButNotInCvHierarchy));
+        }
 
         // test that all instrument types are handled by translation functions (skipping the 'Unknown' type)
         bool allInstrumentTestsPassed = true;
@@ -177,7 +216,7 @@ int main(int argc, char* argv[])
             }
             catch (runtime_error& e)
             {
-                cerr << "Unit test failed for instrument model " << lexical_cast<string>(model) << ":\n" << e.what() << endl;
+                cerr << "Unit test failed for instrument model " << modelTypeToName(model) << ":\n" << e.what() << endl;
                 allInstrumentTestsPassed = false;
             }
         }
@@ -186,7 +225,32 @@ int main(int argc, char* argv[])
         #endif
 
         bool requireUnicodeSupport = true;
-        pwiz::util::testReader(pwiz::msdata::Reader_Thermo(), testArgs, testAcceptOnly, requireUnicodeSupport, IsRawFile());
+        pwiz::msdata::Reader_Thermo reader;
+        pwiz::util::ReaderTestConfig config;
+        pwiz::util::TestResult result;
+
+        #ifndef _WIN64
+        config.diffPrecision = 1e-2;
+        #endif
+
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsRawFile(), config);
+
+        config.peakPicking = true;
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsRawFile(), config);
+
+        // test globalChromatogramsAreMs1Only, but don't need to test spectra here
+        auto newConfig = config;
+        newConfig.globalChromatogramsAreMs1Only = true;
+        newConfig.indexRange = make_pair(0, 0);
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, pwiz::util::IsNamedRawFile("090701-LTQVelos-unittest-01.raw"), newConfig);
+
+        #ifdef PWIZ_READER_THERMO
+        // CONSIDER: do this test in VendorReaderTestHarness for all vendor readers?
+        ::SetThreadLocale(LANG_TURKISH);
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsRawFile(), config);
+        #endif
+
+        result.check();
     }
     catch (exception& e)
     {

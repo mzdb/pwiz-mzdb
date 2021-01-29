@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Thermo_Detail.hpp 11016 2017-06-30 15:32:02Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

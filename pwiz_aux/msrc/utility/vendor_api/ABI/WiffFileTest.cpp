@@ -1,5 +1,5 @@
 //
-// $Id: WiffFileTest.cpp 9964 2016-08-09 20:32:10Z chambm $
+// $Id$
 //
 // 
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

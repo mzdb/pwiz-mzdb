@@ -1,5 +1,5 @@
 //
-// $Id: PeptideID.hpp 3095 2011-11-01 21:12:23Z broter $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

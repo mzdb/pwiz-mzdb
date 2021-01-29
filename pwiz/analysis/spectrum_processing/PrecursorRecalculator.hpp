@@ -1,5 +1,5 @@
 //
-// $Id: PrecursorRecalculator.hpp 3235 2012-01-25 13:44:50Z broter $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

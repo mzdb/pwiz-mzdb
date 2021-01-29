@@ -1,5 +1,5 @@
 //
-// $Id: ShimadzuReaderTest.cpp 8738 2015-08-06 22:19:25Z kaipot $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

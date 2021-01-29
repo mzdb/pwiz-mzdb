@@ -1,5 +1,5 @@
 //
-// $Id: Reader.hpp 1672 2010-01-07 00:12:19Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

@@ -1,5 +1,5 @@
 #
-# $Id: Jamfile.jam 10386 2017-01-20 21:08:22Z chambm $
+# $Id$
 #
 #
 # Original author: Darren Kessner <darren@proteowizard.org>
@@ -28,6 +28,7 @@ build-project-if-exists peakdetect ;
 build-project-if-exists peptideid ;
 build-project-if-exists demux ;
 build-project-if-exists spectrum_processing ;
+build-project-if-exists chromatogram_processing ;
 build-project-if-exists proteome_processing ;
 
 

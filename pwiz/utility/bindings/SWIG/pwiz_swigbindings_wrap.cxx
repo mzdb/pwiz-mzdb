@@ -303,7 +303,7 @@ SWIGINTERN void std_vector_Sl_double_Sg__set(std::vector< double > *self,int i,s
   /* everything in this section (including this comment) appears in the generated
      wrapper code, so here's where you declare the C/C++ functions that the wrapper
      will find in the DLL. 
-	 $Id: pwiz_swigbindings_wrap.cxx 1862 2010-03-05 00:39:34Z pcbrefugee $
+	 $Id$
      Note that if there are things in your headers that you don't want SWIG to deal
 	 with, just surround them #ifndef SWIG / #endif .  
 	 */

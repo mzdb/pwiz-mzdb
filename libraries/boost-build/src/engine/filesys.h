@@ -17,6 +17,7 @@
 #ifndef FILESYS_DWA20011025_H
 #define FILESYS_DWA20011025_H
 
+#include "config.h"
 #include "hash.h"
 #include "lists.h"
 #include "object.h"
@@ -37,7 +38,7 @@ typedef struct file_info_t
 typedef struct file_item FILEITEM;
 struct file_item
 {
-    file_info_t * value;  /* expected to be equvalent with &FILEITEM */
+    file_info_t * value;  /* expected to be equivalent with &FILEITEM */
     FILEITEM * next;
 };
 
@@ -53,6 +54,7 @@ typedef file_info_t * * FILELISTITER;  /*  also &FILEITEM equivalent */
 
 typedef struct file_archive_info_t
 {
+    OBJECT * name;
     file_info_t * file;
     FILELIST * members;
 } file_archive_info_t;
@@ -95,6 +97,8 @@ FILELISTITER filelist_next( FILELISTITER it );
 file_info_t * filelist_item( FILELISTITER it );
 file_info_t * filelist_front(  FILELIST * list );
 file_info_t * filelist_back(  FILELIST * list );
+
+int filelist_empty( FILELIST * list );
 
 #define FL0 ((FILELIST *)0)
 

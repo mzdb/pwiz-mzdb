@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Agilent_Detail.cpp 6478 2014-07-08 20:01:38Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

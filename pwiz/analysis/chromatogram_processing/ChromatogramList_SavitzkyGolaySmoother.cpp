@@ -1,5 +1,5 @@
 //
-// $Id: ChromatogramList_SavitzkyGolaySmoother.cpp 1191 2009-08-14 19:33:05Z chambm $
+// $Id$
 //
 //
 // Original author: Eric Purser <Eric.Purser .@. Vanderbilt.edu>
@@ -62,7 +62,7 @@ PWIZ_API_DECL ChromatogramPtr ChromatogramList_SavitzkyGolaySmoother::chromatogr
 
     try
     {
-        vector<double>& intensities = s->binaryDataArrayPtrs[1]->data;
+        BinaryData<double>& intensities = s->binaryDataArrayPtrs[1]->data;
         vector<double> smoothedIntensities = SavitzkyGolaySmoother<double>::smooth_copy(intensities);
         intensities.swap(smoothedIntensities);
     }

@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumListFactoryTest.cpp 10650 2017-03-27 21:23:14Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -90,20 +90,38 @@ void testWrap()
 
 void testWrapScanTimeRange()
 {
-    MSData msd;
-    examples::initializeTiny(msd);
+    {
+        MSData msd;
+        examples::initializeTiny(msd);
 
-    SpectrumListPtr& sl = msd.run.spectrumListPtr;
-    unit_assert(sl.get());
-    unit_assert(sl->size() > 2);
+        SpectrumListPtr& sl = msd.run.spectrumListPtr;
+        unit_assert(sl.get());
+        unit_assert(sl->size() > 2);
 
-    double timeHighInSeconds = 5.9 * 60; // between first and second scan
-    ostringstream oss;
-    oss << "scanTime [0," << timeHighInSeconds << "]";
-    SpectrumListFactory::wrap(msd, oss.str());
-    unit_assert(sl->size() == 2);
-    unit_assert(sl->spectrumIdentity(0).id == "scan=19");
-    unit_assert(sl->spectrumIdentity(1).id == "sample=1 period=1 cycle=23 experiment=1"); // not in scan time order (42 seconds)
+        double timeHighInSeconds = 5.9 * 60; // between first and second scan
+        ostringstream oss;
+        oss << "scanTime [0," << timeHighInSeconds << "]";
+        SpectrumListFactory::wrap(msd, oss.str());
+        unit_assert(sl->size() == 1);
+        unit_assert(sl->spectrumIdentity(0).id == "scan=19");
+    }
+
+    {
+        MSData msd;
+        examples::initializeTiny(msd);
+
+        SpectrumListPtr& sl = msd.run.spectrumListPtr;
+        unit_assert(sl.get());
+        unit_assert(sl->size() > 2);
+
+        double timeHighInSeconds = 5.9 * 60; // between first and second scan
+        ostringstream oss;
+        oss << "scanTime [0," << timeHighInSeconds << "] false";
+        SpectrumListFactory::wrap(msd, oss.str());
+        unit_assert(sl->size() == 2);
+        unit_assert(sl->spectrumIdentity(0).id == "scan=19");
+        unit_assert(sl->spectrumIdentity(1).id == "sample=1 period=1 cycle=23 experiment=1"); // not in scan time order (42 seconds)
+    }
 }
 
 
@@ -189,6 +207,19 @@ void testWrapChargeState()
         SpectrumListFactory::wrap(msd, "chargeState 0-2");
         unit_assert_operator_equal(2, sl->size());
         unit_assert_operator_equal("scan=20", sl->spectrumIdentity(0).id);
+    }
+}
+
+
+void testWrapChargeStatePredictor()
+{
+    {
+        MSData msd;
+        examples::initializeTiny(msd);
+        SpectrumListPtr& sl = msd.run.spectrumListPtr;
+
+        SpectrumListFactory::wrap(msd, "chargeStatePredictor overrideExistingCharge=false maxMultipleCharge=3 minMultipleCharge=2 singleChargeFractionTIC=0.9 maxKnownCharge=4 makeMS2=true");
+        unit_assert_operator_equal(5, sl->size());
     }
 }
 
@@ -398,6 +429,47 @@ void testWrapPolarity()
     }
 }
 
+void testWrapCollisionEnergy()
+{
+    {
+        MSData msd;
+        examples::initializeTiny(msd);
+
+        SpectrumListPtr& sl = msd.run.spectrumListPtr;
+        unit_assert(sl.get());
+        unit_assert_operator_equal(5, sl->size());
+
+        SpectrumListFactory::wrap(msd, "msLevel 2-");
+        unit_assert_operator_equal(2, sl->size());
+
+        SpectrumListFactory::wrap(msd, "collisionEnergy low=0 high=100");
+        unit_assert_operator_equal(2, sl->size());
+    }
+
+    {
+        MSData msd;
+        examples::initializeTiny(msd);
+        SpectrumListFactory::wrap(msd, "msLevel 2-");
+        SpectrumListFactory::wrap(msd, "collisionEnergy low=34 high=35");
+        unit_assert_operator_equal(1, msd.run.spectrumListPtr->size());
+    }
+
+    {
+        MSData msd;
+        examples::initializeTiny(msd);
+        SpectrumListFactory::wrap(msd, "msLevel 2-");
+        SpectrumListFactory::wrap(msd, "collisionEnergy low=0 high=25");
+        unit_assert_operator_equal(0, msd.run.spectrumListPtr->size());
+    }
+
+    // test invalid argument
+    {
+        MSData msd;
+        examples::initializeTiny(msd);
+        unit_assert_throws(SpectrumListFactory::wrap(msd, "collisionEnergy UNEXPECTED_INPUT"), runtime_error)
+    }
+}
+
 void testWrapTitleMaker()
 {
     MSData msd;
@@ -555,6 +627,38 @@ void testWrapPrecursorMzSet()
         unit_assert_operator_equal("scan=21", sl->spectrumIdentity(2).id);
         unit_assert_operator_equal("sample=1 period=1 cycle=23 experiment=1", sl->spectrumIdentity(3).id);
     }
+
+    {
+        msd.run.spectrumListPtr = originalSL;
+        SpectrumListFactory::wrap(msd, "mzPrecursors [0,445.34] target=selected");
+        SpectrumListPtr& sl = msd.run.spectrumListPtr;
+        unit_assert_operator_equal(4, sl->size());
+        unit_assert_operator_equal("scan=19", sl->spectrumIdentity(0).id);
+        unit_assert_operator_equal("scan=20", sl->spectrumIdentity(1).id);
+        unit_assert_operator_equal("scan=21", sl->spectrumIdentity(2).id);
+        unit_assert_operator_equal("sample=1 period=1 cycle=23 experiment=1", sl->spectrumIdentity(3).id);
+    }
+
+    {
+        msd.run.spectrumListPtr = originalSL;
+        SpectrumListFactory::wrap(msd, "mzPrecursors [445.3] target=isolated");
+        SpectrumListPtr& sl = msd.run.spectrumListPtr;
+        unit_assert_operator_equal(1, sl->size());
+        unit_assert_operator_equal("scan=20", sl->spectrumIdentity(0).id);
+    }
+
+    {
+        msd.run.spectrumListPtr = originalSL;
+        SpectrumListFactory::wrap(msd, "mzPrecursors [445.34] target=isolated"); // tolerance too tight to match to 445.3
+        SpectrumListPtr& sl = msd.run.spectrumListPtr;
+        unit_assert_operator_equal(0, sl->size());
+    }
+
+    msd.run.spectrumListPtr = originalSL;
+    unit_assert_throws_what(SpectrumListFactory::wrap(msd, "mzPrecursors mode=include"), user_error, "[SpectrumListFactory::filterCreator_mzPrecursors()] expected a list of m/z values formatted like \"[123.4,567.8,789.0]\"");
+
+    msd.run.spectrumListPtr = originalSL;
+    unit_assert_throws_what(SpectrumListFactory::wrap(msd, "mzPrecursors [0,445.34] target=42"), user_error, "[SpectrumListFactory::filterCreator_mzPrecursors()] invalid value for 'target' parameter: 42");
 }
 
 void testWrapMZPresent()
@@ -615,6 +719,24 @@ void testWrapMZPresent()
 }
 
 
+void testWrapETDFilter()
+{
+    MSData msd;
+    examples::initializeTiny(msd);
+    auto originalSL = msd.run.spectrumListPtr;
+
+    // test that filter parser works
+    {
+        SpectrumListFactory::wrap(msd, "ETDFilter");
+        SpectrumListFactory::wrap(msd, "ETDFilter true");
+        SpectrumListFactory::wrap(msd, "ETDFilter true true");
+        SpectrumListFactory::wrap(msd, "ETDFilter true true false");
+        SpectrumListFactory::wrap(msd, "ETDFilter true true false false");
+        SpectrumListFactory::wrap(msd, "ETDFilter true true false false 50.0 PPM");
+    }
+}
+
+
 void test()
 {
     testUsage(); 
@@ -624,14 +746,17 @@ void test()
     testWrapMZWindow();
     testWrapMSLevel();
     testWrapChargeState();
+    testWrapChargeStatePredictor();
     testWrapDefaultArrayLength();
     testWrapActivation();
     testWrapMassAnalyzer();
     testWrapPolarity();
+    testWrapCollisionEnergy();
     testWrapTitleMaker();
     testWrapThermoScanFilter();
     testWrapPrecursorMzSet();
     testWrapMZPresent();
+    testWrapETDFilter();
 }
 
 

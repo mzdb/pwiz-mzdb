@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumPeakExtractor.hpp 10348 2017-01-11 18:26:26Z chambm $
+// $Id$
 //
 //
 // Original author: Jarrett Egertson <jegertso .@. uw.edu>
@@ -22,6 +22,7 @@
 
 #include <vector>
 #include "pwiz/data/msdata/MSData.hpp"
+#include "pwiz/utility/chemistry/MZTolerance.hpp"
 #include <boost/smart_ptr/shared_array.hpp>
 #include "DemuxSolver.hpp"
 #include "DemuxHelpers.hpp"

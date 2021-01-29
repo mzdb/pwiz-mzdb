@@ -1,5 +1,5 @@
 //
-// $Id: ChromatogramList_XICGenerator.cpp 7414 2015-04-24 21:58:43Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Eric Purser <Eric.Purser .@. Vanderbilt.edu>

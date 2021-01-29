@@ -47,7 +47,7 @@ rule get-constant ( os ? )
     # Find the name of the constant being accessed, which is equal to the name
     # used to invoke us.
     local bt = [ BACKTRACE 1 ] ;
-    local rulename = [ MATCH ([^.]*)$ : $(bt[4]) ] ;
+    local rulename = [ MATCH "([^.]*)$" : $(bt[4]) ] ;
     return [ constant $(rulename) : $(os) ] ;
 }
 
@@ -98,7 +98,7 @@ if $(.name) = NT
 .executable-suffix-VMS = .exe ;
 
 # VxWorks uses the default LD_LIBRARY_PATH, but we need an alternate
-# name on the cross build host to propigate to the target system
+# name on the cross build host to propagate to the target system
 .shared-library-path-variable-VXWORKS = VSB_LD_LIBRARY_PATH ;
 
 # Default constants
@@ -201,8 +201,8 @@ rule __test__
     import assert ;
     if ! ( --quiet in [ modules.peek : ARGV ] )
     {
-        ECHO os: name= [ name ] ;
-        ECHO os: version= [ version ] ;
+        ECHO "os:" name= [ name ] ;
+        ECHO "os:" version= [ version ] ;
     }
     assert.true name ;
 }

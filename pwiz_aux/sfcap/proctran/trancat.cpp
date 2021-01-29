@@ -1,5 +1,5 @@
 //
-// $Id: trancat.cpp 1195 2009-08-14 22:12:04Z chambm $
+// $Id$
 //
 // Copyright 2009 Spielberg Family Center for Applied Proteomics 
 //   Cedars Sinai Medical Center, Los Angeles, California  90048

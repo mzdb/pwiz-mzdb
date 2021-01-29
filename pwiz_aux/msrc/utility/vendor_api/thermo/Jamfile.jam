@@ -1,5 +1,5 @@
 #
-# $Id: Jamfile.jam 11016 2017-06-30 15:32:02Z chambm $
+# $Id$
 #
 #
 # Original author: Darren Kessner <darren@proteowizard.org>
@@ -45,7 +45,7 @@ if ! --i-agree-to-the-vendor-licenses in [ modules.peek : ARGV ]
     SHELL "copy /Y \"$(API_PATH)\\MSFileReader.XRawfile2.SxS.manifest.dummy\" \"$(API_PATH)\\$(PLATFORM)\\MSFileReader.XRawfile2.SxS.manifest\"" ;
     RESCAN ;
 }
-else
+else if "x86" in $(PLATFORM)
 {
     if [ path.exists $(API_PATH)\\$(PLATFORM)\\MSFileReader.XRawfile2.dll ] && [ path.exists $(API_PATH)\\$(PLATFORM)\\MSFileReader.XRawfile2.SxS.manifest ]
     {
@@ -57,12 +57,8 @@ else
         .hasDLLs = true ;
         local destination = [ path.native $(API_PATH) ] ;
         SHELL "mkdir \"$(destination)\\$(PLATFORM)\" >nul 2>&1" ;
-        echo "Copying MSFileReader DLLs from \"$(MSFILEREADER_INSTALL_DIR)\" to \"$(destination)\\$(PLATFORM)\"." ;
-        echo [ SHELL "copy \"$(MSFILEREADER_INSTALL_DIR)\\XRawfile2$(MSFILEREADER_SUFFIX).dll\" \"$(destination)\\$(PLATFORM)\\MSFileReader.XRawfile2.dll\"" ] ;
-        echo [ SHELL "copy \"$(MSFILEREADER_INSTALL_DIR)\\fileio$(MSFILEREADER_SUFFIX).dll\" \"$(destination)\\$(PLATFORM)\"" ] ;
-        echo [ SHELL "copy \"$(MSFILEREADER_INSTALL_DIR)\\fregistry$(MSFILEREADER_SUFFIX).dll\" \"$(destination)\\$(PLATFORM)\"" ] ;
 
-        local version = [ read_version "$(API_PATH)/$(PLATFORM)/MSFileReader.XRawfile2.dll" ] ;
+        local version = [ read_version "$(MSFILEREADER_INSTALL_DIR)\\XRawfile2$(MSFILEREADER_SUFFIX).dll" ] ;
         local manifestLines = [ SHELL "type \"$(API_PATH)\\MSFileReader.XRawfile2$(MSFILEREADER_SUFFIX).SxS.manifest.real\"" ] ;
         manifestLines = [ regex.replace-list $(manifestLines) : "{VERSION}" : $(version) ] ;
         
@@ -72,39 +68,69 @@ else
         echo "Copying MSFileReader manifest version $(version) to \"$(API_PATH)\\$(PLATFORM)\\MSFileReader.XRawfile2.SxS.manifest\"" ;
         # Write new manifest file to outfile using Generated File Expansion syntax @(file:E=filecontent)
         outfile = @($(outfile):E=$(fileContent)) ;
+
+        # HACK: MSFileReader DLLs have embedded manifests referencing an old version of the VC9 CRT (21022),
+        # and the side-by-side loader is apparently incapable of redirecting to the newer VC9 DLLs we bundle (37029.6161)
+        echo "Copying MSFileReader DLLs from \"$(MSFILEREADER_INSTALL_DIR)\" to \"$(destination)\\$(PLATFORM)\" and updating embedded manifests." ;
+        echo [ SHELL "copy \"$(MSFILEREADER_INSTALL_DIR)\\XRawfile2$(MSFILEREADER_SUFFIX).dll\" \"$(destination)\\$(PLATFORM)\\MSFileReader.XRawfile2.dll\" & $(MSVC_CURRENT_SETUP_SCRIPT) & mt.exe -nologo -manifest $(API_PATH)\\$(PLATFORM)\\MSFileReader.XRawfile2.SxS.manifest -outputresource:$(destination)\\$(PLATFORM)\\MSFileReader.XRawfile2.dll;#2" ] ;
+        echo [ SHELL "copy \"$(MSFILEREADER_INSTALL_DIR)\\fileio$(MSFILEREADER_SUFFIX).dll\" \"$(destination)\\$(PLATFORM)\"" ] ;
+        echo [ SHELL "copy \"$(MSFILEREADER_INSTALL_DIR)\\fregistry$(MSFILEREADER_SUFFIX).dll\" \"$(destination)\\$(PLATFORM)\"" ] ;
         RESCAN ;
+    }
+}
+else
+{
+    if [ path.exists $(API_PATH)\\ThermoFisher.CommonCore.Data.dll ]
+    {
+        .hasDLLs = true ;
     }
 }
 
 rule vendor-api-requirements ( properties * )
 {
     local result ;
-    if <toolset>msvc in $(properties) &&
-       [ path.exists $(API_PATH)/XRawFile2.tlh ]
+    if <toolset>msvc in $(properties) && $(.hasDLLs)
     {
         result += <source>RawFile.cpp ;
-        result += <source>RawFileValues.cpp ;
+        if ! <address-model>64 in $(properties)
+        {
+            result += <source>RawFileValues.cpp ;
+            result += <source>ScanFilter.cpp ;
+        }
     }
     return $(result) [ vendor-api-usage-requirements $(properties) ] ;
 }
 
-lib shlwapi : : <name>shlwapi ; # for PathIsNetworkPath
+#lib shlwapi : : <name>shlwapi ; # for PathIsNetworkPath
 
 rule vendor-api-usage-requirements ( properties * )
 {
     local result ;
     if <toolset>msvc in $(properties)
     {
-        result += <define>PWIZ_READER_THERMO ;
         if $(.hasDLLs)
         {
-            result += <manifest-dependency>$(API_PATH)/$(PLATFORM)/MSFileReader.XRawfile2.dll ;
-            result += <assembly-dependency>$(API_PATH)/$(PLATFORM)/MSFileReader.XRawfile2.dll ;
-            result += <assembly-dependency>$(API_PATH)/$(PLATFORM)/MSFileReader.XRawfile2.SxS.manifest ;
-            result += <assembly-dependency>$(API_PATH)/$(PLATFORM)/fregistry$(MSFILEREADER_SUFFIX).dll ;
-            result += <assembly-dependency>$(API_PATH)/$(PLATFORM)/fileio$(MSFILEREADER_SUFFIX).dll ;
-            result += <assembly-dependency>$(API_PATH)/EULA.MSFileReader ;
-            result += <library>shlwapi ;
+            result += <define>PWIZ_READER_THERMO ;
+            if ! <address-model>64 in $(properties)
+            {
+                result += <manifest-dependency>$(API_PATH)/$(PLATFORM)/MSFileReader.XRawfile2.dll ;
+                result += <assembly-dependency>$(API_PATH)/$(PLATFORM)/MSFileReader.XRawfile2.dll ;
+                result += <assembly-dependency>$(API_PATH)/$(PLATFORM)/MSFileReader.XRawfile2.SxS.manifest ;
+                result += <assembly-dependency>$(API_PATH)/$(PLATFORM)/fregistry$(MSFILEREADER_SUFFIX).dll ;
+                result += <assembly-dependency>$(API_PATH)/$(PLATFORM)/fileio$(MSFILEREADER_SUFFIX).dll ;
+                result += <assembly-dependency>$(API_PATH)/EULA.MSFileReader ;
+                result += <library>/ext/boost//regex ;
+                #result += <library>shlwapi ;
+            }
+            else
+            {
+                result += <assembly>$(API_PATH)/ThermoFisher.CommonCore.Data.dll ;
+                result += <assembly>$(API_PATH)/ThermoFisher.CommonCore.RawFileReader.dll ;
+                #result += <assembly>$(API_PATH)/ThermoFisher.CommonCore.MassPrecisionEstimator.dll ;
+                #result += <assembly>$(API_PATH)/ThermoFisher.CommonCore.BackgroundSubtraction.dll ;
+                result += <assembly-dependency>$(API_PATH)/EULA.RawFileReader ;
+                result += <cxxflags>/wd4564 ; # warning C4564: method 'x' defines unsupported default parameter 'y'
+            }
         }
     }
     return $(result) ;
@@ -112,27 +138,27 @@ rule vendor-api-usage-requirements ( properties * )
 
 lib pwiz_vendor_api_thermo
     : # sources
-        ScanFilter.cpp
     : # requirements
         <toolset>msvc,<link>shared:<define>PWIZ_DYN_LINK
         <library>$(PWIZ_ROOT_PATH)/pwiz/utility/misc//pwiz_utility_misc
-        <library>/ext/boost//thread
-        <library>/ext/boost//regex
         <conditional>@vendor-api-requirements
         <conditional>@msvc-requirement
+        <toolset>msvc:<using-clr>true # requires hacked msvc.jam
+        <link>static # <using-clr>true and <link>shared don't mix
     : # default-build
     : # usage-requirements
         <library>$(PWIZ_ROOT_PATH)/pwiz/utility/misc//pwiz_utility_misc
-        <library>/ext/boost//thread
-        <library>/ext/boost//regex
         <conditional>@vendor-api-usage-requirements
     ;
-
-unit-test-if-exists ScanFilterTest
-    : ScanFilterTest.cpp
-      pwiz_vendor_api_thermo
-    : <conditional>@msvc-requirement
-    ;
+    
+if $(.hasDLLs)
+{
+    unit-test-if-exists ScanFilterTest
+        : ScanFilterTest.cpp
+          pwiz_vendor_api_thermo
+        : <conditional>@msvc-requirement
+        ;
+}
 
 # a test utility, not a unit test
 exe RawFileTest
@@ -145,13 +171,26 @@ explicit RawFileTest ;
 
 if $(.hasDLLs)
 {
-install install_pwiz_vendor_api_thermo
-   : $(API_PATH)/$(PLATFORM)/MSFileReader.XRawfile2.dll
-     $(API_PATH)/$(PLATFORM)/fregistry$(MSFILEREADER_SUFFIX).dll
-     $(API_PATH)/$(PLATFORM)/fileio$(MSFILEREADER_SUFFIX).dll
-     $(API_PATH)/$(PLATFORM)/MSFileReader.XRawfile2.SxS.manifest
-     $(API_PATH)/EULA.MSFileReader
-   ;
+    if x86 in $(PLATFORM)
+    {
+        install install_pwiz_vendor_api_thermo
+           : $(API_PATH)/$(PLATFORM)/MSFileReader.XRawfile2.dll
+             $(API_PATH)/$(PLATFORM)/fregistry$(MSFILEREADER_SUFFIX).dll
+             $(API_PATH)/$(PLATFORM)/fileio$(MSFILEREADER_SUFFIX).dll
+             $(API_PATH)/$(PLATFORM)/MSFileReader.XRawfile2.SxS.manifest
+             $(API_PATH)/EULA.MSFileReader
+           ;
+    }
+    else
+    {
+        install install_pwiz_vendor_api_thermo
+           : $(API_PATH)/ThermoFisher.CommonCore.Data.dll
+             $(API_PATH)/ThermoFisher.CommonCore.RawFileReader.dll
+             #$(API_PATH)/ThermoFisher.CommonCore.MassPrecisionEstimator.dll
+             #$(API_PATH)/ThermoFisher.CommonCore.BackgroundSubtraction.dll
+             $(API_PATH)/EULA.RawFileReader
+           ;
+    }
 }
 else
 {
@@ -160,9 +199,18 @@ install install_pwiz_vendor_api_thermo ;
 
 explicit install_pwiz_vendor_api_thermo ;
 
-install install_pwiz_vendor_api_thermo_eula
-    : $(API_PATH)/EULA.MSFileReader
-    ;
+if x64 in $(PLATFORM)
+{
+    install install_pwiz_vendor_api_thermo_eula
+       : $(API_PATH)/EULA.RawFileReader
+       ;
+}
+else
+{
+    install install_pwiz_vendor_api_thermo_eula
+       : $(API_PATH)/EULA.MSFileReader
+       ;
+}
 
 explicit install_pwiz_vendor_api_thermo_eula ;
 

@@ -1,5 +1,5 @@
 //
-// $Id: ThresholdFilter.hpp 11567 2017-11-09 23:53:32Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

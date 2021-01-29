@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Bruker_Test.cpp 11024 2017-07-03 18:54:26Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -30,11 +30,31 @@ struct IsDirectory : public pwiz::util::TestPathPredicate
 {
     bool operator() (const string& rawpath) const
     {
-    #ifndef WIN64
-        if (bfs::exists(bfs::path(rawpath) / "analysis.tdf")) // no x86 DLL available
-            return false;
-    #endif
-        return bfs::is_directory(rawpath);
+        return bfs::is_directory(rawpath) && !bal::icontains(rawpath, "diapasef"); // don't want default mzML conversion of diaPASEF, too big
+    }
+};
+
+struct IsTDF : public pwiz::util::TestPathPredicate
+{
+    bool operator() (const string& rawpath) const
+    {
+        return bfs::exists(bfs::path(rawpath) / "analysis.tdf") && !bal::icontains(rawpath, "diapasef"); // don't want default TDF treatment for diaPASEF, too big
+    }
+};
+
+struct IsPASEF : public pwiz::util::TestPathPredicate
+{
+    bool operator() (const string& rawpath) const
+    {
+        return IsTDF()(rawpath) && bal::icontains(rawpath, "hela_qc_pasef");
+    }
+};
+
+struct IsDiaPASEF : public pwiz::util::TestPathPredicate
+{
+    bool operator() (const string& rawpath) const
+    {
+        return bfs::is_directory(rawpath) && bal::icontains(rawpath, "diapasef");
     }
 };
 
@@ -51,7 +71,52 @@ int main(int argc, char* argv[])
     try
     {
         bool requireUnicodeSupport = false;
-        pwiz::util::testReader(pwiz::msdata::Reader_Bruker(), testArgs, testAcceptOnly, requireUnicodeSupport, IsDirectory());
+
+        pwiz::util::ReaderTestConfig config;
+        pwiz::util::TestResult result;
+        config.sortAndJitter = true;
+
+        pwiz::msdata::Reader_Bruker_BAF reader; // actually handles all file types
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsDirectory(), config);
+
+        // test globalChromatogramsAreMs1Only, but don't need to test spectra here
+        auto newConfig = config;
+        newConfig.globalChromatogramsAreMs1Only = true;
+        newConfig.indexRange = make_pair(0, 0);
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, pwiz::util::IsNamedRawFile("Hela_QC_PASEF_Slot1-first-6-frames.d"), newConfig);
+
+        config.doublePrecision = true;
+        config.preferOnlyMsLevel = 1;
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsTDF(), config);
+
+        config.preferOnlyMsLevel = 2;
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsTDF(), config);
+
+        config.allowMsMsWithoutPrecursor = false;
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsPASEF(), config);
+
+        config.allowMsMsWithoutPrecursor = true; // has no effect in combined mode
+        config.combineIonMobilitySpectra = true;
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsTDF(), config);
+
+        config.preferOnlyMsLevel = 1;
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsTDF(), config);
+
+        config.preferOnlyMsLevel = 0;
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsTDF(), config);
+
+        config.preferOnlyMsLevel = 2;
+        config.combineIonMobilitySpectra = false;
+        config.allowMsMsWithoutPrecursor = false;
+        /*config.isolationMzAndMobilityFilter.emplace_back(1222);
+        config.isolationMzAndMobilityFilter.emplace_back(1318);
+        pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsPASEF(), config);*/
+
+        config.isolationMzAndMobilityFilter.clear();
+        config.isolationMzAndMobilityFilter.emplace_back(895.9496, 1.12, 0.055);
+        result += pwiz::util::testReader(reader, testArgs, testAcceptOnly, requireUnicodeSupport, IsDiaPASEF(), config);
+
+        result.check();
     }
     catch (exception& e)
     {

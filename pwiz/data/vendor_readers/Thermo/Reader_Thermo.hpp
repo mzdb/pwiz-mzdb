@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Thermo.hpp 3808 2012-07-24 20:31:10Z donmarsh $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>
@@ -55,6 +55,8 @@ class PWIZ_API_DECL Reader_Thermo : public Reader
     }
 
 	virtual const char *getType() const {return "Thermo RAW";}
+    virtual CVID getCvType() const {return MS_Thermo_RAW_format;}
+    virtual std::vector<std::string> getFileExtensions() const {return {".raw"};}
 
     /// checks header for "Finnigan" wide char string
 	static bool hasRAWHeader(const std::string& head);

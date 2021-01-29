@@ -510,11 +510,13 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
 
 
     //implementation goes here
+	LOG(INFO) << "STEP 1";
     m_metadataExtractor = std::move(this->getMetadataExtractor());
-    
+	LOG(INFO) << "STEP 2";
     this->buildDataEncodingRowByID();
-    
+	LOG(INFO) << "STEP 3";
     this->computeResolutions();
+	LOG(INFO) << "STEP 4";
 }
 
 
@@ -1165,17 +1167,28 @@ void mzDBWriter::computeResolutions(int nbSpectraToConsider, double minIntensity
     map<int, bool> profileMsLevels;
     
     //m_resolutions.clear();
-    
+	LOG(INFO) << "  - STEP a";
     // do nothing if user has provided resolutions using CLI
     // it is possible that he gave only MS1 and MS2 values but no MS3 value, in this case the default value will be used
     if(m_resolutions.size() == 0) {
+		LOG(INFO) << "  - STEP b";
+		
+		LOG(INFO) << "  - STEP c";
         // if raw file is not AB Sciex wiff file, use default values
         if(m_originFileFormat != MS_ABI_WIFF_format) { // or use m_Mode != 3 ?
-            LOG(INFO) << "Using default resolution (" << DEFAULT_RESOLUTION << ")";
+			int defReso;
+			defReso = 20000;
+			LOG(INFO) << "  - STEP d ";
+			string defVersion = "default resol";
+			LOG(INFO) << "  - STEP e ";
+			defVersion += " " + defReso;
+			LOG(INFO) << "  - STEP f ";
+			LOG(INFO) << " == " << defVersion;
+            LOG(INFO) << "Using default resolution ("  ")";
             m_storeResolutions = false; // no need to store these values
             // put default resolutions for all ms levels (but they wont be used for these file types)
             for(size_t msLevel = 1; msLevel <= max_ms_level; msLevel++) {
-                m_resolutions[msLevel] = DEFAULT_RESOLUTION;
+				m_resolutions[msLevel] = defReso; // DEFAULT_RESOLUTION;
             }
         } else {
             LOG(INFO) << "Computing resolutions...";
@@ -1249,7 +1262,7 @@ void mzDBWriter::computeResolutions(int nbSpectraToConsider, double minIntensity
     
     for(int i = 0; i < m_resolutions.size(); i++) {
         int msLevel = i+1;
-        LOG(INFO) << "MS" << msLevel << " resolution [" << (profileMsLevels[msLevel] ? "PROFILE" : "CENTROID") << "]: " << m_resolutions[msLevel];
+		LOG(INFO) << "MS" << msLevel << " resolution [" << (profileMsLevels[msLevel] ? "PROFILE" : "CENTROID") << "]: ";// << m_resolutions[msLevel];
     }
 }
 

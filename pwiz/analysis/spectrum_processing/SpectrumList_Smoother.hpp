@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_Smoother.hpp 1191 2009-08-14 19:33:05Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

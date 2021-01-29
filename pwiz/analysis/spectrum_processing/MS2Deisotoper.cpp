@@ -1,5 +1,5 @@
 //
-// $Id: MS2Deisotoper.cpp 11567 2017-11-09 23:53:32Z chambm $
+// $Id$
 //
 //
 // Original author: Chris Paulse <cpaulse <a.t> systemsbiology.org>
@@ -32,6 +32,7 @@ namespace analysis {
 
 using namespace std;
 using namespace msdata;
+using namespace util;
 using namespace pwiz::data;
 using namespace pwiz::data::peakdata;
 
@@ -56,8 +57,8 @@ struct PWIZ_API_DECL FilterSpectrum
     const MS2Deisotoper::Config params;
 
     const pwiz::msdata::SpectrumPtr spectrum;
-    std::vector<double>&            massList_;
-    std::vector<double>&            intensities_;
+    BinaryData<double>&            massList_;
+    BinaryData<double>&            intensities_;
     double                          precursorMZ;
     int                             precursorCharge;
 };

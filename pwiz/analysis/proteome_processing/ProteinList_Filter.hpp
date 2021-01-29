@@ -1,5 +1,5 @@
 //
-// $Id: ProteinList_Filter.hpp 4010 2012-10-17 20:22:16Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

@@ -1,5 +1,5 @@
 //
-// $Id: Serializer_FASTA.cpp 11579 2017-11-14 22:47:00Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

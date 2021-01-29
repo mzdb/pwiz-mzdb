@@ -1,5 +1,5 @@
 #
-# $Id: Jamfile.jam 11102 2017-07-13 22:29:47Z chambm $
+# $Id$
 #
 # $Revision: 1190 $
 # $Date: 2009-08-14 12:48:37 -0500 (Fri, 14 Aug 2009) $
@@ -50,8 +50,9 @@ constant READER_NAME : "Reader_Thermo" ;
 import common path ;
 if ( $(MSFILEREADER_INSTALL_DIR) )    # only on Windows
 {
-    if [ path.exists $(API_PATH)\\$(PLATFORM)\\MSFileReader.XRawfile2.dll ] ||
-       [ path.exists $(MSFILEREADER_INSTALL_DIR)\\XRawfile2$(MSFILEREADER_SUFFIX).dll ]
+    if x86 in $(PLATFORM) && ( [ path.exists $(API_PATH)\\$(PLATFORM)\\MSFileReader.XRawfile2.dll ] ||
+                               [ path.exists $(MSFILEREADER_INSTALL_DIR)\\XRawfile2$(MSFILEREADER_SUFFIX).dll ] ) ||
+       x64 in $(PLATFORM) && [ path.exists $(API_PATH)\\ThermoFisher.CommonCore.Data.dll ]
     {
         if --i-agree-to-the-vendor-licenses in [ modules.peek : ARGV ]
         {
@@ -140,7 +141,7 @@ rule test-requirements ( properties * )
     {
         .extract-once = true ;
         import tar ;
-        tar.extract $(TEST_DATA_PATH).tar.bz2 : : : : check-last-file-only ;
+        tar.extract $(TEST_DATA_PATH).tar.bz2 : : : : <keep-old-files>true ; # <check-last-file-only>true TODO: restore check-last-file-only when tarball needs to be updated (and mzMLs are removed)
     }
     
     local result ;

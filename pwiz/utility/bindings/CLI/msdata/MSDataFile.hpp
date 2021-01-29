@@ -1,5 +1,5 @@
 //
-// $Id: MSDataFile.hpp 10984 2017-06-21 19:28:05Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -91,6 +91,7 @@ public ref class MSDataFile : public MSData
 		property double numpressLinearAbsMassAcc; // absolute mass error for lossy linear compression in Th (e.g. use 1e-4 for 1ppm @ 100 Th)
         property bool indexed;
         property bool gzipped;
+        property bool useWorkerThreads;
 
         WriteConfig()
         {
@@ -102,6 +103,7 @@ public ref class MSDataFile : public MSData
 			numpressSlofErrorTolerance = pwiz::msdata::BinaryDataEncoder_default_numpressSlofErrorTolerance;
 			numpressLinearAbsMassAcc = -1.0;
 			indexed = true;
+            useWorkerThreads = true;
         }
     };
 

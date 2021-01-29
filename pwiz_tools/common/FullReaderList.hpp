@@ -1,5 +1,5 @@
 //
-// $Id: FullReaderList.hpp 2278 2010-09-22 19:24:50Z chambm $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

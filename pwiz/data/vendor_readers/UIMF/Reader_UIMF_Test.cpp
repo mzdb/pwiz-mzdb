@@ -1,5 +1,5 @@
 //
-// $Id: Reader_UIMF_Test.cpp 7155 2015-02-03 22:38:32Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
     try
     {
         bool requireUnicodeSupport = true;
-        pwiz::util::testReader(pwiz::msdata::Reader_UIMF(), testArgs, testAcceptOnly, requireUnicodeSupport, IsUIMF());
+        pwiz::util::testReader(pwiz::msdata::Reader_UIMF(), testArgs, testAcceptOnly, requireUnicodeSupport, IsUIMF()).check();
     }
     catch (exception& e)
     {

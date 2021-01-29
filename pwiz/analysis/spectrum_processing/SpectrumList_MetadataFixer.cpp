@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_MetadataFixer.cpp 4922 2013-09-05 22:33:08Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -77,8 +77,8 @@ PWIZ_API_DECL SpectrumPtr SpectrumList_MetadataFixer::spectrum(size_t index, boo
     if (!mzArray.get() || !intensityArray.get())
         return s;
 
-    vector<double>& mzs = mzArray->data;
-    vector<double>& intensities = intensityArray->data;
+    BinaryData<double>& mzs = mzArray->data;
+    BinaryData<double>& intensities = intensityArray->data;
 
     double tic = 0;
     if (!mzs.empty())

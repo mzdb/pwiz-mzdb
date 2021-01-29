@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Waters_Detail.cpp 7398 2015-04-17 15:39:31Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>

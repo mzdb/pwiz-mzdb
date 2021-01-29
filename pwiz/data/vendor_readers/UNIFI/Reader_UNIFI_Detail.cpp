@@ -1,5 +1,5 @@
 //
-// $Id: Reader_UNIFI_Detail.cpp 11392 2017-09-18 18:41:40Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -144,11 +144,11 @@ PWIZ_API_DECL CVID translate(Polarity polarity)
 {
     switch (polarity)
     {
-        case Positive:
+        case Polarity::Positive:
             return MS_positive_scan;
-        case Negative:
+        case Polarity::Negative:
             return MS_negative_scan;
-        case Unknown:
+        case Polarity::Unknown:
         default:
             return CVID_Unknown;
     }

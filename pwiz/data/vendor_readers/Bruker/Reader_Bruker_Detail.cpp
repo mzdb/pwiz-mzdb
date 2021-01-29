@@ -1,5 +1,5 @@
 //
-// $Id: Reader_Bruker_Detail.cpp 11022 2017-07-03 17:43:28Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers .@. vanderbilt.edu>
@@ -131,14 +131,17 @@ Reader_Bruker_Format format(const string& path)
 std::vector<InstrumentConfiguration> createInstrumentConfigurations(CompassDataPtr rawfile)
 {
     vector<InstrumentConfiguration> configurations;
-    
-    MSSpectrumPtr firstSpectrum = rawfile->getMSSpectrum(1);
-    MSSpectrumParameterListPtr parametersPtr = firstSpectrum->parameters();
-    const MSSpectrumParameterList& parameters = *parametersPtr;
-
     map<string, string> parameterMap;
-    BOOST_FOREACH(const MSSpectrumParameter& p, parameters)
-        parameterMap[p.name] = p.value;
+    
+    if (rawfile->getMSSpectrumCount() > 0)
+    {
+        MSSpectrumPtr firstSpectrum = rawfile->getMSSpectrum(1);
+        MSSpectrumParameterListPtr parametersPtr = firstSpectrum->parameters();
+        const MSSpectrumParameterList& parameters = *parametersPtr;
+
+        BOOST_FOREACH(const MSSpectrumParameter& p, parameters)
+            parameterMap[p.name] = p.value;
+    }
 
     switch (rawfile->getInstrumentSource())
     {
@@ -252,11 +255,11 @@ std::vector<InstrumentConfiguration> createInstrumentConfigurations(CompassDataP
         case InstrumentFamily_maXis:
         case InstrumentFamily_impact:
         case InstrumentFamily_compact:
+        case InstrumentFamily_timsTOF:
             configurations.back().componentList.push_back(Component(MS_quadrupole, 2));
-            configurations.back().componentList.push_back(Component(MS_quadrupole, 3));
-            configurations.back().componentList.push_back(Component(MS_time_of_flight, 4));
-            configurations.back().componentList.push_back(Component(MS_multichannel_plate, 5));
-            configurations.back().componentList.push_back(Component(MS_photomultiplier, 6));
+            configurations.back().componentList.push_back(Component(MS_time_of_flight, 3));
+            configurations.back().componentList.push_back(Component(MS_multichannel_plate, 4));
+            configurations.back().componentList.push_back(Component(MS_photomultiplier, 5));
             break;
 
         case InstrumentFamily_FTMS:
@@ -285,6 +288,7 @@ PWIZ_API_DECL cv::CVID translateAsInstrumentSeries(CompassDataPtr rawfile)
         case InstrumentFamily_MaldiTOF: return MS_Bruker_Daltonics_flex_series;
         case InstrumentFamily_FTMS: return MS_Bruker_Daltonics_apex_series;
         case InstrumentFamily_solariX: return MS_Bruker_Daltonics_solarix_series;
+        //case InstrumentFamily_timsTOF: return MS_Bruker_Daltonics_timsTOF;
 
         case InstrumentFamily_maXis:
         case InstrumentFamily_compact:

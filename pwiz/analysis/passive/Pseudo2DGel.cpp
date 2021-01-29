@@ -1,5 +1,5 @@
 //
-// $Id: Pseudo2DGel.cpp 4168 2012-12-04 23:19:57Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

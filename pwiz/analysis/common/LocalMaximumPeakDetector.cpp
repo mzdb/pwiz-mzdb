@@ -1,5 +1,5 @@
 //
-// $Id: LocalMaximumPeakDetector.cpp 2908 2011-08-05 16:41:41Z chambm $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>
@@ -45,6 +45,9 @@ void LocalMaximumPeakDetector::detect(const vector<double>& x, const vector<doub
 {
     if (x.size() != y.size())
         throw runtime_error("[LocalMaximumPeakDetector::detect()] x and y arrays must be the same size");
+
+    if (x.empty())
+        return;
 
     // the size of the window in either direction
     size_t flank = size_t(window_-1) / 2;

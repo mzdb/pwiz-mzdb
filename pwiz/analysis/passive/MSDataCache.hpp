@@ -1,5 +1,5 @@
 //
-// $Id: MSDataCache.hpp 2241 2010-09-10 23:47:06Z cpaulse $
+// $Id$
 //
 //
 // Original author: Darren Kessner <darren@proteowizard.org>

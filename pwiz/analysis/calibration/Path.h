@@ -1,5 +1,5 @@
 //
-// $Id: Path.h 3300 2012-02-15 22:38:20Z chambm $
+// $Id$
 //
 //
 // Darren Kessner <Darren.Kessner@cshs.org>

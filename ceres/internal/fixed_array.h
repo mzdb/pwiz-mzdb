@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -33,10 +33,10 @@
 #define CERES_PUBLIC_INTERNAL_FIXED_ARRAY_H_
 
 #include <cstddef>
-#include <glog/logging.h>
 #include "Eigen/Core"
 #include "ceres/internal/macros.h"
 #include "ceres/internal/manual_constructor.h"
+#include "glog/logging.h"
 
 namespace ceres {
 namespace internal {
@@ -113,7 +113,6 @@ class FixedArray {
   // REQUIRES: 0 <= i < size()
   // Returns a reference to the "i"th element.
   inline T& operator[](size_type i) {
-    DCHECK_GE(i, 0);
     DCHECK_LT(i, size_);
     return array_[i].element;
   }
@@ -121,7 +120,6 @@ class FixedArray {
   // REQUIRES: 0 <= i < size()
   // Returns a reference to the "i"th element.
   inline const T& operator[](size_type i) const {
-    DCHECK_GE(i, 0);
     DCHECK_LT(i, size_);
     return array_[i].element;
   }
@@ -168,8 +166,6 @@ inline FixedArray<T, S>::FixedArray(typename FixedArray<T, S>::size_type n)
       array_((n <= kInlineElements
               ? reinterpret_cast<InnerContainer*>(inline_space_)
               : new InnerContainer[n])) {
-  DCHECK_GE(n, size_t(0));
-
   // Construct only the elements actually used.
   if (array_ == reinterpret_cast<InnerContainer*>(inline_space_)) {
     for (size_t i = 0; i != size_; ++i) {

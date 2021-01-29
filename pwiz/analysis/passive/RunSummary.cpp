@@ -1,5 +1,5 @@
 //
-// $Id: RunSummary.cpp 4106 2012-11-14 04:33:39Z pcbrefugee $
+// $Id$
 //
 //
 // Original author: Matt Chambers <matt.chambers <a.t> vanderbilt.edu>

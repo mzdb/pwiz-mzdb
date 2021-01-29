@@ -1,5 +1,5 @@
 //
-// $Id: SpectrumList_ChargeFromIsotope.hpp 6389 2014-06-13 19:46:19Z frenchwr $
+// $Id$
 //
 //
 // Original author: William French <william.r.french <a.t> vanderbilt.edu>
