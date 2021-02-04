@@ -401,7 +401,9 @@ class mzBrukerMetadataExtractor : public mzAbstractMetadataExtractor< mzBrukerMe
             bfs::path rootpath = f;
             if (bfs::is_regular_file(rootpath)) rootpath = rootpath.branch_path();
             _compassDataPtr = pwiz::vendor_api::Bruker::CompassData::create(rootpath.string(), format);
-        } catch(exception& e) { LOG(ERROR) << "Bruker Exception: " << e.what(); };
+        } catch(exception& e) { 
+			std::cerr << "Bruker Exception: " << e.what(); //LOG(ERROR)
+		};
     }
 
     /// Data fetch from api constructor, could methods details etc...
@@ -414,10 +416,14 @@ class mzBrukerMetadataExtractor : public mzAbstractMetadataExtractor< mzBrukerMe
         std::string filename = "", filenameId = "";
         try {
             filename = _compassDataPtr->getSampleName();
-        } catch(exception& e) { LOG(ERROR) << "Bruker getSampleName Exception: " << e.what(); };
+        } catch(exception& e) { 
+			std::cerr  << "Bruker getSampleName Exception: " << e.what(); //
+		};
         try {
             filenameId = _compassDataPtr->getAnalysisName();
-        } catch(exception& e) { LOG(ERROR) << "Bruker getAnalysisName Exception: " << e.what(); };
+        } catch(exception& e) { 
+			std::cerr << "Bruker getAnalysisName Exception: " << e.what(); //LOG(ERROR)
+		};
         pwiz::msdata::SamplePtr sample(new pwiz::msdata::Sample(filenameId, filename));
         return sample;
     }

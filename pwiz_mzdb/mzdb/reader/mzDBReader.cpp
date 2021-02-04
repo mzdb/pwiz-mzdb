@@ -15,7 +15,7 @@ namespace mzdb {
 PWIZ_API_DECL mzDBReader::mzDBReader(MzDBFile& mzdb) : mMzdb(mzdb){
 
     if (sqlite3_open_v2(mMzdb.name.c_str(), &(mMzdb.db), SQLITE_OPEN_READONLY, 0) != SQLITE_OK) {
-        LOG(ERROR) << "[mzDbReader:constructor] Fatal Error, the specified file does not exist or is not a sqlite mzdb file.";
+		std::cerr << "[mzDbReader:constructor] Fatal Error, the specified file does not exist or is not a sqlite mzdb file.";//LOG(ERROR) 
         exit(1);
     }
 
@@ -26,7 +26,7 @@ PWIZ_API_DECL mzDBReader::mzDBReader(MzDBFile& mzdb) : mMzdb(mzdb){
                                     //"PRAGMA mmap_size=268435456;"
                                     , 0, 0, 0);
     if ( r != SQLITE_OK) LOG(WARNING) << "Pragma settings failed...low performance ?";
-    else LOG(INFO) << "Pragmas look OK...";
+    else std::cout << "Pragmas look OK...";//LOG(INFO) 
     mMzdb.stmt = 0;
 
     // check if no loss
@@ -39,16 +39,16 @@ PWIZ_API_DECL mzDBReader::mzDBReader(MzDBFile& mzdb) : mMzdb(mzdb){
 /// main function which creates custom spectrumList and chormatogramList
 PWIZ_API_DECL void  mzDBReader::readMzDB(MSData& msdata, bool cache) {
     SpectrumListPtr slptr(new mzSpectrumList(mMzdb, &msdata, cache, mNoLoss));
-    LOG(INFO) << " Custom spectrumList created";
+	std::cout << " Custom spectrumList created"; //LOG(INFO)
     msdata.run.spectrumListPtr = slptr;
 
     //TODO create real chromatogram reader
     ChromatogramListPtr clptr( new mzEmptyChromatogram ); //new mzChromatogramList(_mzdb, &_msdata));
     msdata.run.chromatogramListPtr = clptr;
-    LOG(INFO) << "Custom chromatogram created";
+	std::cout << "Custom chromatogram created"; //LOG(INFO)
 
     fillInMetaData(msdata);
-    LOG(INFO) << " Filling metadata done";
+	std::cout << " Filling metadata done"; //LOG(INFO)
 
     //--- needed do not really why but if lack may occur really bad things
     References::resolve(msdata);
@@ -132,7 +132,7 @@ void mzDBReader::fillInMetaData(MSData& msdata) {
         ((mzSpectrumList*)msdata.run.spectrumListPtr.get())->setDataProcessingPtr(vDataProc.back());
        // ((mzChromatogramList*)_msdata.run.chromatogramListPtr.get())->setDataProcessingPtr(vDataProc.back());
     } else {
-        LOG(WARNING) << "Missing a dataProcessing; this is never supposed to happen";
+		std::cout << "Missing a dataProcessing; this is never supposed to happen"; //LOG(WARNING)
     }
 
     //processing method
@@ -216,13 +216,13 @@ void mzDBReader::convertTo(CVID cvid, bool noLoss) {
                 pwiz::util::IterationListenerRegistry* pILR = &iterationListenerRegistry ;
 
                 if (!noLoss) {
-                    LOG(INFO) << "conversion to intensity 32 bits\n";
+					std::cout << "conversion to intensity 32 bits\n"; // LOG(INFO) 
                     conf.binaryDataEncoderConfig.precision = BinaryDataEncoder::Precision_64;
                     conf.binaryDataEncoderConfig.precisionOverrides[MS_m_z_array] = BinaryDataEncoder::Precision_64;
                     conf.binaryDataEncoderConfig.precisionOverrides[MS_intensity_array] = BinaryDataEncoder::Precision_32;
                 }
                 else {
-                    LOG(INFO) << "conversion to intensity 64 bits\n";
+					std::cout << "conversion to intensity 64 bits\n";// LOG(INFO) 
                     conf.binaryDataEncoderConfig.precision = BinaryDataEncoder::Precision_64;
                     conf.binaryDataEncoderConfig.precisionOverrides[MS_m_z_array] = BinaryDataEncoder::Precision_64;
                     conf.binaryDataEncoderConfig.precisionOverrides[MS_intensity_array] = BinaryDataEncoder::Precision_64;
@@ -233,7 +233,7 @@ void mzDBReader::convertTo(CVID cvid, bool noLoss) {
             }
         }
         default :{
-            LOG(WARNING) << "conversion not supported";
+			std::cout << "conversion not supported"; //LOG(WARNING) 
         }
     }
 }
@@ -269,9 +269,9 @@ void mzDBReader::extractRegion(double mzmin, double mzmax, double rtmin, double 
     try {
         regionExtractor.rTreeExtraction(mzmin, mzmax, rtmin, rtmax, msLevel, results);
     } catch(exception& e) {
-        LOG(ERROR) << "Error: " << e.what();
+         std::cerr << "Error: " << e.what(); //LOG(ERROR)
     } catch(...) {
-        LOG(ERROR) << "unknown error, failed.";
+		std::cerr << "unknown error, failed."; //LOG(ERROR)
     }
 }
 
@@ -283,9 +283,9 @@ void mzDBReader::extractRunSlice(double mzmin, double mzmax, int msLevel, vector
     try {
         regionExtractor.runSliceExtraction(mzmin, mzmax, msLevel, results);
     } catch(exception& e) {
-        LOG(ERROR) << "Error: " << e.what();
+		std::cerr  << "Error: " << e.what();//LOG(ERROR)
     } catch(...) {
-        LOG(ERROR) << "unknown error, failed.";
+		std::cerr << "unknown error, failed.";//LOG(ERROR)
     }
 }
 

@@ -160,7 +160,7 @@ static size_t MinimumRequiredOutputSpace(size_t input_size,
       return snappy::MaxCompressedLength(input_size);
 
     default:
-      LOG(FATAL) << "Unknown compression type number " << comp;
+		std::cerr << "Unknown compression type number " << comp; //LOG(FATAL) 
   }
 }
 
@@ -407,8 +407,9 @@ static void Measure(const char* data,
     }
 
     // First, try one trial compression to make sure the code is compiled in
-    if (!Compress(input[0], input_length[0], comp, &compressed[0], true)) {
-      LOG(WARNING) << "Skipping " << names[comp] << ": "
+    if (!Compress(input[0], input_length[0], comp, &compressed[0], true)) { LOG(FATAL) 
+      //LOG(WARNING) 
+		std::cout << "Skipping " << names[comp] << ": "
                    << "library not compiled in";
       return;
     }
@@ -600,7 +601,7 @@ TYPED_TEST(CorruptedTest, VerifyCorrupted) {
     CHECK(!IsValidCompressedBuffer(TypeParam(dest)));
     CHECK(!Uncompress(TypeParam(dest), &uncmp));
   } else {
-    LOG(WARNING) << "Crazy decompression lengths not checked on 64-bit build";
+	  std::cout << "Crazy decompression lengths not checked on 64-bit build"; //LOG(WARNING) 
   }
 
   // This decodes to about 2 MB; much smaller, but should still fail.

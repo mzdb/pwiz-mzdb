@@ -221,19 +221,19 @@ protected:
 #ifdef _WIN32
         switch ( m_Mode) {
         case 1: {
-            LOG(INFO) << "Thermo metadata extractor created";
+           std::cout << "Thermo metadata extractor created"; //LOG(INFO) 
             return  std::unique_ptr<mzIMetadataExtractor>(new mzThermoMetadataExtractor(this->m_mzdbFile.name));
         }
         case 2: {
-            LOG(INFO) << "Bruker metadata extractor created";
+			std::cout << "Bruker metadata extractor created";//LOG(INFO) 
             return std::unique_ptr<mzIMetadataExtractor>(new mzBrukerMetadataExtractor(this->m_mzdbFile.name));
         }
         case 3: {
-            LOG(INFO) << "AB Sciex metadata extractor created";
+            std::cout << "AB Sciex metadata extractor created";//LOG(INFO) 
             return std::unique_ptr<mzIMetadataExtractor>(new mzABSciexMetadataExtractor(this->m_mzdbFile.name));
         }
         default: {
-            LOG(WARNING) << "Metadata extraction is not supported for this file format:" << pwiz::msdata::cvTermInfo(m_originFileFormat).name;
+			std::cout << "Metadata extraction is not supported for this file format:" << pwiz::msdata::cvTermInfo(m_originFileFormat).name;//LOG(WARNING) 
             return std::unique_ptr<mzIMetadataExtractor>(new mzEmptyMetadataExtractor(this->m_mzdbFile.name));
         }
         }
@@ -352,15 +352,15 @@ public:
 
         //---just log sqlite version for information
         //printf("\n");
-        LOG(INFO) << "";
-        LOG(INFO) << "SQLITE VERSION: " << SQLITE_VERSION;
-        LOG(INFO) << "ProteoWizard release: " << pwiz::Version::str() << " (" << pwiz::Version::LastModified() << ")";
-        LOG(INFO) << "ProteoWizard MSData: " << pwiz::msdata::Version::str() << " (" << pwiz::msdata::Version::LastModified() << ")\n";
+		std::cout << ""; //LOG(INFO)
+		std::cout << "SQLITE VERSION: " << SQLITE_VERSION;//LOG(INFO)
+		std::cout << "ProteoWizard release: " << pwiz::Version::str() << " (" << pwiz::Version::LastModified() << ")";//LOG(INFO)
+		std::cout << "ProteoWizard MSData: " << pwiz::msdata::Version::str() << " (" << pwiz::msdata::Version::LastModified() << ")\n";//LOG(INFO)
         //LOG(INFO) << "ProteoWizard Analysis: " << pwiz::analysis::Version::str() << " (" << pwiz::analysis::Version::LastModified() << ")";
 
         //---create and open database
         if ( m_mzdbFile.open(filename) != SQLITE_OK) {
-            LOG(FATAL) << "Can not create database...Locked, space ? Exiting\n";
+           std::cerr << "Can not create database...Locked, space ? Exiting\n";//LOG(FATAL) 
             //exit(0);
             exit(EXIT_FAILURE);
         }
@@ -371,10 +371,10 @@ public:
         try {
             this->insertMetaData();
         } catch(exception& e) {
-            LOG(ERROR) << "Error occured during metadata insertion.";
-            LOG(ERROR) << "\t->" << e.what();
+			std::cerr << "Error occured during metadata insertion.";// LOG(ERROR)
+			std::cerr << "\t->" << e.what(); // LOG(ERROR)
         } catch(...) {
-            LOG(ERROR) << "Unknown error during metadata insertion.";
+			std::cerr << "Unknown error during metadata insertion."; // LOG(ERROR)
         }
 
         //--- always prefer vendor centroiding
@@ -390,7 +390,7 @@ public:
 
         // ABU this command takes time because reading file is lazy and ABSciex files are to be uncompressed on the fly
         int spectrumListSize = spectrumList->size();
-        LOG(INFO) << "SpectrumList size: " << spectrumListSize;
+        std::cout << "SpectrumList size: " << spectrumListSize;//LOG(INFO) 
 
         map<int, map<int, int> > runSlices;
         map<int, double> bbHeightManager, bbWidthManager;
@@ -412,7 +412,7 @@ public:
         int progressCount = 0;
 
         size_t nbProc = boost::thread::hardware_concurrency();
-        LOG(INFO) << "#detected core(s): " << nbProc;
+		std::cout << "#detected core(s): " << nbProc; //LOG(INFO)
 
         bool progressInformationEnabled = true;
         if(cycleRange.first != 0 || cycleRange.second != 0 || rtRange.first > 0 || rtRange.second != 0) progressInformationEnabled = false;
@@ -434,17 +434,17 @@ public:
                     m_safeMode);
 
         if (m_Mode == 1) {
-            LOG(INFO) << "Thermo spectrumList";
+			std::cout << "Thermo spectrumList";//LOG(INFO)
             auto* s = static_cast<pwiz::msdata::detail::SpectrumList_Thermo*>(spectrumList.get());
 
             if (m_swathMode) {
-                LOG(INFO) << "DIA producer/consumer";
+				std::cout << "DIA producer/consumer";//LOG(INFO)
                 auto prod = pcThreadBuilder.getDIAThermoProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDIAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
-                LOG(INFO) << "DDA producer/consumer";
+				std::cout << "DDA producer/consumer";//LOG(INFO)
                 auto prod = pcThreadBuilder.getDDAThermoProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAThermoConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
@@ -452,15 +452,15 @@ public:
 
         } else if (m_Mode == 2) {
             auto* s = static_cast<pwiz::msdata::detail::SpectrumList_Bruker*>(spectrumList.get());
-            LOG(INFO) << "Bruker spectrumList";
+			std::cout << "Bruker spectrumList";//LOG(INFO)
             if (m_swathMode) {
-                LOG(INFO) << "Swath producer/consumer";
+				std::cout << "Swath producer/consumer";//LOG(INFO)
                 auto prod = pcThreadBuilder.getDIABrukerProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDIABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
-                LOG(INFO) << "DDA producer/consumer";
+				std::cout << "DDA producer/consumer";//LOG(INFO)
 
                 auto prod = pcThreadBuilder.getDDABrukerProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDABrukerConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
@@ -469,15 +469,15 @@ public:
 
         } else if (m_Mode == 3) {
             auto* s = static_cast<pwiz::msdata::detail::SpectrumList_ABI*>(spectrumList.get());
-            LOG(INFO) << "ABI spectrumList";
+			std::cout << "ABI spectrumList";//LOG(INFO)
             if (m_swathMode) {
-                LOG(INFO) << "Swath producer/consumer";
+				std::cout << "Swath producer/consumer";//LOG(INFO)
                 auto prod = pcThreadBuilder.getSwathABIProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getSwathABIConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
-                LOG(INFO) << "DDA producer/consumer";
+				std::cout << "DDA producer/consumer";//LOG(INFO)
 
                 auto prod = pcThreadBuilder.getDDAABIProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAABIConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
@@ -486,15 +486,15 @@ public:
 
         } else if (m_Mode == 4) {
             auto* s = static_cast<pwiz::msdata::detail::SpectrumList_Agilent*>(spectrumList.get());
-            LOG(INFO) << "Agilent spectrumList";
+			std::cout << "Agilent spectrumList";//LOG(INFO)
             if (m_swathMode) {
-                LOG(INFO) << "Swath producer/consumer";
+				std::cout << "Swath producer/consumer";
                 auto prod = pcThreadBuilder.getDIAAgilentProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDIAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
-                LOG(INFO) << "DDA producer/consumer";
+				std::cout << "DDA producer/consumer";//LOG(INFO)
 
                 auto prod = pcThreadBuilder.getDDAAgilentProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAAgilentConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
@@ -503,15 +503,15 @@ public:
 
         } else if (m_Mode == 5) {
             auto* s = static_cast<pwiz::msdata::detail::SpectrumList_ABI_T2D*>(spectrumList.get());
-            LOG(INFO) << "ABI_T2D  spectrumList";
+			std::cout << "ABI_T2D  spectrumList";//LOG(INFO)
             if (m_swathMode) {
-                LOG(INFO) << "Swath producer/consumer";
+				std::cout << "Swath producer/consumer";//LOG(INFO)
                 auto prod = pcThreadBuilder.getDIAABI_T2DProducerThread(levelsToCentroid, s, cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDIAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
-                LOG(INFO) << "DDA producer/consumer";
+				std::cout << "DDA producer/consumer";//LOG(INFO)
 
                 auto prod = pcThreadBuilder.getDDAABI_T2DProducerThread(levelsToCentroid, s, cycleRange, rtRange, bbWidthManager, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getDDAABI_T2DConsumerThread(m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
@@ -519,15 +519,15 @@ public:
             }
 
         } else {
-            LOG(INFO) << "Default spectrumList";
+			std::cout << "Default spectrumList";//LOG(INFO)
             if (m_swathMode) {
-                LOG(INFO) << "Swath producer/consumer";
+				std::cout << "Swath producer/consumer";//LOG(INFO)
                 auto prod = pcThreadBuilder.getSwathGenericProducerThread( levelsToCentroid, spectrumList.get(), cycleRange, rtRange, m_originFileFormat, params);
                 auto cons = pcThreadBuilder.getSwathGenericConsumerThread( m_msdata, m_serializer, bbHeightManager, bbWidthManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
 
             } else {
-                LOG(INFO) << "DDA producer/consumer";
+				std::cout << "DDA producer/consumer";//LOG(INFO)
                 auto prod = pcThreadBuilder.getDDAGenericProducerThread( levelsToCentroid, spectrumList.get(), cycleRange, rtRange, bbWidthManager, m_originFileFormat,params);
                 auto cons = pcThreadBuilder.getDDAGenericConsumerThread( m_msdata, m_serializer, bbHeightManager, runSlices, progressCount, spectrumListSize, progressInformationEnabled);
                 prod.join(); cons.join();
@@ -540,7 +540,7 @@ public:
         m_paramsCollecter.insertCollectedCVTerms();
 
         //--- insert tmp_spectrum into permanent spectrum table
-        LOG(INFO) << "Creating permanent spectrum table";
+        std::cout << "Creating permanent spectrum table";//LOG(INFO)
         sqlite3_exec(m_mzdbFile.db, "CREATE TABLE spectrum AS SELECT * from tmp_spectrum;", 0, 0, 0);
 
 

@@ -146,7 +146,7 @@ struct PWIZ_API_DECL mzSpectrum {
          * It is a bug seen on file IMPACT II files (such as IB12302LMU_1-D,1_01_5930.d), spectra have both CVs but they are centroided
          */
         if(spectrum->hasCVParam(pwiz::msdata::MS_profile_spectrum) && spectrum->hasCVParam(pwiz::msdata::MS_centroid_spectrum)) {
-            LOG(WARNING) << "Spectrum '" << s->id << "' has both PROFILE and CENTROID tags and will be considered as CENTROID";
+			std::cerr << "Spectrum '" << s->id << "' has both PROFILE and CENTROID tags and will be considered as CENTROID";//LOG(WARNING)
             originalMode = CENTROID;
         }
         
@@ -282,7 +282,7 @@ struct PWIZ_API_DECL mzSpectrum {
     inline DataMode getOriginalMode() {
         if(! originalMode) {
             // really ?? it should not happen !!!
-            LOG(ERROR) << "Spectrum " << id << " has no original mode !!";
+			std::cerr << "Spectrum " << id << " has no original mode !!";//LOG(ERROR)
             originalMode = CENTROID;
         }
         return originalMode;

@@ -34,9 +34,9 @@ int main(int argc, char* argv[]) {
         mzDBReader reader(file);
         reader.enumerateSpectra();
     } catch (exception &e) {
-        LOG(ERROR) << "Exception caught" << e.what();
+       std::cerr << "Exception caught" << e.what();//LOG(ERROR)
     } catch(...) {
-        LOG(ERROR) << "Unknown exception happened";
+		std::cerr << "Unknown exception happened";//LOG(ERROR)
     }
 }
 

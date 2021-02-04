@@ -208,7 +208,7 @@ public:
 
         auto _centroid = std::make_shared<Centroid<mz_t, int_t> >(); // FIXME: MTuner points a memory leak here !
         _centroid->rt = PwizHelper::rtOf(_spectrum);
-        if(_centroid->rt == 0) LOG(ERROR) << "Can not find RT for spectrum " << _spectrum->id;
+        if(_centroid->rt == 0) std::cerr << "Can not find RT for spectrum " << _spectrum->id;//LOG(ERROR)
         int nbDataPoints = _mzData.size();
         int apexPos = apexIndex();
         // Check that apex pos is a valid value
@@ -324,7 +324,7 @@ public:
 
         auto _centroid = std::make_shared<Centroid<mz_t, int_t> >();
         _centroid->rt = PwizHelper::rtOf(_spectrum);
-        if(_centroid->rt == 0) LOG(ERROR) << "Can not find RT for spectrum " << _spectrum->id;
+        if(_centroid->rt == 0) std::cerr << "Can not find RT for spectrum " << _spectrum->id;// LOG(ERROR)
         int nbDataPoints = _mzData.size();
         int apexPos = apexIndex();
         // Check that apex pos is a valid value

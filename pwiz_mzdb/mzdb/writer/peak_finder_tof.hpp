@@ -114,7 +114,7 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
                 if(mostIntenseMz != 0) {
                     centroids.push_back(std::make_shared<Centroid<mz_t, int_t> >(mostIntenseMz, highestIntensity, rt));
                 } else {
-                    LOG(WARNING) << "No centroids given for spectrum '" << spectrum->id << "' and qtofpeakpicker failed to recalculate anything, this will result in an empty spectrum which will probably cause problems later !";
+					std::cout << "No centroids given for spectrum '" << spectrum->id << "' and qtofpeakpicker failed to recalculate anything, this will result in an empty spectrum which will probably cause problems later !";//LOG(WARNING) 
                 }
             }
         }

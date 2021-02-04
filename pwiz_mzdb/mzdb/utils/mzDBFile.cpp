@@ -74,7 +74,7 @@ bool MzDBFile::isNoLoss() {
 
     if (this->userParams.empty()) {
 
-        LOG(INFO) << "Loading mzdb param tree...";
+        std::cout << "Loading mzdb param tree..."; ////LOG(ERROR)
         int sqlCode = sqlite3_prepare_v2(db, "SELECT param_tree FROM mzdb", -1, &stmt, 0);
         if (sqlCode != SQLITE_OK) {
             printf("[MZDBFILE: is no loss]: can not request param tree, this a fatal error... Exiting");
@@ -90,10 +90,10 @@ bool MzDBFile::isNoLoss() {
         pugi::xml_document doc;
         pugi::xml_parse_result r = doc.load(result.c_str());
         if ( r.status )
-            LOG(ERROR) << "[MZDBFILE: is no loss] There was an error ! pugi_xml exit code:%d\n", r;
+			std::cerr << "[MZDBFILE: is no loss] There was an error ! pugi_xml exit code:%d\n", r; // LOG(ERROR) 
         IDeserializer::setUserParams(*this, doc);
 
-        LOG(INFO) << "mzDB userparams set !";
+		std::cout << "mzDB userparams set !"; //LOG(INFO)
     }
     string isNoLossStr = this->userParam("is_lossless").value;
     if (strcmp(isNoLossStr.c_str(), "false") == 0)
@@ -101,7 +101,7 @@ bool MzDBFile::isNoLoss() {
     else if ( strcmp(isNoLossStr.c_str(), "true") == 0 )
         return true;
     else {
-        LOG(ERROR) <<("Buggy no loss detection ! Set default to false\n");
+		std::cerr <<("Buggy no loss detection ! Set default to false\n"); //LOG(ERROR)
         return false;
     }
 }

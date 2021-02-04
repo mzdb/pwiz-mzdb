@@ -103,10 +103,10 @@ int deleteIfExists(const string &filename) {
 
     if (std::ifstream(filename.c_str())) {
         if (remove(filename.c_str()) != 0) {
-            LOG(ERROR) << "File " << filename << " already exists and is locked, exiting...";
+			std::cerr << "File " << filename << " already exists and is locked, exiting...";//  LOG(ERROR) 
             exit(EXIT_FAILURE);
         } else {
-            LOG(INFO) << "Done";
+			std::cout << "Done"; //LOG(INFO) 
         }
     }
     return 0;
@@ -147,7 +147,7 @@ pair<int, int> parseCycleRange(string& range) {
                 // TODO what if min == 1 ? does it mean first or second ?
                 return make_pair(min, max);
             } else {
-                LOG(ERROR) << "Error, max index (" << max << ") cannot be lower than min index (" << min << ")";
+               std::cerr << "Error, max index (" << max << ") cannot be lower than min index (" << min << ")"; //  LOG(ERROR) 
             }
         } catch (...) {} // should never come here because regex has already checked that values where integers
     }
@@ -160,7 +160,7 @@ void parseRange(string& range, DataMode mode,
                          vector<int>& modifiedIndex, const string& help) {
 	if (range != "") {
         if (range.size() > 3) {
-            LOG(ERROR) << "Error in parsing command line";
+			std::cerr << "Error in parsing command line";//  LOG(ERROR) 
             std::cout << help << endl;
             exit(EXIT_FAILURE);
         }
@@ -170,7 +170,7 @@ void parseRange(string& range, DataMode mode,
             try {
                 p = boost::lexical_cast<int>(range);
             } catch (boost::bad_lexical_cast &) {
-                LOG(ERROR) << "Error, index must be an integer";
+				std::cerr << "Error, index must be an integer";//  LOG(ERROR) 
                 std::cout << help << endl;
                 exit(EXIT_FAILURE);
             }
@@ -187,7 +187,7 @@ void parseRange(string& range, DataMode mode,
                 p1 = boost::lexical_cast<int>(splitted[0]);
                 p2 = boost::lexical_cast<int>(splitted[1]);
             } catch (boost::bad_lexical_cast &) {
-                LOG(ERROR) << "Error, the two indexes must be integers";
+				std::cerr << "Error, the two indexes must be integers";//  LOG(ERROR) 
                 std::cout << help << endl;
                 exit(EXIT_FAILURE);
             }
@@ -198,7 +198,7 @@ void parseRange(string& range, DataMode mode,
                 }
             } else {
                 std::cout << help << "\n";
-                LOG(ERROR) << "Error index 2 greater than index 1";
+				std::cerr << "Error index 2 greater than index 1";//  LOG(ERROR) 
                 exit(EXIT_FAILURE);
             }
         }
@@ -212,7 +212,7 @@ void parseRange(string& range, DataMode mode,
             try {
                 p1 = boost::lexical_cast<int>(splitted[0]);
                 if (p1 > MAX_MS) {
-                    LOG(ERROR) << "Error,  index 1, " << p1 <<" bigger than index 2" << MAX_MS;
+					std::cerr << "Error,  index 1, " << p1 <<" bigger than index 2" << MAX_MS;//  LOG(ERROR) 
                     exit(EXIT_FAILURE);
                 }
                 for (int i = p1; i <= MAX_MS; ++i) {
@@ -221,7 +221,7 @@ void parseRange(string& range, DataMode mode,
                 }
 
             } catch(boost::bad_lexical_cast &) {
-                LOG(ERROR) << "Error, index must be integer";
+				std::cerr << "Error, index must be integer"; //LOG(ERROR) 
                 exit(EXIT_FAILURE);
             }
         }
@@ -238,7 +238,7 @@ void parseResolutions(string& resolutionAsString, map<int, double>& resolutions,
                 resolutions[i+1] = boost::lexical_cast<double>(splitted[i]);
             }
         } catch (boost::bad_lexical_cast &) {
-            LOG(ERROR) << "Error, resolution values must be integers";
+			std::cerr << "Error, resolution values must be integers";//LOG(ERROR) 
             std::cout << help << endl;
             exit(EXIT_FAILURE);
         }
@@ -281,7 +281,7 @@ bool fileExists(std::string inputFileName, bool quitIfFileDoesNotExist, const st
     if(!fs::exists(bFileName)) {
         // file does not exist
         if(quitIfFileDoesNotExist) {
-            LOG(ERROR) << "File '" << inputFileName << "' does not exist. Exiting.";
+			std::cerr << "File '" << inputFileName << "' does not exist. Exiting.";//LOG(ERROR) 
             std::cout << help << std::endl;
             exit(EXIT_FAILURE);
         } else return false; // file does not exists but it's just informational
@@ -303,7 +303,7 @@ void checkInputFile(std::string &inputFileName, const string& help) {
             // MS_Bruker_Agilent_YEP_format generates a runtime error !
             } else if(fileExists(inputFileName + "/Analysis.yep", false, help)) {
                 // inputFileName = inputFileName + "/Analysis.yep"; // Bruker file format
-                LOG(ERROR) << "Bruker YEP format is not supported. Exiting.";
+				std::cerr << "Bruker YEP format is not supported. Exiting.";//LOG(ERROR)
                 exit(EXIT_FAILURE);
             }
         //} else if(std::regex_match(lc_inputFileName, std::regex(".*\\.raw$"))) {
@@ -472,7 +472,7 @@ int main(int argc, char* argv[]) {
     }
     //ops >> Option('C', "compress", compression)
     if (ops.options_remain()) {
-        LOG(ERROR) <<"Oops! Unexpected options. Refer to help";
+		std::cerr   <<"Oops! Unexpected options. Refer to help"; //LOG(ERROR)
         std::cout << help << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -481,14 +481,14 @@ int main(int argc, char* argv[]) {
     checkInputFile(filename, help);
 
     if (!filename.size()) {
-        LOG(ERROR) << "empty raw filename ! Exiting...";
+		std::cerr << "empty raw filename ! Exiting...";//LOG(ERROR)
         std::cout << help << std::endl;
         exit(EXIT_FAILURE);
     }
 
 #ifdef _WIN32
     if (alreadyOpened(filename)) {
-        LOG(ERROR) << "File already open in another application.\nPlease close it to perform conversion.";
+		std::cerr << "File already open in another application.\nPlease close it to perform conversion.";// LOG(ERROR)
         exit(EXIT_FAILURE);
     }
 #endif
@@ -547,7 +547,7 @@ int main(int argc, char* argv[]) {
 
     // filtering on cycles and RT at the same time should not be permitted
     if(cycleRangeStr != "" && rtRangeStr != "") {
-        LOG(FATAL) << "Filtering on cycles and RT is not allowed";
+		std::cerr << "Filtering on cycles and RT is not allowed";//LOG(FATAL) 
         exit(EXIT_FAILURE);
     }
     pair<int, int> cycleRange = parseCycleRange(cycleRangeStr);
@@ -566,11 +566,11 @@ int main(int argc, char* argv[]) {
     try {
         ((FullReaderList*) readers.get())->read(f.name, msdList);
     } catch(exception& e) {
-        LOG(ERROR) << e.what() << endl;
-        LOG(FATAL) << "This a fatal error. Exiting..." << endl;
+        std::cerr << e.what() << endl;//LOG(ERROR) 
+		std::cerr << "This a fatal error. Exiting..." << endl; //LOG(FATAL) 
         exit(EXIT_FAILURE);
     } catch(...) {
-        LOG(FATAL) << "Unknown fatal exception. Exiting...";
+		std::cerr << "Unknown fatal exception. Exiting...";//LOG(FATAL) 
         exit(EXIT_FAILURE);
     }
 
@@ -588,18 +588,18 @@ int main(int argc, char* argv[]) {
 		LOG(ERROR) << "Unknown fatal exception. Exiting...";
 	//	exit(EXIT_FAILURE);
 	}*/
-	LOG(INFO) << "WILL create writer";
+	std::cout  << "WILL create writer"; //LOG(INFO) 
 	mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, resolutions, compress, safeMode);
 	
-	LOG(INFO) << "WILL call checkMetaData";
+	std::cout << "WILL call checkMetaData";//LOG(INFO) 
     //---insert metadata
     try {
         writer.checkMetaData();
     } catch (exception& e) {
-        LOG(ERROR) << "Error checking metadata: ";
-        LOG(ERROR) << "\t->" << e.what();
+		std::cerr  << "Error checking metadata: ";// LOG(ERROR) 
+		std::cerr << "\t->" << e.what();// LOG(ERROR) 
     } catch(...) {
-        LOG(ERROR) << "unknown fatal exception. Exiting...";
+		std::cerr << "unknown fatal exception. Exiting...";// LOG(ERROR) 
     }
 
     //---check swath mode
@@ -611,10 +611,10 @@ int main(int argc, char* argv[]) {
         try {
             writer.isSwathAcquisition();
         } catch (exception& e) {
-            LOG(ERROR) << "Error checking DDA/SWATH Mode: ";
-            LOG(ERROR) << "\t->" << e.what();
+			std::cerr << "Error checking DDA/SWATH Mode: ";// LOG(ERROR) 
+			std::cerr << "\t->" << e.what();// LOG(ERROR) 
         } catch(...) {
-            LOG(ERROR) << "Unknown error checking DDA/SWATH Mode. Default to DDA...";
+			std::cerr << "Unknown error checking DDA/SWATH Mode. Default to DDA...";// LOG(ERROR) 
         }
     }
     // set default values unless value is specified
@@ -658,7 +658,7 @@ int main(int argc, char* argv[]) {
     summary << "MS n\t" << "m/z: " << f.bbHeightMsn << " Da, retention time: " << f.bbWidthMsn << "sec\n";
 
     summary << "\n";
-    LOG(INFO) << summary.str();
+	std::cout << summary.str();//LOG(INFO) 
     //end parsing commandline
 
     //---create parameters for peak picking
@@ -682,7 +682,7 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        LOG(INFO) << "Checking run slices numbers";
+        std::cout << "Checking run slices numbers";// LOG(INFO)
         // check if run slice numbers are sorted according to ms_level and begin_mz
         writer.checkAndFixRunSliceNumberAnId();
         // close mzDB sqlite handler
@@ -692,14 +692,14 @@ int main(int argc, char* argv[]) {
         fs::path finalOutputPath(outputFileName);
         boost::filesystem::rename(tempOutputPath, finalOutputPath);
     } catch (exception& e) {
-        LOG(ERROR) << e.what();
+		std::cerr << e.what(); //LOG(ERROR) 
     } catch(...) {
-        LOG(ERROR) << "Unknown error. Unrecoverable. Exiting...";
+		std::cerr << "Unknown error. Unrecoverable. Exiting...";//LOG(ERROR) 
         exit(EXIT_FAILURE);
     }
 
     clock_t endTime = clock();
-    LOG(INFO) << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl;
+	std::cout << "Elapsed Time: " << ((double) endTime - beginTime) / CLOCKS_PER_SEC << " sec" << endl; //LOG(INFO)
     
     /*
      * Piece of code written to rename the log file (if any)

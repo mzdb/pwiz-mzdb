@@ -107,7 +107,7 @@ private:
                 return d->id;
             }
         }
-        LOG(ERROR) << "Data encoding not found for findDataEncodingID(" << modeToString(mode) << ", " << inHighRes << ", " << noLoss << ")";
+		std::cerr << "Data encoding not found for findDataEncodingID(" << modeToString(mode) << ", " << inHighRes << ", " << noLoss << ")"; //LOG(ERROR) 
         return 1;
     }
 
@@ -202,7 +202,7 @@ public:
 
         // should never happen
         if (! spectrum || spectrum == nullptr) {
-            LOG(ERROR) << "ERROR...spectrum pointer is null";
+			std::cerr << "ERROR...spectrum pointer is null";//LOG(ERROR)
             return;
         }
         
@@ -210,10 +210,10 @@ public:
 
         if (! spec || spec == nullptr) {
             if(idxInCycle == 1) {
-                LOG(ERROR) << "null pwiz spectrum. Adding a fake spectrum for cycle " << idxInCycle;
+				std::cerr << "null pwiz spectrum. Adding a fake spectrum for cycle " << idxInCycle;//LOG(ERROR)
                 insertFakeScan(spectrum, bbFirstScanId);
             } else {
-                LOG(ERROR) << "null pwiz spectrum. Recovering has failed";
+				std::cerr  << "null pwiz spectrum. Recovering has failed"; //LOG(ERROR)
             }
             return;
         }
@@ -227,7 +227,7 @@ public:
         try {
             scan = spec->scanList.scans.at(0);
         } catch (exception&) {
-            LOG(ERROR) << "Empty scan vector, spectrum id:" << spectrum->id << ". Skipping it...";
+            std::cerr << "Empty scan vector, spectrum id:" << spectrum->id << ". Skipping it...";//LOG(ERROR)
             return;
         }
 
@@ -249,7 +249,7 @@ public:
             if(scanNumber != 0 && scanNumber != spectrum->id) {
                 scanOffset = scanNumber - spectrum->id;
                 // use scanOffset+1 instead of scanNumber, because current spectrum may not be the first spectrum
-                LOG(WARNING) << "First scan number is " << scanOffset+1 << ", previous spectra are not available";
+				std::cerr << "First scan number is " << scanOffset+1 << ", previous spectra are not available";//LOG(WARNING)
             }
             isScanOffsetComputed = true;
         }
@@ -268,7 +268,7 @@ public:
 
         //time
         float rt = PwizHelper::rtOf(spec);
-        if(rt == 0) LOG(ERROR) << "Can't find RT for spectrum " << title;
+        if(rt == 0) std::cerr << "Can't find RT for spectrum " << title; //LOG(ERROR)
         sqlite3_bind_double(mMzdbFile.stmt, 5, rt);
 
         //msLevel
@@ -288,7 +288,7 @@ public:
         try {
             sqlite3_bind_double(mMzdbFile.stmt, 8, spec->cvParam(pwiz::msdata::MS_total_ion_current).valueAs<float>());
         } catch (boost::bad_lexical_cast&) {
-            LOG(ERROR) << "Wrong cv value: MS_total_ion_current";
+			std::cerr << "Wrong cv value: MS_total_ion_current";//LOG(ERROR) 
             sqlite3_bind_double(mMzdbFile.stmt, 8, 0.0);
         }
 
@@ -296,7 +296,7 @@ public:
         try {
             sqlite3_bind_double(mMzdbFile.stmt, 9, spec->cvParam(pwiz::msdata::MS_base_peak_m_z).valueAs<double>());
         } catch (boost::bad_lexical_cast&) {
-            LOG(ERROR) << "Wrong cv value MS_base_peak_mz: " << spec->cvParam(pwiz::msdata::MS_base_peak_m_z);
+			std::cerr << "Wrong cv value MS_base_peak_mz: " << spec->cvParam(pwiz::msdata::MS_base_peak_m_z);//LOG(ERROR) 
             sqlite3_bind_double(mMzdbFile.stmt, 9, 0.0);
         }
 
@@ -304,7 +304,7 @@ public:
         try {
             sqlite3_bind_double(mMzdbFile.stmt, 10, spec->cvParam(pwiz::msdata::MS_base_peak_intensity).valueAs<float>());
         } catch (boost::bad_lexical_cast&) {
-            LOG(ERROR) << "Wrong cv value: MS_base_peak_intensity";
+			std::cerr << "Wrong cv value: MS_base_peak_intensity"; //LOG(ERROR) 
             sqlite3_bind_double(mMzdbFile.stmt, 10, 0.0);
         }
 
@@ -590,7 +590,7 @@ public:
                 }
             }
             summary << "\n\n";
-            LOG(INFO) << summary.str();
+             std::cout << summary.str();//LOG(INFO)
         }
     }
 

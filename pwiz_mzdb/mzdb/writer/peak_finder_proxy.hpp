@@ -85,7 +85,7 @@ public:
                                                                          map<int, double> resolutions) {
         if (!spectrum || spectrum == nullptr) {
             // do nothing is the spectrum is null
-            LOG(ERROR) << "Call to computeCentroidsWidths with a null spectrum";
+			std::cerr << "Call to computeCentroidsWidths with a null spectrum";//LOG(ERROR) 
             return;
         }
 

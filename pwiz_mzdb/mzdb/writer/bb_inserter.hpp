@@ -108,8 +108,8 @@ private:
         auto lastRunSliceIdx = bbs.back()->runSliceIdx();
 
         if (m_lastMinRunSliceIdx && firstRunSliceIdx < m_lastMinRunSliceIdx) {
-            LOG(ERROR) << "The first spectrum does not contain a low mass contained in the first runSlice.";
-            LOG(ERROR) << "This is a bug and it will be fixed in a next release of raw2mzdb.";
+			std::cerr << "The first spectrum does not contain a low mass contained in the first runSlice.";//LOG(ERROR) 
+			std::cerr << "This is a bug and it will be fixed in a next release of raw2mzdb."; //LOG(ERROR) 
             exit(EXIT_FAILURE);
         }
 
@@ -131,9 +131,9 @@ private:
                     sqlite3_bind_int(m_mzdbFile.stmt, 7, 1);
                     int rc = sqlite3_step(m_mzdbFile.stmt);
                     if (rc != SQLITE_DONE) {
-                        LOG(ERROR) << "Error inserting run slice, request was:";
-                        LOG(INFO) << "INSERT INTO run_slice VALUES (" << m_runSliceCount << ", " << msLevel << ", " << m_runSliceCount << ", " << moz << ", " << (moz+invBBheight) << ", null, 1);";
-                        LOG(ERROR) << "SQLITE ERROR CODE: " << rc <<":" << sqlite3_errmsg(m_mzdbFile.db);
+						std::cerr << "Error inserting run slice, request was:"; //LOG(ERROR)
+						std::cout << "INSERT INTO run_slice VALUES (" << m_runSliceCount << ", " << msLevel << ", " << m_runSliceCount << ", " << moz << ", " << (moz+invBBheight) << ", null, 1);"; //LOG(INFO) 
+						std::cerr << "SQLITE ERROR CODE: " << rc <<":" << sqlite3_errmsg(m_mzdbFile.db); //LOG(ERROR) 
                     }
                     sqlite3_reset(m_mzdbFile.stmt);
                     m_runSliceCount++;
@@ -160,9 +160,9 @@ private:
                 sqlite3_bind_int(m_mzdbFile.stmt, 7, 1);
                 int rc = sqlite3_step(m_mzdbFile.stmt);
                 if (rc != SQLITE_DONE) {
-                    LOG(ERROR) << "Error inserting run slice, request was:";
-                    LOG(INFO) << "INSERT INTO run_slice VALUES (" << m_runSliceCount << ", " << msLevel << ", " << m_runSliceCount << ", " << moz << ", " << (moz+invBBheight) << ", null, 1);";
-                    LOG(ERROR) << "SQLITE ERROR CODE: " << rc <<":" << sqlite3_errmsg(m_mzdbFile.db);
+					std::cerr << "Error inserting run slice, request was:";//LOG(ERROR) 
+					std::cerr << "INSERT INTO run_slice VALUES (" << m_runSliceCount << ", " << msLevel << ", " << m_runSliceCount << ", " << moz << ", " << (moz+invBBheight) << ", null, 1);"; //LOG(INFO)
+					std::cerr << "SQLITE ERROR CODE: " << rc <<":" << sqlite3_errmsg(m_mzdbFile.db); //LOG(ERROR)
                 }
                 sqlite3_reset(m_mzdbFile.stmt);
                 m_runSliceCount++;

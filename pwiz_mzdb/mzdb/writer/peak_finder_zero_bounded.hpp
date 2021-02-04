@@ -185,7 +185,7 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
     // print warning if number of centroid differs, but not if centroids had to be recalculated !
     // peackpeacking is recalculated if spectrum is in PROFILE mode and number or centroids is null or equal to number of profiles data points
     if (detectPeaks && centroids.size() != mzSize && centroids.size() != optimizedCentroids.size()) {
-        LOG(WARNING) << "Incoherent number of optimized centroids versus input centroids on MS" << spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>() << " spectrum '" << spectrum->id << "'";
+		std::cerr << "Incoherent number of optimized centroids versus input centroids on MS" << spectrum->cvParam(pwiz::msdata::MS_ms_level).valueAs<int>() << " spectrum '" << spectrum->id << "'";//LOG(WARNING) 
     }
 
     // store the new centroids or fitted peaks

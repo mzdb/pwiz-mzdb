@@ -273,7 +273,7 @@ static void optimizeCeres(const vector<double>& mzData,
             for (size_t k = 0; k < peaks.size(); ++k) {
                 Centroid<mz_t, int_t>* c = peaks[k]->_computeFittedCentroid();
                 if (! c) {
-                    LOG(ERROR) << "[findPeak Thermo] : null pointer";
+					std::cerr  << "[findPeak Thermo] : null pointer";//LOG(ERROR)
                     //printf("[findPeak Thermo] : null pointer\n");
                 }
                 cs.push_back(c);
@@ -351,7 +351,7 @@ static void cwt(const vector<type>& intensities, double& fwhm, vector<double>& r
     if (intensities.empty()) {
         //printf("Empty spectrum no chance !");
         //exit(0);
-        LOG(FATAL) << "Empty spectrum no chance !";
+         std::cerr << "Empty spectrum no chance !";//LOG(FATAL)
         exit(EXIT_FAILURE);
     }
 
@@ -370,7 +370,7 @@ static void cwt(const vector<type>& intensities, double& fwhm, vector<double>& r
         wt = cwtlib::CWTalgorithm::cwtft(s, scales, cwtlib::MexicanHat(), "Youpi");
     } catch(exception& e) {
         //printf("%s\n", e.what());
-        LOG(ERROR) << e.what();
+         std::cerr << e.what();//LOG(ERROR)
     }
 
     //fill result

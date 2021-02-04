@@ -99,7 +99,7 @@ private:
                 this->detectedPeaks.push_back( std::move(p));
             }
         } else {
-            LOG(WARNING) << "Empty stuff!";
+            std::cout << "Empty stuff!"; //LOG(WARNING) 
         }
 
     }
@@ -209,7 +209,7 @@ private:
                 auto c = peak->_computeFittedCentroid();
                 centroids.push_back(c);
             } catch (exception& e) {
-                LOG(ERROR) << e.what();
+				std::cerr << e.what(); //LOG(ERROR)
             }
         }
     }
@@ -220,7 +220,7 @@ private:
                 auto c = peak->_computeCentroid();
                 centroids.push_back(c);
             } catch (exception& e) {
-                LOG(ERROR) << e.what();
+				std::cerr  << e.what(); //LOG(ERROR)
             }
         });
     }

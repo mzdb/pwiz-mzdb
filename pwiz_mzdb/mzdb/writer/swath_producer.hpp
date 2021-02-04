@@ -151,7 +151,7 @@ private:
                  */
                 if (!cycle && msLevel != 1) {
                     // special case, there is no MS1 parent
-                    LOG(WARNING) << "Spectrum \"" << spectrum->id << "\" has no precursor, creating a fake one";
+                    std::cout << "Spectrum \"" << spectrum->id << "\" has no precursor, creating a fake one";//LOG(WARNING) 
                     cycleCount = 1; // new value should be 1
                     // create a fake MS1 parent with spectrum = null
                     currMs1 = make_shared<mzSpectrum<h_mz_t, h_int_t> >();
@@ -184,7 +184,7 @@ private:
                         s->isInHighRes = isInHighRes;
                         cycle->addHighResSpectrum(s);
                     } else {
-                        LOG(WARNING) << "Low resolution spectrum is not normal in DIA mode";
+						std::cout << "Low resolution spectrum is not normal in DIA mode"; //LOG(WARNING)
                         auto s = std::make_shared<mzSpectrum<l_mz_t, l_int_t> >(scanCount, cycleCount, spectrum, centroidSpectrum, wantedMode, m_safeMode);
                         s->isInHighRes = isInHighRes;
                         cycle->addLowResSpectrum(s);
@@ -194,13 +194,13 @@ private:
                 spectrum.reset();
                 centroidSpectrum.reset();
             } catch (runtime_error& e) {
-                LOG(ERROR) << "Runtime exception: " << e.what();
+				std::cerr  << "Runtime exception: " << e.what();//LOG(ERROR)
             } catch (exception& e) {
-                LOG(ERROR) << "Catch an exception: " << e.what();
-                LOG(ERROR) << "Skipping scan";
+				std::cerr << "Catch an exception: " << e.what();//LOG(ERROR)
+				std::cerr << "Skipping scan"; //LOG(ERROR)
                 continue;
             } catch(...) {
-                LOG(ERROR) << "\nCatch an unknown exception. Trying to recover...";
+				std::cerr  << "\nCatch an unknown exception. Trying to recover..."; //LOG(ERROR)
                 continue;
             }
             scanCount++;

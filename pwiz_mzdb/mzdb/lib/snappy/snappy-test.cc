@@ -311,7 +311,7 @@ int ZLib::CompressInit(Bytef *dest, uLongf *destLen,
   if (comp_init_) {      // we've already initted it
     err = deflateReset(&comp_stream_);
     if (err != Z_OK) {
-      LOG(WARNING) << "ERROR: Can't reset compress object; creating a new one";
+		std::cout << "ERROR: Can't reset compress object; creating a new one"; LOG(WARNING)
       deflateEnd(&comp_stream_);
       comp_init_ = false;
     }
@@ -439,8 +439,8 @@ int ZLib::UncompressInit(Bytef *dest, uLongf *destLen,
   if (uncomp_init_) {    // we've already initted it
     err = inflateReset(&uncomp_stream_);
     if (err != Z_OK) {
-      LOG(WARNING)
-        << "ERROR: Can't reset uncompress object; creating a new one";
+    //  LOG(WARNING)
+		  std::cout  << "ERROR: Can't reset uncompress object; creating a new one";
       UncompressErrorInit();
     }
   }
@@ -465,8 +465,8 @@ int ZLib::UncompressAtMostOrAll(Bytef *dest, uLongf *destLen,
   int err = Z_OK;
 
   if ( (err=UncompressInit(dest, destLen, source, sourceLen)) != Z_OK ) {
-    LOG(WARNING) << "UncompressInit: Error: " << err << " SourceLen: "
-                 << *sourceLen;
+	  std::cout << "UncompressInit: Error: " << err << " SourceLen: "
+                 << *sourceLen; //LOG(WARNING)
     return err;
   }
 
@@ -505,7 +505,8 @@ int ZLib::UncompressAtMostOrAll(Bytef *dest, uLongf *destLen,
              && uncomp_stream_.avail_in == 0) {    // and we read it all
     ;
   } else if (err == Z_STREAM_END && uncomp_stream_.avail_in > 0) {
-    LOG(WARNING)
+    //LOG(WARNING)
+	  std::cout
       << "UncompressChunkOrAll: Received some extra data, bytes total: "
       << uncomp_stream_.avail_in << " bytes: "
       << string(reinterpret_cast<const char *>(uncomp_stream_.next_in),
@@ -514,8 +515,8 @@ int ZLib::UncompressAtMostOrAll(Bytef *dest, uLongf *destLen,
     return Z_DATA_ERROR;       // what's the extra data for?
   } else if (err != Z_OK && err != Z_STREAM_END && err != Z_BUF_ERROR) {
     // an error happened
-    LOG(WARNING) << "UncompressChunkOrAll: Error: " << err
-                 << " avail_out: " << uncomp_stream_.avail_out;
+	  std::cout << "UncompressChunkOrAll: Error: " << err
+                 << " avail_out: " << uncomp_stream_.avail_out; //LOG(WARNING) 
     UncompressErrorInit();
     return err;
   } else if (uncomp_stream_.avail_out == 0) {

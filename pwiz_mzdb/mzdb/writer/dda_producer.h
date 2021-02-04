@@ -195,13 +195,13 @@ public:
                     centroidSpectrum = mzdb::getSpectrum<SpectrumListType>(spectrumList, i, true, levelsToCentroid);
                 }
             } catch (runtime_error& e) {
-                LOG(ERROR) << "Runtime exception: " << e.what();
+                std::cerr << "Runtime exception: " << e.what(); //LOG(ERROR)
             } catch (exception& e) {
-                LOG(ERROR) << "Catch an exception: " << e.what();
-                LOG(ERROR) << "Skipping scan";
+				std::cerr << "Catch an exception: " << e.what();//LOG(ERROR)
+				std::cerr << "Skipping scan";//LOG(ERROR)
                 continue;
             } catch(...) {
-                LOG(ERROR) << "\nCatch an unknown exception. Trying to recover...";
+				std::cerr << "\nCatch an unknown exception. Trying to recover...";//LOG(ERROR)
                 continue;
             }
             
@@ -219,7 +219,7 @@ public:
             }
             auto& bbRtWidthBound = bbRtWidth[msLevel];
             const float rt = PwizHelper::rtOf(spectrum);
-            if(rt == 0) LOG(ERROR) << "Can not find RT for spectrum " << spectrum->id;
+            if(rt == 0) std::cerr << "Can not find RT for spectrum " << spectrum->id; //LOG(ERROR)
             bool isInHighRes = this->isInHighRes(spectrum, isNoLoss);
             bool added = false;
 
@@ -271,7 +271,7 @@ public:
 
         //just logging if we did not found any spectrea with mslvl = 1
         if (m_msLevels.find(1) == m_msLevels.end()) {
-            LOG(WARNING) << "Did not see any msLevel 1 !";
+			std::cerr << "Did not see any msLevel 1 !";//LOG(WARNING)
         }
 
         //signify that we finished producing sending a poison pill
