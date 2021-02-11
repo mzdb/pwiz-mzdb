@@ -86,7 +86,7 @@ private:
 
         size_t nbProc = boost::thread::hardware_concurrency();
         //---heard that in theory should be around (nbProc - 4) / 2 + 1);
-        size_t maxNbThreads = std::max<size_t>(1, nbProc);
+        size_t maxNbThreads = std::max<size_t>(1, 1); // JPM.TODO JPM.TEST : (1, nbProc); 
 
         this->_peakPicksTypedSpectra<h_mz_t, h_int_t>(highResBuffer, /*m,*/ filetype, params, maxNbThreads);
         this->_peakPicksTypedSpectra<l_mz_t, l_int_t>(lowResBuffer, /*m,*/ filetype, params, maxNbThreads);

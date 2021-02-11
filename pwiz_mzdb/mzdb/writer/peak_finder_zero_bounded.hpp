@@ -146,7 +146,7 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
             } else {
                 exitOnError("Centroids must be previously computed if peak detection is disabled.");
             }
-            collec.optimize(optimizedCentroids, mzPeakFinderUtils::GAUSS_OPTIMIZATION, computeFWHM);
+            collec.optimize(optimizedCentroids, params.optimizationOpt, computeFWHM);
             mzBuffer.clear();
             intBuffer.clear();
         } else if(lastInt > 0 && ints[i] > 0) {
@@ -176,7 +176,7 @@ static void findPeaks(const pwiz::msdata::SpectrumPtr& spectrum,
         } else {
             exitOnError("Centroids must be previously computed if peak detection is disabled on spectrum " + spectrum->id);
         }
-        collec.optimize(optimizedCentroids, mzPeakFinderUtils::GAUSS_OPTIMIZATION, computeFWHM);
+        collec.optimize(optimizedCentroids, params.optimizationOpt, computeFWHM);
     }
     // clear buffers
     mzBuffer.clear();

@@ -477,7 +477,8 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
                                      string buildDate,
                                      map<int, double> resolutions,
                                      bool compress,
-                                     bool safeMode):
+                                     bool safeMode,
+									 unsigned char optMode):
     m_mzdbFile(f),
     m_dataModeByMsLevel(dataModeByMsLevel),
     m_originFileFormat(originFileFormat),
@@ -515,7 +516,7 @@ PWIZ_API_DECL mzDBWriter::mzDBWriter(mzdb::MzDBFile& f,
 	std::cout << "STEP 2";//LOG(INFO) 
     this->buildDataEncodingRowByID();
 	std::cout << "STEP 3"; //LOG(INFO) 
-    this->computeResolutions();
+    this->computeResolutions(optMode);
 	std::cout << "STEP 4"; //LOG(INFO) 
 }
 
@@ -1084,7 +1085,7 @@ void mzDBWriter::isSwathAcquisition() {
     }
 }
 
-vector<double> computeResolution(pwiz::msdata::detail::SpectrumList_ABI* spectrumList, int msLevel, int id, double minIntensityFactor, double maxIntensityFactor) {
+vector<double> computeResolution(pwiz::msdata::detail::SpectrumList_ABI* spectrumList, int msLevel, int id, double minIntensityFactor, double maxIntensityFactor, unsigned char optMode) {
     int minPeaksPerSpectrum = 10;
     vector<double> resolutions;
     
@@ -1116,7 +1117,7 @@ vector<double> computeResolution(pwiz::msdata::detail::SpectrumList_ABI* spectru
         });
         spectrumData.setDetectedPeaks(centroids, p, mzPeakFinderUtils::CWT_DISABLED);
         vector<std::shared_ptr<Centroid<double, double>>> optimizedCentroids;
-        spectrumData.optimize(optimizedCentroids, mzPeakFinderUtils::GAUSS_OPTIMIZATION, true);
+        spectrumData.optimize(optimizedCentroids, optMode /*mzPeakFinderUtils::GAUSS_OPTIMIZATION*/, true);
         
         // compute resolution on "ordinary" centroids (not the lowest neither the highest peaks)
         double minIntensity = maxIntensity * minIntensityFactor;
@@ -1148,7 +1149,7 @@ double roundResolution(double r) {
     return (floor((r * 2) / div) / 2) * div;
 }
 
-void mzDBWriter::computeResolutions(int nbSpectraToConsider, double minIntensityFactor, double maxIntensityFactor) {
+void mzDBWriter::computeResolutions(int nbSpectraToConsider, double minIntensityFactor, double maxIntensityFactor, unsigned char optMode) {
     /*
      * what we want
      * - resolution for each ms level
@@ -1221,10 +1222,10 @@ void mzDBWriter::computeResolutions(int nbSpectraToConsider, double minIntensity
                     while(id < totalNbSpectra) {
                         // compute resolution for this spectrum
                         int spectrumId = id;
-                        vector<double> resolution = computeResolution(spectrumList, msLevel, spectrumIdsPerMsLevel[msLevel][spectrumId], minIntensityFactor, maxIntensityFactor);
+                        vector<double> resolution = computeResolution(spectrumList, msLevel, spectrumIdsPerMsLevel[msLevel][spectrumId], minIntensityFactor, maxIntensityFactor, optMode);
                         // if this spectrum does not have enough peaks, select the next one for the same MS level
                         while(resolution.size() == 0 && spectrumId < id + incr) {
-                            resolution = computeResolution(spectrumList, msLevel, spectrumIdsPerMsLevel[msLevel][++spectrumId], minIntensityFactor, maxIntensityFactor);
+                            resolution = computeResolution(spectrumList, msLevel, spectrumIdsPerMsLevel[msLevel][++spectrumId], minIntensityFactor, maxIntensityFactor, optMode);
                         }
                         resolutionsPerMsLevel[msLevel].insert(resolutionsPerMsLevel[msLevel].end(), resolution.begin(), resolution.end());
                         id += incr;
@@ -1266,8 +1267,8 @@ void mzDBWriter::computeResolutions(int nbSpectraToConsider, double minIntensity
     }
 }
 
-void mzDBWriter::computeResolutions() {
-    computeResolutions(60, 0.35, 0.65);
+void mzDBWriter::computeResolutions(unsigned char optMode) {
+    computeResolutions(60, 0.35, 0.65, optMode);
 }
 
 }//end mzdb namesapce

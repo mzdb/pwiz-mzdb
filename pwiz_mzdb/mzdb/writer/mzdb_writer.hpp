@@ -196,7 +196,7 @@ protected:
      */
     void buildDataEncodingRowByID();
     
-    void computeResolutions();
+    void computeResolutions(unsigned char optMode);
 
     /**
      * @brief createTables
@@ -251,7 +251,7 @@ protected:
 
 public:
 
-    void computeResolutions(int nbSpectraToConsider, double minIntensityFactor, double maxIntensityFactor);
+    void computeResolutions(int nbSpectraToConsider, double minIntensityFactor, double maxIntensityFactor, unsigned char optMode);
     /**
      * @brief checkMetaData
      *  build and modify missing metadata
@@ -315,7 +315,8 @@ public:
                              string buildDate,
                              map<int, double> resolutions,
                              bool compress,
-                             bool safeMode);
+                             bool safeMode,
+							 unsigned char optMode);
 
     /**
      * @brief mzDBWriter::writeMzDB

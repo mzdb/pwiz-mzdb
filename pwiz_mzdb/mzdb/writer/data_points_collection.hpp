@@ -331,7 +331,12 @@ public:
 
         //--- no optimization requested, much faster with relatively good result
         if ( optimizationOpt == mzPeakFinderUtils::NO_OPTIMIZATION) {
-            optimizedCentroids = inputCentroids;
+
+			for (size_t i = 0; i < inputCentroids.size(); ++i) {
+				optimizedCentroids.push_back(inputCentroids[i]);
+			}
+
+            //optimizedCentroids = inputCentroids; // this code was erasing previous values in optimizedCentroids
         }
         //--- optimize all detected peak's width and intensity
         else if ( optimizationOpt == mzPeakFinderUtils::GAUSS_OPTIMIZATION ) {
