@@ -599,7 +599,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	std::cout  << "WILL create writer\n"; //LOG(INFO) 
-	mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, resolutions, compress, safeMode);
+	mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, resolutions, compress, safeMode, optMode);
 	
 	std::cout << "WILL call checkMetaData\n";//LOG(INFO) 
     //---insert metadata

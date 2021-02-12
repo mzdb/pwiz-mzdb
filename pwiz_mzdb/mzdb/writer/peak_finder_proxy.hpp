@@ -126,7 +126,7 @@ public:
                 peakPickerParams.optimizationOpt = mzPeakFinderUtils::NO_OPTIMIZATION;
                 peakPickerParams.minSNR = 0.0;
                 peakPickerParams.fwhm = TOF_FWHM;
-				mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams,  detectPeaks, computeFWHM, mzPeakFinderUtils::CWT_ENABLED);
+				mzPeakFinderWavelet::findPeaks<mz_t, int_t>(spectrum, centroids, peakPickerParams, detectPeaks, computeFWHM, mzPeakFinderUtils::CWT_ENABLED);
                 break;
             }
         }
