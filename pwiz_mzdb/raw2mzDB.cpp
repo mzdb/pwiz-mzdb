@@ -495,6 +495,7 @@ int main(int argc, char* argv[]) {
     }
 
 #ifdef _WIN32
+	//###VDS TIMSTOF Error (directory ) comment next verif
     if (alreadyOpened(filename)) {
 		std::cerr << "File already open in another application.\nPlease close it to perform conversion.";// LOG(ERROR)
         exit(EXIT_FAILURE);
@@ -583,24 +584,24 @@ int main(int argc, char* argv[]) {
     }
 
     auto& msData = msdList[0];
-	CVID originFileFormat = MS_Thermo_RAW_format;
+
+	// ###VDS  : identifyFileFormat changed to identifyAsReader ...
+	// WAS: auto originFileFormat = pwiz::msdata::identifyFileFormat(readers, f.name);
+	CVID originFileFormat;
 	try {
 		ExtendedReaderList readerList;
 		 originFileFormat = readerList.identifyAsReader(f.name)->getCvType();
 	} catch (exception& e) {
-		LOG(ERROR) << e.what() << endl;
-		LOG(ERROR) << "This a fatal error. Exiting..." << endl;
-		//exit(EXIT_FAILURE);
-	}
-	catch (...) {
-		LOG(ERROR) << "Unknown fatal exception. Exiting...";
-	//	exit(EXIT_FAILURE);
+
+		std::cerr  << e.what() << endl;
+		std::cerr << "This a fatal error. ..." << endl;
+		exit(EXIT_FAILURE);
 	}
 
-	std::cout  << "WILL create writer"; //LOG(INFO) 
-	mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, resolutions, compress, safeMode, optMode);
+	std::cout  << "WILL create writer\n"; //LOG(INFO) 
+	mzDBWriter writer(f, msData, originFileFormat, dataModeByMsLevel, buildDate, resolutions, compress, safeMode);
 	
-	std::cout << "WILL call checkMetaData";//LOG(INFO) 
+	std::cout << "WILL call checkMetaData\n";//LOG(INFO) 
     //---insert metadata
     try {
         writer.checkMetaData();

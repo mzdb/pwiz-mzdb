@@ -257,7 +257,7 @@ static void findLocalMinima( const vector<mz_uint>& maxIndexes, const VEC& data,
 
 
 /**
-*
+*###VDS Ceres Error: not used ?!
 */
 template<class mz_t, class int_t>
 static void optimizeCeres(const vector<double>& mzData,
@@ -265,6 +265,7 @@ static void optimizeCeres(const vector<double>& mzData,
                           vector<mzPeak<mz_t, int_t>*>& peaks,
                           vector<Centroid<mz_t, int_t>*>& centroids,
                           byte op = NO_OPTIMIZATION) {
+    std::cout << "####  Call optimizeCeres ";
     if ( ! peaks.empty() ) {
         /* optimize all detected peak 's  width and intensity */
         if ( op & GAUSS_OPTIMIZATION ) {

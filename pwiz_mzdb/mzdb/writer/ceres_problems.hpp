@@ -184,6 +184,10 @@ public:
      // output used to contain input centroids
     void solve(vector<std::shared_ptr<Centroid<mz_t, int_t> > >& output, ceres::Solver::Options options = getDefaultOptions()) {
 
+		//###VDS Test logs
+		//std::stringstream msg;
+		//msg << "\n### Solve ceres _" << centroids.size() << "_ xData.size() _" << xData.size() << "_ \n";	
+		//std::cout << msg.str();
         /** to store initial parameters*/
         vector<double> data;
         //lwhms.reserve(centroids.size()); rwhms.reserve(centroids.size());
@@ -195,12 +199,20 @@ public:
             double intensity = c->intensity;
             double lwhm = c->lwhm;
             double rwhm = c->rwhm;
-            
+			//###VDS Test logs
+			//std::stringstream  msg2;
+			//msg2 << "\n    ** centroid peak  " << i << ": int ; lwhm ; lwhm " << intensity << "; " << lwhm << "; " << rwhm << ";\n";
+			//std::cout << msg2.str();
+
             data.push_back(intensity);
             data.push_back( (lwhm * 2.0) / SIGMA_FACTOR ); //enter sigma directly
             data.push_back( (rwhm * 2.0) / SIGMA_FACTOR );
         }
-        
+		//###VDS Test logs	
+		//std::stringstream  msg3;
+		//msg3 << "   ** data size " << data.size() << " \n";
+		//std::cout << msg3.str();
+
         /** add a cost function for each point */
         if (centroids.size() > 10 ) {
             for (size_t i = 0; i < centroids.size(); ++i) {
@@ -241,11 +253,15 @@ public:
                 //if (centroids.size() > 1) {
                 if (isFiniteNumber<double>(intensity) && intensity > 0 && abs(intensity - c->intensity) < (c->intensity * 0.5))
                     c->intensity = intensity;
-                //}*/
+                //}
                 output.push_back(c);
             }
-        }
+		}
         //centroids.clear();
+		//###VDS Test logs	
+		//std::stringstream  msg4;
+		//msg4 << " ### Solve ceres DONE " << output.size();
+		//std::cout << msg4.str();
     }
 
     /**
